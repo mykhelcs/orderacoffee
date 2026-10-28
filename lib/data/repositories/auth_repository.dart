@@ -5,32 +5,61 @@ import '../models/user_profile.dart';
 
 class AuthRepository {
   AuthRepository({
-    this._auth,
+    FirebaseAuth? auth,
     FirebaseFirestore? firestore,
-  })  : _firestore = firestore;
+  })  : _auth = auth,
+        _firestore = firestore;
 
   final FirebaseAuth? _auth;
   final FirebaseFirestore? _firestore;
 
-  FirebaseAuth get auth => _auth ?? FirebaseAuth.instance;
-  FirebaseFirestore get firestore => _firestore ?? FirebaseFirestore.instance;
+  FirebaseAuth? get auth {
+    if (_auth != null) return _auth;
+    try {
+      return FirebaseAuth.instance;
+    } catch (_) {
+      return null;
+    }
+  }
 
-  CollectionReference<Map<String, dynamic>> get _usersCol =>
-      firestore.collection('users');
+  FirebaseFirestore? get firestore {
+    if (_firestore != null) return _firestore;
+    try {
+      return FirebaseFirestore.instance;
+    } catch (_) {
+      return null;
+    }
+  }
 
-  User? get currentUser => auth.currentUser;
+  CollectionReference<Map<String, dynamic>>? get _usersCol {
+    final fs = firestore;
+    if (fs == null) return null;
+    return fs.collection('users');
+  }
 
-  Stream<User?> watchAuthState() => auth.authStateChanges();
+  User? get currentUser => auth?.currentUser;
 
-  /// A1: Sign up with email/password and initialize user profile
+  Stream<User?> watchAuthState() {
+    final a = auth;
+    if (a == null) return Stream.value(null);
+    return a.authStateChanges();
+  }
+
+  /// A1: Sign up with email/password and initialize user profile in Firestore
   Future<UserProfile> signUp({
     required String email,
     required String password,
     required String name,
     required String phone,
   }) async {
+    final a = auth;
+    final col = _usersCol;
+    if (a == null || col == null) {
+      throw const AuthFailure('Firebase is not initialized');
+    }
+
     try {
-      final credential = await auth.createUserWithEmailAndPassword(
+      final credential = await a.createUserWithEmailAndPassword(
         email: email.trim(),
         password: password,
       );
@@ -38,6 +67,8 @@ class AuthRepository {
       if (user == null) {
         throw const AuthFailure('Failed to create user account');
       }
+
+      await user.updateDisplayName(name.trim());
 
       final profile = UserProfile(
         uid: user.uid,
@@ -51,7 +82,7 @@ class AuthRepository {
         createdAt: DateTime.now(),
       );
 
-      await _usersCol.doc(user.uid).set({
+      await col.doc(user.uid).set({
         ...profile.toMap(),
         'createdAt': FieldValue.serverTimestamp(),
       });
@@ -70,8 +101,13 @@ class AuthRepository {
     required String email,
     required String password,
   }) async {
+    final a = auth;
+    if (a == null) {
+      throw const AuthFailure('Firebase is not initialized');
+    }
+
     try {
-      final credential = await auth.signInWithEmailAndPassword(
+      final credential = await a.signInWithEmailAndPassword(
         email: email.trim(),
         password: password,
       );
@@ -90,8 +126,10 @@ class AuthRepository {
 
   /// A3: Log out current user
   Future<void> logOut() async {
+    final a = auth;
+    if (a == null) return;
     try {
-      await auth.signOut();
+      await a.signOut();
     } catch (e) {
       throw AuthFailure('Failed to sign out: $e');
     }
@@ -99,8 +137,12 @@ class AuthRepository {
 
   /// A4: Send password reset email
   Future<void> resetPassword(String email) async {
+    final a = auth;
+    if (a == null) {
+      throw const AuthFailure('Firebase is not initialized');
+    }
     try {
-      await auth.sendPasswordResetEmail(email: email.trim());
+      await a.sendPasswordResetEmail(email: email.trim());
     } on FirebaseAuthException catch (e) {
       throw AuthFailure(e.message ?? 'Password reset failed', e.code);
     } catch (e) {
@@ -111,8 +153,12 @@ class AuthRepository {
 
   /// A6: Read user role ('customer' or 'admin')
   Future<String> readRole(String uid) async {
+    final a = auth;
+    final col = _usersCol;
+    if (a == null || col == null) return 'customer';
+
     try {
-      final user = auth.currentUser;
+      final user = a.currentUser;
       if (user != null && user.uid == uid) {
         final idTokenResult = await user.getIdTokenResult();
         if (idTokenResult.claims?['admin'] == true) {
@@ -120,7 +166,7 @@ class AuthRepository {
         }
       }
 
-      final doc = await _usersCol.doc(uid).get();
+      final doc = await col.doc(uid).get();
       if (!doc.exists) {
         throw const NotFoundFailure('User profile not found');
       }
@@ -133,20 +179,25 @@ class AuthRepository {
 
   /// A7: Delete account and profile document
   Future<void> deleteAccount() async {
-    final user = auth.currentUser;
+    final a = auth;
+    final col = _usersCol;
+    if (a == null || col == null) return;
+
+    final user = a.currentUser;
     if (user == null) {
       throw const AuthFailure('No authenticated user to delete');
     }
 
     try {
       final uid = user.uid;
-      await _usersCol.doc(uid).delete();
+      await col.doc(uid).delete();
       await user.delete();
+      await a.signOut();
     } on FirebaseAuthException catch (e) {
       throw AuthFailure(e.message ?? 'Failed to delete account', e.code);
     } catch (e) {
       if (e is AppException) rethrow;
-      throw AuthFailure('Failed to delete account: $e');
+      throw AuthFailure(e.toString());
     }
   }
 }

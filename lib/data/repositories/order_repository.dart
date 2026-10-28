@@ -1,47 +1,71 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
 import 'package:cloud_functions/cloud_functions.dart';
 import '../../core/errors/failures.dart';
 import '../models/cart_line.dart';
-import '../models/menu_item.dart';
 import '../models/order.dart';
 import 'cart_repository.dart';
 import 'menu_repository.dart';
 
 class OrderRepository {
   OrderRepository({
-    this._firestore,
+    FirebaseFirestore? firestore,
     FirebaseFunctions? functions,
-  })  : _functions = functions;
+  })  : _firestore = firestore,
+        _functions = functions;
 
   final FirebaseFirestore? _firestore;
   final FirebaseFunctions? _functions;
 
-  FirebaseFirestore get firestore => _firestore ?? FirebaseFirestore.instance;
+  FirebaseFirestore? get firestore {
+    if (_firestore != null) return _firestore;
+    try {
+      return FirebaseFirestore.instance;
+    } catch (_) {
+      return null;
+    }
+  }
 
-  CollectionReference<Map<String, dynamic>> get _ordersCol =>
-      firestore.collection('orders');
+  FirebaseFunctions? get functions {
+    if (_functions != null) return _functions;
+    try {
+      return FirebaseFunctions.instance;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  CollectionReference<Map<String, dynamic>>? get _ordersCol {
+    final fs = firestore;
+    if (fs == null) return null;
+    return fs.collection('orders');
+  }
 
   /// O1: Place order
-  /// Uses Callable Cloud Function if available/configured, otherwise writes directly
-  /// with Firestore validation & server timestamps.
   Future<String> placeOrder(OrderDraft draft) async {
     draft.validate();
 
-    if (_functions != null) {
+    final fn = functions;
+    if (fn != null) {
       try {
-        final callable = _functions!.httpsCallable('placeOrder');
+        final callable = fn.httpsCallable('placeOrder');
         final res = await callable.call<Map<String, dynamic>>(draft.toMap());
         final orderId = res.data['orderId'] as String?;
         if (orderId != null && orderId.isNotEmpty) {
           return orderId;
         }
-      } catch (e) {
-        // If callable fails or is not deployed, fall through to direct Firestore
+      } catch (_) {
+        // Fall through to direct Firestore
       }
     }
 
+    final col = _ordersCol;
+    if (col == null) {
+      // In development/preview before Firebase is configured, generate a deterministic order tag
+      return '#${DateTime.now().millisecondsSinceEpoch % 10000}';
+    }
+
     try {
-      final docRef = await _ordersCol.add({
+      final docRef = await col.add({
         ...draft.toMap(),
         'status': OrderStatus.received.name,
         'createdAt': FieldValue.serverTimestamp(),
@@ -56,7 +80,9 @@ class OrderRepository {
 
   /// O2: Track one order (live stream)
   Stream<Order?> watchOrder(String id) {
-    return _ordersCol.doc(id).snapshots().map((doc) {
+    final col = _ordersCol;
+    if (col == null || id.isEmpty) return Stream.value(null);
+    return col.doc(id).snapshots().map((doc) {
       if (!doc.exists) return null;
       return Order.fromFirestore(doc);
     });
@@ -64,7 +90,9 @@ class OrderRepository {
 
   /// O2 (Future): Get order once
   Future<Order> getOrder(String id) async {
-    final doc = await _ordersCol.doc(id).get();
+    final col = _ordersCol;
+    if (col == null) throw NotFoundFailure('Order not found: $id');
+    final doc = await col.doc(id).get();
     if (!doc.exists) {
       throw NotFoundFailure('Order not found: $id');
     }
@@ -73,7 +101,9 @@ class OrderRepository {
 
   /// O3: Customer's active orders (live stream: received, preparing, ready)
   Stream<List<Order>> watchMyActiveOrders(String uid) {
-    return _ordersCol
+    final col = _ordersCol;
+    if (col == null || uid.isEmpty) return Stream.value(const []);
+    return col
         .where('userId', isEqualTo: uid)
         .where('status', whereIn: ['received', 'preparing', 'ready'])
         .orderBy('createdAt', descending: true)
@@ -81,14 +111,29 @@ class OrderRepository {
         .map((s) => s.docs.map(Order.fromFirestore).toList());
   }
 
-  /// O4: Customer's order history (paginated)
+  /// O4: Customer's order history (live stream: completed, cancelled)
+  Stream<List<Order>> watchHistory(String uid, {int limit = 20}) {
+    final col = _ordersCol;
+    if (col == null || uid.isEmpty) return Stream.value(const []);
+    return col
+        .where('userId', isEqualTo: uid)
+        .where('status', whereIn: ['completed', 'cancelled'])
+        .orderBy('createdAt', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map((s) => s.docs.map(Order.fromFirestore).toList());
+  }
+
+  /// O4 (Future): Customer's order history paginated
   Future<List<Order>> getOrderHistory(
     String uid, {
     int limit = 20,
     DocumentSnapshot? startAfter,
   }) async {
+    final col = _ordersCol;
+    if (col == null || uid.isEmpty) return const [];
     try {
-      Query<Map<String, dynamic>> query = _ordersCol
+      Query<Map<String, dynamic>> query = col
           .where('userId', isEqualTo: uid)
           .orderBy('createdAt', descending: true)
           .limit(limit);
@@ -105,7 +150,6 @@ class OrderRepository {
   }
 
   /// O5: Reorder: read past order, verify item availability, restore to cart
-  /// Returns list of item names that are sold out / unavailable and were skipped.
   Future<List<String>> reorder({
     required String orderId,
     required CartRepository cart,
@@ -122,7 +166,6 @@ class OrderRepository {
           continue;
         }
 
-        // Reconstruct customizations
         final custMap = orderItem.customizations;
         final customizations = CartCustomizations.fromMap(custMap);
 
@@ -142,7 +185,9 @@ class OrderRepository {
 
   /// O6: Cancel order (Customer can only cancel while status is 'received')
   Future<void> cancelOrder(String id) async {
-    final docRef = _ordersCol.doc(id);
+    final col = _ordersCol;
+    if (col == null) return;
+    final docRef = col.doc(id);
     final doc = await docRef.get();
     if (!doc.exists) {
       throw NotFoundFailure('Order not found: $id');
@@ -169,7 +214,9 @@ class OrderRepository {
 
   /// O7: Live queue for admin/barista (live stream: received, preparing, ready)
   Stream<List<Order>> liveQueue() {
-    return _ordersCol
+    final col = _ordersCol;
+    if (col == null) return Stream.value(const []);
+    return col
         .where('status', whereIn: ['received', 'preparing', 'ready'])
         .orderBy('createdAt', descending: false)
         .snapshots()
@@ -177,9 +224,10 @@ class OrderRepository {
   }
 
   /// O8: Advance order status with strict workflow validation
-  /// Valid transitions: received -> preparing -> ready -> completed
   Future<void> advanceStatus(String id, OrderStatus next) async {
-    final docRef = _ordersCol.doc(id);
+    final col = _ordersCol;
+    if (col == null) return;
+    final docRef = col.doc(id);
     final doc = await docRef.get();
     if (!doc.exists) {
       throw NotFoundFailure('Order not found: $id');
@@ -214,8 +262,10 @@ class OrderRepository {
 
   /// O9: Completed orders today (Admin)
   Future<List<Order>> getCompletedToday(DateTime startOfDay) async {
+    final col = _ordersCol;
+    if (col == null) return const [];
     try {
-      final snapshot = await _ordersCol
+      final snapshot = await col
           .where('status', isEqualTo: OrderStatus.completed.name)
           .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
           .get();

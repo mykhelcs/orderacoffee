@@ -125,7 +125,7 @@ class OrderDraft {
   final PaymentMethod payment;
   final String? note;
 
-  double get total => items.fold(0.0, (sum, item) => sum + item.total);
+  double get total => items.fold(0.0, (acc, item) => acc + item.total);
 
   void validate() {
     if (items.isEmpty) {

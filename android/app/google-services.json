@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "580881321800",
+    "project_id": "coughfee-app",
+    "storage_bucket": "coughfee-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:580881321800:android:8c167f4dedc987f70d6d7d",
+        "android_client_info": {
+          "package_name": "com.example.orderacoffee"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA632VijbSbY1r3nc6Fpa_sq8sPRg8To0Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

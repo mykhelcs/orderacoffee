@@ -1,18 +1,27 @@
 name: orderacoffee
-description: "A new Flutter project."
+description: "COUGHFEE – mobile ordering app with mock data, Firebase-ready architecture."
 publish_to: 'none'
 
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.13.7
+  sdk: ^3.5.0
 
 dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
 
-  # Firebase
+  # State management
+  flutter_riverpod: ^2.5.1
+
+  # Navigation
+  go_router: ^14.3.0
+
+  # Fonts
+  google_fonts: ^6.2.1
+
+  # Firebase (models use Firestore types; swap mock impls for real ones via providers)
   firebase_core: ^3.6.0
   firebase_auth: ^5.3.1
   cloud_firestore: ^5.4.4
@@ -28,7 +37,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^6.0.0
+  flutter_lints: ^4.0.0
   fake_cloud_firestore: ^3.0.3
   firebase_auth_mocks: ^0.14.1
   mocktail: ^1.0.4

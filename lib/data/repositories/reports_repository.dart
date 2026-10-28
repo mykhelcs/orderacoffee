@@ -1,10 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
 import '../../core/errors/failures.dart';
 import '../models/order.dart';
 import '../models/sales_summary.dart';
 
 class ReportsRepository {
-  ReportsRepository({this._firestore});
+  ReportsRepository({FirebaseFirestore? firestore}) : _firestore = firestore;
 
   final FirebaseFirestore? _firestore;
 

@@ -182,5 +182,22 @@ void main() {
         throwsA(isA<NotFoundFailure>()),
       );
     });
+
+    test('seedIfEmpty populates items when collection is empty', () async {
+      final initialDocs = await fakeFirestore.collection('menu').get();
+      expect(initialDocs.docs.isEmpty, isTrue);
+
+      await repository.seedIfEmpty();
+
+      final seededDocs = await fakeFirestore.collection('menu').get();
+      expect(seededDocs.docs.isNotEmpty, isTrue);
+      expect(seededDocs.docs.any((d) => d.id == 'spanish-latte'), isTrue);
+
+      // Second call should not overwrite or duplicate
+      final count = seededDocs.docs.length;
+      await repository.seedIfEmpty();
+      final afterDocs = await fakeFirestore.collection('menu').get();
+      expect(afterDocs.docs.length, equals(count));
+    });
   });
 }
