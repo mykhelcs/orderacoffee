@@ -1,17 +1,41 @@
-# orderacoffee
+# COUGHFEE Order
 
-A new Flutter project.
+A single-shop mobile ordering app for COUGHFEE, built with Flutter and Firebase.
 
-## Getting Started
+Coffee shop orders are time-sensitive. COUGHFEE Order lets customers order ahead to skip the line, customize their drinks, and follow their order in real time, while staff manage everything from one live queue instead of scattered chat messages.
 
-This project is a starting point for a Flutter application.
+## Features
 
-A few resources to get you started if this is your first Flutter project:
+**Customers**
+- Email and password sign-up and login
+- Menu browsing by category, with search
+- Drink customization (size, milk, sugar, ice, add-ons) with live pricing
+- Cart with editable options and special notes
+- Checkout for Pickup, Dine-in (table number) or Delivery, paying by cash or at the counter
+- Real-time order tracking: Received, Preparing, Ready, Completed
+- Favorites and one-tap reorder
+- Loyalty stamps and push notifications (stretch goals)
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+**Baristas / Admin**
+- Live order queue with one-tap status updates
+- Menu management with photo uploads
+- Instant "sold out" toggle
+- Daily sales summary (stretch goal)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Tech stack
+
+- Flutter, Riverpod, go_router
+- Firebase Authentication, Cloud Firestore, Firebase Storage, Cloud Messaging, Cloud Functions
+
+## Getting started
+
+1. Install Flutter and run `flutterfire configure` to connect your Firebase project.
+2. Run `flutter pub get`.
+3. Run `flutter run`.
+
+## Team
+
+Jayshan Godornes
+Sean Cole Calixton
+Ranela Esgana 
+Glenn Mykhel Gulfan
