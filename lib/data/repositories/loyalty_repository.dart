@@ -3,9 +3,8 @@ import 'package:uuid/uuid.dart';
 import '../../core/errors/failures.dart';
 
 class LoyaltyRepository {
-  LoyaltyRepository({FirebaseFirestore? firestore, Uuid? uuid})
-      : _firestore = firestore,
-        _uuid = uuid ?? const Uuid();
+  LoyaltyRepository({this._firestore, Uuid? uuid})
+      : _uuid = uuid ?? const Uuid();
 
   final FirebaseFirestore? _firestore;
   final Uuid _uuid;

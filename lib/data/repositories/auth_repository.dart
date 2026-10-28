@@ -5,10 +5,9 @@ import '../models/user_profile.dart';
 
 class AuthRepository {
   AuthRepository({
-    FirebaseAuth? auth,
+    this._auth,
     FirebaseFirestore? firestore,
-  })  : _auth = auth,
-        _firestore = firestore;
+  })  : _firestore = firestore;
 
   final FirebaseAuth? _auth;
   final FirebaseFirestore? _firestore;

@@ -7,9 +7,8 @@ import '../models/cart_line.dart';
 import '../models/menu_item.dart';
 
 class CartRepository {
-  CartRepository({SharedPreferences? prefs, Uuid? uuid})
-      : _prefs = prefs,
-        _uuid = uuid ?? const Uuid() {
+  CartRepository({this._prefs, Uuid? uuid})
+      : _uuid = uuid ?? const Uuid() {
     _initCart();
   }
 

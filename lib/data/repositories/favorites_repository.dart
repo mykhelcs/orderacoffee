@@ -3,7 +3,7 @@ import '../../core/errors/failures.dart';
 import '../models/menu_item.dart';
 
 class FavoritesRepository {
-  FavoritesRepository({FirebaseFirestore? firestore}) : _firestore = firestore;
+  FavoritesRepository({this._firestore});
 
   final FirebaseFirestore? _firestore;
   FirebaseFirestore get firestore => _firestore ?? FirebaseFirestore.instance;

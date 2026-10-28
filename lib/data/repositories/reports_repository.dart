@@ -4,7 +4,7 @@ import '../models/order.dart';
 import '../models/sales_summary.dart';
 
 class ReportsRepository {
-  ReportsRepository({FirebaseFirestore? firestore}) : _firestore = firestore;
+  ReportsRepository({this._firestore});
 
   final FirebaseFirestore? _firestore;
 

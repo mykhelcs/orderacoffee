@@ -3,7 +3,7 @@ import '../../core/errors/failures.dart';
 import '../models/user_profile.dart';
 
 class UserRepository {
-  UserRepository({FirebaseFirestore? firestore}) : _firestore = firestore;
+  UserRepository({this._firestore});
 
   final FirebaseFirestore? _firestore;
   FirebaseFirestore get firestore => _firestore ?? FirebaseFirestore.instance;

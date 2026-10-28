@@ -7,9 +7,8 @@ import '../models/menu_item.dart';
 class MenuRepository {
   MenuRepository({
     FirebaseFirestore? firestore,
-    FirebaseStorage? storage,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _storage = storage;
+    this._storage,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
   final FirebaseStorage? _storage;

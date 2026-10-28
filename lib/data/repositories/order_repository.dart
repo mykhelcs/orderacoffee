@@ -9,10 +9,9 @@ import 'menu_repository.dart';
 
 class OrderRepository {
   OrderRepository({
-    FirebaseFirestore? firestore,
+    this._firestore,
     FirebaseFunctions? functions,
-  })  : _firestore = firestore,
-        _functions = functions;
+  })  : _functions = functions;
 
   final FirebaseFirestore? _firestore;
   final FirebaseFunctions? _functions;

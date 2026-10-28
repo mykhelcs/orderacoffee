@@ -4,10 +4,9 @@ import 'user_repository.dart';
 
 class NotificationRepository {
   NotificationRepository({
-    FirebaseMessaging? messaging,
+    this._messaging,
     UserRepository? userRepository,
-  })  : _messaging = messaging,
-        _userRepository = userRepository;
+  })  : _userRepository = userRepository;
 
   final FirebaseMessaging? _messaging;
   final UserRepository? _userRepository;
