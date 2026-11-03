@@ -38,6 +38,7 @@ const List<(String, int)> kAddons = [
   ('Vanilla syrup', 25),
   ('Caramel syrup', 25),
   ('Whipped cream', 20),
+  ('Sea salt cold foam', 35),
 ];
 
 /// Order status steps (matches STEPS in HTML reference).
@@ -55,5 +56,3 @@ const Map<String, String> kOrderLabels = {
   'ready': 'Ready for pickup',
   'completed': 'Completed',
 };
-
-

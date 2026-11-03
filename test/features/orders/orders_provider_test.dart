@@ -2,9 +2,9 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:orderacoffee/core/errors/failures.dart';
-import 'package:orderacoffee/data/models/order.dart';
-import 'package:orderacoffee/data/repositories/order_repository.dart';
-import 'package:orderacoffee/features/orders/orders_provider.dart';
+import 'package:orderacoffee/backend/models/order.dart';
+import 'package:orderacoffee/backend/repositories/order_repository.dart';
+import 'package:orderacoffee/frontend/features/orders/orders_provider.dart';
 
 class _FakeOrderRepository extends OrderRepository {
   final Map<String, Order> _store = {};

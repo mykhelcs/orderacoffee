@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:orderacoffee/data/models/cart_line.dart';
-import 'package:orderacoffee/data/models/menu_item.dart';
-import 'package:orderacoffee/features/cart/cart_provider.dart';
+import 'package:orderacoffee/backend/models/cart_line.dart';
+import 'package:orderacoffee/backend/models/menu_item.dart';
+import 'package:orderacoffee/frontend/features/cart/cart_provider.dart';
 
 void main() {
   group('CartNotifier Tests', () {

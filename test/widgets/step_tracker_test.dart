@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart' hide StepState;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:orderacoffee/data/models/order.dart';
-import 'package:orderacoffee/widgets/step_tracker.dart';
+import 'package:orderacoffee/backend/models/order.dart';
+import 'package:orderacoffee/frontend/widgets/step_tracker.dart';
 
 void main() {
   group('StepTracker Widget Tests', () {

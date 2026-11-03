@@ -1,9 +1,9 @@
 import 'package:intl/intl.dart';
 
-/// Formats [amount] as Philippine Peso string, e.g. ₱1,250.
+/// Formats [amount] as Philippine Peso string in whole amounts, e.g. ₱ 140 or ₱ 1,250.
 String peso(num amount) {
   final f = NumberFormat('#,##0', 'en_PH');
-  return '₱${f.format(amount)}';
+  return '₱ ${f.format(amount.round())}';
 }
 
 /// Returns the next order status after [current], or [current] if already at the end.

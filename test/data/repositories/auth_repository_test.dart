@@ -2,7 +2,18 @@ import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:orderacoffee/core/errors/failures.dart';
-import 'package:orderacoffee/data/repositories/auth_repository.dart';
+import 'package:orderacoffee/backend/services/smtp_service.dart';
+import 'package:orderacoffee/backend/repositories/auth_repository.dart';
+
+class _FakeSmtpService extends SmtpService {
+  @override
+  Future<bool> sendOtpEmail({
+    required String recipientEmail,
+    required String otpCode,
+  }) async {
+    return true;
+  }
+}
 
 void main() {
   group('AuthRepository (A1 - A7)', () {
@@ -16,6 +27,7 @@ void main() {
       repository = AuthRepository(
         auth: mockAuth,
         firestore: fakeFirestore,
+        smtpService: _FakeSmtpService(),
       );
     });
 
@@ -37,6 +49,9 @@ void main() {
       expect(userDoc.exists, isTrue);
       expect(userDoc.data()?['role'], 'customer');
       expect(userDoc.data()?['name'], 'Coffee Lover');
+      expect(userDoc.data()?['passwordHash'], isNotNull);
+      expect(userDoc.data()?['passwordHash'], isNot('password123')); // Hashed, not plaintext!
+      expect((userDoc.data()?['passwordHash'] as String).length, 64);
     });
 
     test('A2 & A5: logIn authenticates user and triggers authStateChanges', () async {
@@ -120,6 +135,34 @@ void main() {
       expect(
         () => repository.deleteAccount(),
         throwsA(isA<AuthFailure>()),
+      );
+    });
+
+    test('sendEmailVerificationCode generates 6-digit code and stores in Firestore', () async {
+      final code = await repository.sendEmailVerificationCode('verify@coffee.com');
+      expect(code.length, 6);
+      expect(int.tryParse(code), isNotNull);
+
+      final doc = await fakeFirestore.collection('email_verifications').doc('verify@coffee.com').get();
+      expect(doc.exists, isTrue);
+      expect(doc.data()?['code'], code);
+      expect(doc.data()?['verified'], isFalse);
+    });
+
+    test('verifyEmailCode validates valid code successfully', () async {
+      final code = await repository.sendEmailVerificationCode('verify2@coffee.com');
+      final result = await repository.verifyEmailCode(email: 'verify2@coffee.com', code: code);
+      expect(result, isTrue);
+
+      final doc = await fakeFirestore.collection('email_verifications').doc('verify2@coffee.com').get();
+      expect(doc.data()?['verified'], isTrue);
+    });
+
+    test('verifyEmailCode throws ValidationFailure on incorrect code', () async {
+      await repository.sendEmailVerificationCode('verify3@coffee.com');
+      expect(
+        () => repository.verifyEmailCode(email: 'verify3@coffee.com', code: '000000'),
+        throwsA(isA<ValidationFailure>()),
       );
     });
   });

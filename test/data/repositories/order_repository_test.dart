@@ -2,11 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:orderacoffee/core/errors/failures.dart';
-import 'package:orderacoffee/data/models/menu_item.dart';
-import 'package:orderacoffee/data/models/order.dart';
-import 'package:orderacoffee/data/repositories/cart_repository.dart';
-import 'package:orderacoffee/data/repositories/menu_repository.dart';
-import 'package:orderacoffee/data/repositories/order_repository.dart';
+import 'package:orderacoffee/backend/models/menu_item.dart';
+import 'package:orderacoffee/backend/models/order.dart';
+import 'package:orderacoffee/backend/repositories/cart_repository.dart';
+import 'package:orderacoffee/backend/repositories/menu_repository.dart';
+import 'package:orderacoffee/backend/repositories/order_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -236,6 +236,21 @@ void main() {
       final completed = await repository.getCompletedToday(today);
       expect(completed.length, 1);
       expect(completed.first.id, orderId);
+    });
+
+    test('O10: Order Draft persists userEmail and connects user', () async {
+      final orderId = await repository.placeOrder(const OrderDraft(
+        userId: 'alice_123',
+        userName: 'Alice Smith',
+        userEmail: 'alice@example.com',
+        items: [OrderItem(itemId: '1', name: 'Latte', qty: 1, unitPrice: 120.0)],
+        type: OrderType.pickup,
+      ));
+
+      final order = await repository.getOrder(orderId);
+      expect(order.userId, 'alice_123');
+      expect(order.userName, 'Alice Smith');
+      expect(order.userEmail, 'alice@example.com');
     });
   });
 }

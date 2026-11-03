@@ -2,9 +2,9 @@ import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:orderacoffee/data/models/user_profile.dart';
-import 'package:orderacoffee/data/repositories/notification_repository.dart';
-import 'package:orderacoffee/data/repositories/user_repository.dart';
+import 'package:orderacoffee/backend/models/user_profile.dart';
+import 'package:orderacoffee/backend/repositories/notification_repository.dart';
+import 'package:orderacoffee/backend/repositories/user_repository.dart';
 
 class MockFirebaseMessaging extends Mock implements FirebaseMessaging {}
 

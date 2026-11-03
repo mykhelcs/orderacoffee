@@ -3,10 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:orderacoffee/core/errors/failures.dart';
-import 'package:orderacoffee/data/models/user_profile.dart';
-import 'package:orderacoffee/data/repositories/auth_repository.dart';
-import 'package:orderacoffee/data/repositories/user_repository.dart';
-import 'package:orderacoffee/features/auth/auth_provider.dart';
+import 'package:orderacoffee/backend/models/user_profile.dart';
+import 'package:orderacoffee/backend/repositories/auth_repository.dart';
+import 'package:orderacoffee/backend/repositories/user_repository.dart';
+import 'package:orderacoffee/frontend/features/auth/auth_provider.dart';
 
 class _FakeAuthRepository extends AuthRepository {
   final _controller = StreamController<User?>.broadcast();

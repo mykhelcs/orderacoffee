@@ -1,11 +1,14 @@
+import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'core/theme.dart';
-import 'firebase_options.dart';
-import 'router.dart';
-import 'widgets/main_shell.dart';
+import 'backend/config/firebase_options.dart';
+import 'backend/repositories/menu_repository.dart';
+import 'backend/repositories/order_repository.dart';
+import 'frontend/navigation/router.dart';
+import 'frontend/theme/theme.dart';
+import 'frontend/widgets/main_shell.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,6 +16,10 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    // Automatic background synchronization: upload 37 menu products and sync orders to Cloud Firestore
+    unawaited(MenuRepository().syncMenuToFirestore());
+    unawaited(OrderRepository().syncPendingOrdersToFirestore());
+    OrderRepository.startPeriodicAutoSync();
   } catch (e) {
     debugPrint('Firebase initialization error: $e');
   }
@@ -28,7 +35,7 @@ class CoughfeeApp extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp.router(
-      title: 'COUGHFEE Order',
+      title: 'CafeGO',
       debugShowCheckedModeBanner: false,
       theme: appLightTheme,
       darkTheme: appDarkTheme,

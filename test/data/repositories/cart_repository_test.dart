@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:orderacoffee/core/errors/failures.dart';
-import 'package:orderacoffee/data/models/cart_line.dart';
-import 'package:orderacoffee/data/models/menu_item.dart';
-import 'package:orderacoffee/data/repositories/cart_repository.dart';
+import 'package:orderacoffee/backend/models/cart_line.dart';
+import 'package:orderacoffee/backend/models/menu_item.dart';
+import 'package:orderacoffee/backend/repositories/cart_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

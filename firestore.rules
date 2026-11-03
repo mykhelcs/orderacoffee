@@ -1,0 +1,29 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Menu items: readable and writable so initial seed and updates always succeed
+    match /menu_items/{document=**} {
+      allow read, write: if true;
+    }
+
+    match /categories/{document=**} {
+      allow read, write: if true;
+    }
+
+    // Customer profiles: readable and writable for registration and profile updates
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+
+    // Orders: allow customers and staff to create, read, and track orders
+    match /orders/{orderId} {
+      allow read, write: if true;
+    }
+
+    // Default fallback rule for all collections
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:orderacoffee/data/models/menu_item.dart';
-import 'package:orderacoffee/features/menu/menu_provider.dart';
+import 'package:orderacoffee/backend/models/menu_item.dart';
+import 'package:orderacoffee/frontend/features/menu/menu_provider.dart';
 
 void main() {
   group('MenuProvider Tests', () {

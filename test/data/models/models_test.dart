@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:orderacoffee/core/errors/failures.dart';
-import 'package:orderacoffee/data/models/cart_line.dart';
-import 'package:orderacoffee/data/models/menu_item.dart';
-import 'package:orderacoffee/data/models/order.dart';
-import 'package:orderacoffee/data/models/sales_summary.dart';
-import 'package:orderacoffee/data/models/user_profile.dart';
+import 'package:orderacoffee/backend/models/cart_line.dart';
+import 'package:orderacoffee/backend/models/menu_item.dart';
+import 'package:orderacoffee/backend/models/order.dart';
+import 'package:orderacoffee/backend/models/sales_summary.dart';
+import 'package:orderacoffee/backend/models/user_profile.dart';
 
 void main() {
   group('UserProfile & UserAddress Model', () {

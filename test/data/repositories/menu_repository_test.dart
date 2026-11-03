@@ -1,8 +1,8 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:orderacoffee/core/errors/failures.dart';
-import 'package:orderacoffee/data/models/menu_item.dart';
-import 'package:orderacoffee/data/repositories/menu_repository.dart';
+import 'package:orderacoffee/backend/models/menu_item.dart';
+import 'package:orderacoffee/backend/repositories/menu_repository.dart';
 
 void main() {
   group('MenuRepository (M1 - M9)', () {
