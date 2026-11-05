@@ -1,0 +1,57 @@
+name: Deploy Flutter Web to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'docs/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: github-pages-deploy
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Get dependencies & build Flutter web
+        run: |
+          flutter pub get
+          flutter build web --release --base-href "/orderacoffee/"
+          cp build/web/index.html build/web/404.html
+          touch build/web/.nojekyll
+          rm -rf /tmp/flutter-web-build
+          cp -a build/web /tmp/flutter-web-build
+
+      - name: Publish build to main:/docs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout -B main origin/main
+          rm -rf docs
+          mkdir -p docs
+          cp -a /tmp/flutter-web-build/. docs/
+          git add docs
+          if git diff --staged --quiet; then
+            echo "No changes in /docs to deploy."
+          else
+            git commit -m "ci: deploy Flutter web build to /docs [skip ci]"
+            git push origin main
+          fi
