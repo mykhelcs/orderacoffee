@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
@@ -102,6 +101,21 @@ class MenuRepository {
             .map(MenuItem.fromFirestore)
             .where((item) => !item.isHidden)
             .toList();
+        items.sort((a, b) => a.category.compareTo(b.category));
+        return items;
+      }).handleError((_) => const <MenuItem>[]);
+    } catch (_) {
+      return Stream.value(const []);
+    }
+  }
+
+  /// M1-Admin: List all menu items including hidden ones for Admin Catalog management
+  Stream<List<MenuItem>> watchAllMenu() {
+    final col = _menuCol;
+    if (col == null) return Stream.value(const []);
+    try {
+      return col.snapshots().map((s) {
+        final items = s.docs.map(MenuItem.fromFirestore).toList();
         items.sort((a, b) => a.category.compareTo(b.category));
         return items;
       }).handleError((_) => const <MenuItem>[]);

@@ -1,12 +1,17 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import 'package:orderacoffee/backend/models/user_profile.dart';
 import 'package:orderacoffee/backend/repositories/auth_repository.dart';
+import 'package:orderacoffee/backend/repositories/favorites_repository.dart';
+import 'package:orderacoffee/backend/repositories/loyalty_repository.dart';
+import 'package:orderacoffee/backend/repositories/notification_repository.dart';
 import 'package:orderacoffee/backend/repositories/user_repository.dart';
+import 'package:orderacoffee/core/errors/failures.dart';
 
-// â”€â”€â”€ Production Repository Providers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Production Repository Providers ──────────────────────────────────────────
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository();
@@ -16,7 +21,15 @@ final userRepositoryProvider = Provider<UserRepository>((ref) {
   return UserRepository();
 });
 
-// â”€â”€â”€ AuthState â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+final favoritesRepositoryProvider = Provider<FavoritesRepository>((ref) {
+  return FavoritesRepository();
+});
+
+final loyaltyRepositoryProvider = Provider<LoyaltyRepository>((ref) {
+  return LoyaltyRepository();
+});
+
+// ─── AuthState ────────────────────────────────────────────────────────────────
 
 @immutable
 class AuthState {
@@ -29,6 +42,7 @@ class AuthState {
     this.pendingRegistration,
     this.lastGeneratedCode,
     this.isVerificationSent = false,
+    this.activeRewardCode,
   });
 
   final UserProfile? profile;
@@ -39,6 +53,7 @@ class AuthState {
   final Map<String, String>? pendingRegistration;
   final String? lastGeneratedCode;
   final bool isVerificationSent;
+  final String? activeRewardCode;
 
   bool get isAuthenticated => profile != null;
   bool get isAdmin => profile?.isAdmin ?? false;
@@ -52,9 +67,11 @@ class AuthState {
     Map<String, String>? pendingRegistration,
     String? lastGeneratedCode,
     bool? isVerificationSent,
+    String? activeRewardCode,
     bool clearProfile = false,
     bool clearError = false,
     bool clearPending = false,
+    bool clearRewardCode = false,
   }) {
     return AuthState(
       profile: clearProfile ? null : (profile ?? this.profile),
@@ -62,9 +79,18 @@ class AuthState {
       isVerifying: isVerifying ?? this.isVerifying,
       error: clearError ? null : (error ?? this.error),
       pendingEmail: clearPending ? null : (pendingEmail ?? this.pendingEmail),
-      pendingRegistration: clearPending ? null : (pendingRegistration ?? this.pendingRegistration),
-      lastGeneratedCode: clearPending ? null : (lastGeneratedCode ?? this.lastGeneratedCode),
-      isVerificationSent: clearPending ? false : (isVerificationSent ?? this.isVerificationSent),
+      pendingRegistration: clearPending
+          ? null
+          : (pendingRegistration ?? this.pendingRegistration),
+      lastGeneratedCode: clearPending
+          ? null
+          : (lastGeneratedCode ?? this.lastGeneratedCode),
+      isVerificationSent: clearPending
+          ? false
+          : (isVerificationSent ?? this.isVerificationSent),
+      activeRewardCode: clearRewardCode
+          ? null
+          : (activeRewardCode ?? this.activeRewardCode),
     );
   }
 
@@ -79,7 +105,8 @@ class AuthState {
           error == other.error &&
           pendingEmail == other.pendingEmail &&
           lastGeneratedCode == other.lastGeneratedCode &&
-          isVerificationSent == other.isVerificationSent;
+          isVerificationSent == other.isVerificationSent &&
+          activeRewardCode == other.activeRewardCode;
 
   @override
   int get hashCode => Object.hash(
@@ -90,18 +117,31 @@ class AuthState {
         pendingEmail,
         lastGeneratedCode,
         isVerificationSent,
+        activeRewardCode,
       );
 }
 
-// â”€â”€â”€ AuthNotifier â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── AuthNotifier ─────────────────────────────────────────────────────────────
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier(this._authRepo, this._userRepo) : super(const AuthState()) {
+  AuthNotifier(
+    this._authRepo,
+    this._userRepo, {
+    FavoritesRepository? favoritesRepo,
+    LoyaltyRepository? loyaltyRepo,
+    NotificationRepository? notificationRepo,
+  })  : _favoritesRepo = favoritesRepo,
+        _loyaltyRepo = loyaltyRepo,
+        _notificationRepo = notificationRepo,
+        super(const AuthState()) {
     _listenToAuthChanges();
   }
 
   final AuthRepository _authRepo;
   final UserRepository _userRepo;
+  final FavoritesRepository? _favoritesRepo;
+  final LoyaltyRepository? _loyaltyRepo;
+  final NotificationRepository? _notificationRepo;
   StreamSubscription? _authSub;
 
   void _listenToAuthChanges() {
@@ -111,10 +151,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
           try {
             final profile = await _userRepo.getProfile(user.uid);
             state = AuthState(profile: profile);
+            _registerPushNotifications(user.uid);
           } catch (_) {
             final baseProfile = UserProfile(
               uid: user.uid,
-              name: user.displayName ?? user.email?.split('@').first ?? 'Customer',
+              name: user.displayName ??
+                  user.email?.split('@').first ??
+                  'Customer',
               email: user.email ?? '',
               phone: user.phoneNumber ?? '',
               role: 'customer',
@@ -123,7 +166,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
             state = AuthState(profile: baseProfile);
           }
         } else {
-          if (state.profile == null || !state.profile!.uid.startsWith('preview-')) {
+          if (state.profile == null ||
+              !state.profile!.uid.startsWith('preview-')) {
             state = const AuthState();
           }
         }
@@ -133,13 +177,25 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<void> _registerPushNotifications(String uid) async {
+    if (uid.isEmpty || uid.startsWith('preview-')) return;
+    try {
+      final repo = _notificationRepo ??
+          NotificationRepository(userRepository: _userRepo);
+      await repo.requestPermission();
+      await repo.registerToken(uid);
+    } catch (_) {
+      // Safe no-op in tests or browsers without FCM
+    }
+  }
+
   @override
   void dispose() {
     _authSub?.cancel();
     super.dispose();
   }
 
-  // â”€â”€â”€ Sign in â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Sign in ────────────────────────────────────────────────────────────
 
   Future<void> signIn(String email, String password) async {
     state = state.copyWith(isLoading: true, clearError: true);
@@ -148,13 +204,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
       try {
         final profile = await _userRepo.getProfile(user.uid);
         state = AuthState(profile: profile);
+        unawaited(_registerPushNotifications(user.uid));
       } catch (_) {
         final baseProfile = UserProfile(
           uid: user.uid,
           name: user.displayName ?? email.split('@').first,
           email: email,
           phone: '',
-          role: email.toLowerCase().contains('admin') ? 'admin' : 'customer',
+          role: 'customer',
           isEmailVerified: true,
         );
         state = AuthState(profile: baseProfile);
@@ -173,6 +230,26 @@ class AuthNotifier extends StateNotifier<AuthState> {
           role: isAdm ? 'admin' : 'customer',
           favorites: const ['spanish-latte'],
           stamps: 3,
+          addresses: const [
+            UserAddress(
+              id: 'addr-home',
+              label: 'Home',
+              line1: 'Unit 12B One Serendra, 11th Ave',
+              city: 'Taguig City',
+              notes: 'Lobby concierge drop-off',
+              lat: 14.5489,
+              lng: 121.0548,
+            ),
+            UserAddress(
+              id: 'addr-office',
+              label: 'Office',
+              line1: 'Ayala Tower One, Ayala Ave',
+              city: 'Makati City',
+              notes: 'Call upon arrival at reception',
+              lat: 14.5547,
+              lng: 121.0244,
+            ),
+          ],
           isEmailVerified: true,
         );
         state = AuthState(profile: previewProfile);
@@ -187,7 +264,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // â”€â”€â”€ Initiate Sign up (Sends 6-digit Code) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Initiate Sign up (Sends 6-digit Code) ──────────────────────────────
 
   Future<String> initiateSignUp({
     required String name,
@@ -220,7 +297,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // â”€â”€â”€ Confirm Email Verification (6-Digit Code) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Confirm Email Verification (6-Digit Code) ──────────────────────────
 
   Future<bool> confirmEmailVerification(String code) async {
     final pending = state.pendingRegistration;
@@ -259,7 +336,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
           rethrow;
         }
       } else {
-        // If profile was already partially established
         state = state.copyWith(
           isVerifying: false,
           profile: state.profile?.copyWith(isEmailVerified: true),
@@ -275,7 +351,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // â”€â”€â”€ Resend Verification Code â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Resend Verification Code ───────────────────────────────────────────
 
   Future<String> resendVerificationCode() async {
     final email = state.pendingEmail;
@@ -298,8 +374,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  /// Prepares the state for changing the email address by preserving
-  /// user registration info (name, phone, password) while clearing pendingEmail.
   void prepareChangeEmail() {
     state = state.copyWith(
       pendingEmail: '',
@@ -312,7 +386,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(clearPending: true, clearError: true);
   }
 
-  // â”€â”€â”€ Direct Sign up (Fallback & Unit Tests) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Direct Sign up (Fallback & Unit Tests) ─────────────────────────────
 
   Future<void> signUp({
     required String name,
@@ -354,14 +428,164 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // â”€â”€â”€ Sign out â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Favorites Management (FavoritesRepository) ─────────────────────────
+
+  Future<bool> toggleFavorite(String itemId) async {
+    final currentProfile = state.profile;
+    if (currentProfile == null) return false;
+
+    final favs = List<String>.from(currentProfile.favorites);
+    final isAdding = !favs.contains(itemId);
+    if (isAdding) {
+      favs.add(itemId);
+    } else {
+      favs.remove(itemId);
+    }
+
+    state = state.copyWith(
+      profile: currentProfile.copyWith(favorites: favs),
+    );
+
+    if (!currentProfile.uid.startsWith('preview-')) {
+      try {
+        final repo = _favoritesRepo ?? FavoritesRepository();
+        if (isAdding) {
+          await repo.addFavorite(currentProfile.uid, itemId);
+        } else {
+          await repo.removeFavorite(currentProfile.uid, itemId);
+        }
+      } catch (_) {}
+    }
+
+    return isAdding;
+  }
+
+  // ─── Profile & Address Management (UserRepository) ──────────────────────
+
+  Future<void> updateProfileDetails({
+    required String name,
+    required String phone,
+  }) async {
+    final currentProfile = state.profile;
+    if (currentProfile == null) return;
+
+    final updated = currentProfile.copyWith(
+      name: name.trim(),
+      phone: phone.trim(),
+    );
+    state = state.copyWith(profile: updated);
+
+    if (!currentProfile.uid.startsWith('preview-')) {
+      try {
+        await _userRepo.updateProfile(
+          currentProfile.uid,
+          name: name.trim(),
+          phone: phone.trim(),
+        );
+      } catch (_) {}
+    }
+  }
+
+  Future<void> addDeliveryAddress(UserAddress address) async {
+    final currentProfile = state.profile;
+    if (currentProfile == null) return;
+
+    final updatedAddresses = [...currentProfile.addresses, address];
+    state = state.copyWith(
+      profile: currentProfile.copyWith(addresses: updatedAddresses),
+    );
+
+    if (!currentProfile.uid.startsWith('preview-')) {
+      try {
+        await _userRepo.addAddress(currentProfile.uid, address);
+      } catch (_) {}
+    }
+  }
+
+  Future<void> removeDeliveryAddress(UserAddress address) async {
+    final currentProfile = state.profile;
+    if (currentProfile == null) return;
+
+    final updatedAddresses = currentProfile.addresses
+        .where((a) => a.id != address.id)
+        .toList();
+    state = state.copyWith(
+      profile: currentProfile.copyWith(addresses: updatedAddresses),
+    );
+
+    if (!currentProfile.uid.startsWith('preview-')) {
+      try {
+        await _userRepo.removeAddress(currentProfile.uid, address);
+      } catch (_) {}
+    }
+  }
+
+  // ─── Loyalty Stamps & Rewards (LoyaltyRepository) ───────────────────────
+
+  Future<void> earnStamp() async {
+    final currentProfile = state.profile;
+    if (currentProfile == null) return;
+
+    final nextStamps = currentProfile.stamps + 1;
+    state = state.copyWith(
+      profile: currentProfile.copyWith(stamps: nextStamps),
+    );
+
+    if (!currentProfile.uid.startsWith('preview-')) {
+      try {
+        final repo = _loyaltyRepo ?? LoyaltyRepository();
+        await repo.earnStamp(currentProfile.uid);
+      } catch (_) {}
+    }
+  }
+
+  Future<String> redeemStamps() async {
+    final currentProfile = state.profile;
+    if (currentProfile == null) {
+      throw const AuthFailure('Please sign in to redeem stamps');
+    }
+    if (currentProfile.stamps < 8) {
+      throw ValidationFailure(
+        'Need at least 8 stamps to redeem a Free Drink (current: ${currentProfile.stamps}).',
+      );
+    }
+
+    String rewardCode =
+        'REWARD-${const Uuid().v4().substring(0, 8).toUpperCase()}';
+
+    if (!currentProfile.uid.startsWith('preview-')) {
+      try {
+        final repo = _loyaltyRepo ?? LoyaltyRepository();
+        rewardCode = await repo.redeemStamps(currentProfile.uid);
+      } catch (_) {}
+    }
+
+    state = state.copyWith(
+      profile: currentProfile.copyWith(stamps: currentProfile.stamps - 8),
+      activeRewardCode: rewardCode,
+    );
+    return rewardCode;
+  }
+
+  void clearActiveRewardCode() {
+    state = state.copyWith(clearRewardCode: true);
+  }
+
+  // ─── Sign out & Delete Account ──────────────────────────────────────────
 
   Future<void> signOut() async {
     await _authRepo.logOut();
     state = const AuthState();
   }
 
-  // â”€â”€â”€ Reset password â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  Future<void> deleteAccount() async {
+    try {
+      await _authRepo.deleteAccount();
+    } catch (_) {}
+    state = const AuthState();
+  }
+
+  // ─── Reset password ─────────────────────────────────────────────────────
 
   Future<bool> resetPassword(String email) async {
     try {
@@ -373,7 +597,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 }
 
-// â”€â”€â”€ Providers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Providers ────────────────────────────────────────────────────────────────
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier(

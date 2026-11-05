@@ -1,10 +1,13 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:orderacoffee/backend/models/cart_line.dart';
 import 'package:orderacoffee/backend/models/menu_item.dart';
 
-// â”€â”€â”€ CartState â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── CartState ────────────────────────────────────────────────────────────────
 
 class CartState {
   const CartState({this.lines = const []});
@@ -29,14 +32,43 @@ class CartState {
   int get hashCode => lines.hashCode;
 }
 
-// â”€â”€â”€ CartNotifier â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── CartNotifier ─────────────────────────────────────────────────────────────
 
 class CartNotifier extends StateNotifier<CartState> {
-  CartNotifier() : super(const CartState());
+  CartNotifier() : super(const CartState()) {
+    _restoreFromStorage();
+  }
 
+  static const String _storageKey = 'coughfee_cart_lines';
   final _uuid = const Uuid();
 
-  // â”€â”€â”€ Add â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  Future<void> _restoreFromStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_storageKey);
+      if (raw != null && raw.isNotEmpty && state.lines.isEmpty) {
+        final decoded = jsonDecode(raw) as List<dynamic>;
+        final restored = decoded
+            .map((e) => CartLine.fromMap(Map<String, dynamic>.from(e as Map)))
+            .toList();
+        if (restored.isNotEmpty && mounted && state.lines.isEmpty) {
+          state = state.copyWith(lines: restored);
+        }
+      }
+    } catch (_) {
+      // Safe no-op in environments where SharedPreferences is not initialized
+    }
+  }
+
+  Future<void> _persistToStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = jsonEncode(state.lines.map((l) => l.toMap()).toList());
+      await prefs.setString(_storageKey, jsonStr);
+    } catch (_) {}
+  }
+
+  // ─── Add ──────────────────────────────────────────────────────────────────
 
   void addLine(
     MenuItem item,
@@ -44,27 +76,44 @@ class CartNotifier extends StateNotifier<CartState> {
     int qty, {
     String note = '',
   }) {
-    final line = CartLine(
-      id: _uuid.v4(),
-      itemId: item.id,
-      name: item.name,
-      basePrice: item.basePrice,
-      customizations: customizations,
-      qty: qty,
-      note: note,
+    final cleanNote = note.trim();
+    final existingIdx = state.lines.indexWhere(
+      (l) =>
+          l.itemId == item.id &&
+          l.customizations == customizations &&
+          l.note == cleanNote,
     );
-    state = state.copyWith(lines: [...state.lines, line]);
+
+    if (existingIdx != -1) {
+      final existing = state.lines[existingIdx];
+      final updatedLines = List<CartLine>.from(state.lines);
+      updatedLines[existingIdx] = existing.copyWith(qty: existing.qty + qty);
+      state = state.copyWith(lines: updatedLines);
+    } else {
+      final line = CartLine(
+        id: _uuid.v4(),
+        itemId: item.id,
+        name: item.name,
+        basePrice: item.basePrice,
+        customizations: customizations,
+        qty: qty,
+        note: cleanNote,
+      );
+      state = state.copyWith(lines: [...state.lines, line]);
+    }
+    unawaited(_persistToStorage());
   }
 
-  // â”€â”€â”€ Remove â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Remove ───────────────────────────────────────────────────────────────
 
   void removeLine(String lineId) {
     state = state.copyWith(
       lines: state.lines.where((l) => l.id != lineId).toList(),
     );
+    unawaited(_persistToStorage());
   }
 
-  // â”€â”€â”€ Update qty â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Update qty ───────────────────────────────────────────────────────────
 
   void updateQty(String lineId, int qty) {
     if (qty <= 0) {
@@ -76,9 +125,10 @@ class CartNotifier extends StateNotifier<CartState> {
           .map((l) => l.id == lineId ? l.copyWith(qty: qty) : l)
           .toList(),
     );
+    unawaited(_persistToStorage());
   }
 
-  // â”€â”€â”€ Update customizations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Update customizations ────────────────────────────────────────────────
 
   void updateCustomizations(String lineId, CartCustomizations customizations) {
     state = state.copyWith(
@@ -87,14 +137,29 @@ class CartNotifier extends StateNotifier<CartState> {
               l.id == lineId ? l.copyWith(customizations: customizations) : l)
           .toList(),
     );
+    unawaited(_persistToStorage());
   }
 
-  // â”€â”€â”€ Clear â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Update note ──────────────────────────────────────────────────────────
 
-  void clear() => state = const CartState();
+  void updateNote(String lineId, String note) {
+    state = state.copyWith(
+      lines: state.lines
+          .map((l) => l.id == lineId ? l.copyWith(note: note.trim()) : l)
+          .toList(),
+    );
+    unawaited(_persistToStorage());
+  }
+
+  // ─── Clear ────────────────────────────────────────────────────────────────
+
+  void clear() {
+    state = const CartState();
+    unawaited(_persistToStorage());
+  }
 }
 
-// â”€â”€â”€ Provider â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Provider ─────────────────────────────────────────────────────────────────
 
 final cartProvider =
     StateNotifierProvider<CartNotifier, CartState>((ref) => CartNotifier());

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:orderacoffee/backend/seed/seed_menu_data.dart';
 import 'package:orderacoffee/frontend/theme/theme.dart';
 import 'package:orderacoffee/core/utils.dart';
 import 'package:orderacoffee/backend/models/cart_line.dart';
@@ -16,15 +17,7 @@ class CartScreen extends ConsumerWidget {
   const CartScreen({super.key});
 
   String _formatCustomizationSummary(CartCustomizations c) {
-    final parts = <String>[];
-    if (c.size != null) parts.add(c.size!.label);
-    if (c.milk != null) parts.add(c.milk!.label);
-    if (c.sugar != null) parts.add('${c.sugar} sugar');
-    if (c.ice != null) parts.add(c.ice!);
-    if (c.addOns.isNotEmpty) {
-      parts.add(c.addOns.map((a) => a.label).join(', '));
-    }
-    return parts.join(' • ');
+    return c.formatSummary();
   }
 
   @override
@@ -38,7 +31,8 @@ class CartScreen extends ConsumerWidget {
     final muteCol = isDark ? AppColors.muteDark : AppColors.muteLight;
 
     final cart = ref.watch(cartProvider);
-    final menuItems = ref.watch(menuStreamProvider).valueOrNull ?? [];
+    final menuItems =
+        ref.watch(menuStreamProvider).valueOrNull ?? kDefaultMenuItems;
 
     if (cart.lines.isEmpty) {
       return Center(
@@ -78,13 +72,29 @@ class CartScreen extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       children: [
-        Text(
-          'Your cart',
-          style: GoogleFonts.playfairDisplay(
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-            color: inkCol,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Your cart',
+              style: GoogleFonts.playfairDisplay(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: inkCol,
+              ),
+            ),
+            TextButton(
+              onPressed: () => ref.read(cartProvider.notifier).clear(),
+              child: Text(
+                'Clear all',
+                style: GoogleFonts.figtree(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: muteCol,
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
         ...cart.lines.map((line) {
@@ -151,10 +161,19 @@ class CartScreen extends ConsumerWidget {
                     GhostButton(
                       label: 'Edit',
                       onPressed: () {
-                        final menuItem = menuItems.firstWhere(
-                          (i) => i.id == line.itemId,
-                          orElse: () => menuItems.first,
-                        );
+                        final menuItem = menuItems
+                            .where((i) =>
+                                i.id == line.itemId || i.name == line.name)
+                            .firstOrNull;
+                        if (menuItem == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content:
+                                  Text('This item is no longer on the menu.'),
+                            ),
+                          );
+                          return;
+                        }
                         ItemDetailSheet.show(
                           context,
                           menuItem,
@@ -168,6 +187,49 @@ class CartScreen extends ConsumerWidget {
                       onPressed: () {
                         ref.read(cartProvider.notifier).removeLine(line.id);
                       },
+                    ),
+                    const Spacer(),
+                    // Inline quantity stepper
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: lineCol),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: () => ref
+                                .read(cartProvider.notifier)
+                                .updateQty(line.id, line.qty - 1),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 6),
+                              child: Icon(Icons.remove, size: 15, color: inkCol),
+                            ),
+                          ),
+                          Text(
+                            '${line.qty}',
+                            style: GoogleFonts.figtree(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: inkCol,
+                            ),
+                          ),
+                          InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: () => ref
+                                .read(cartProvider.notifier)
+                                .updateQty(line.id, line.qty + 1),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 6),
+                              child: Icon(Icons.add, size: 15, color: inkCol),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),

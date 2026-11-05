@@ -26,6 +26,7 @@ class AppColors {
   // Semantic & Brand Accents
   static const Color crema = Color(0xFFD49755);
   static const Color warmAmber = Color(0xFFE5A862);
+  static const Color warn = Color(0xFFD97706);
   static const Color ok = Color(0xFF2E7D32);
   static const Color bad = Color(0xFFD6336C);
 

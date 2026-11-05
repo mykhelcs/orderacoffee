@@ -39,10 +39,16 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
 
     final filter = ref.watch(menuFilterProvider);
     final items = ref.watch(filteredMenuProvider);
-    final favorites = ref.watch(authProvider).profile?.favorites ?? const <String>[];
+    final favorites =
+        ref.watch(authProvider).profile?.favorites ?? const <String>[];
 
     // Featured picks for the top spotlight carousel
     final featuredItems = items.take(4).toList();
+    final categoriesWithFavorites = [
+      'All',
+      'Favorites',
+      ...kCategories.where((c) => c != 'All'),
+    ];
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -79,7 +85,8 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 9, vertical: 3),
                           decoration: BoxDecoration(
                             color: const Color(0xFFD49755),
                             borderRadius: BorderRadius.circular(99),
@@ -166,12 +173,14 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
             color: isDark ? const Color(0xFF2C2425) : const Color(0xFFEDE4DC),
             borderRadius: BorderRadius.circular(30),
             border: Border.all(
-              color: isDark ? const Color(0xFF3F3536) : const Color(0xFFDDD2C7),
+              color:
+                  isDark ? const Color(0xFF3F3536) : const Color(0xFFDDD2C7),
             ),
           ),
           child: TextField(
             controller: _searchController,
-            onChanged: (q) => ref.read(menuFilterProvider.notifier).setQuery(q),
+            onChanged: (q) =>
+                ref.read(menuFilterProvider.notifier).setQuery(q),
             style: GoogleFonts.figtree(
               color: inkCol,
               fontSize: 15,
@@ -202,19 +211,21 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             ),
           ),
         ),
 
         const SizedBox(height: 16),
 
-        // Category pills selector
+        // Category pills selector (includes Favorites)
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
-            children: kCategories.map((cat) {
+            children: categoriesWithFavorites.map((cat) {
               final isSelected = filter.category == cat;
+              final isFavCat = cat == 'Favorites';
               return Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: Material(
@@ -226,8 +237,9 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                     ),
                   ),
                   child: InkWell(
-                    onTap: () =>
-                        ref.read(menuFilterProvider.notifier).setCategory(cat),
+                    onTap: () => ref
+                        .read(menuFilterProvider.notifier)
+                        .setCategory(cat),
                     borderRadius: BorderRadius.circular(99),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
@@ -236,16 +248,36 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                       ),
                       constraints: const BoxConstraints(minHeight: 38),
                       alignment: Alignment.center,
-                      child: Text(
-                        cat,
-                        style: GoogleFonts.playfairDisplay(
-                          fontSize: 13,
-                          fontWeight:
-                              isSelected ? FontWeight.w700 : FontWeight.w500,
-                          color: isSelected
-                              ? (isDark ? AppColors.onBrandDark : AppColors.onBrandLight)
-                              : inkCol,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isFavCat) ...[
+                            Icon(
+                              Icons.favorite_rounded,
+                              size: 14,
+                              color: isSelected
+                                  ? (isDark
+                                      ? AppColors.onBrandDark
+                                      : AppColors.onBrandLight)
+                                  : AppColors.bad,
+                            ),
+                            const SizedBox(width: 5),
+                          ],
+                          Text(
+                            cat,
+                            style: GoogleFonts.playfairDisplay(
+                              fontSize: 13,
+                              fontWeight: isSelected
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                              color: isSelected
+                                  ? (isDark
+                                      ? AppColors.onBrandDark
+                                      : AppColors.onBrandLight)
+                                  : inkCol,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -258,7 +290,9 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
         const SizedBox(height: 20),
 
         // Spotlight Featured Section when on "All" category and no search
-        if (filter.category == 'All' && filter.query.isEmpty && featuredItems.isNotEmpty) ...[
+        if (filter.category == 'All' &&
+            filter.query.isEmpty &&
+            featuredItems.isNotEmpty) ...[
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -288,6 +322,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
               separatorBuilder: (_, __) => const SizedBox(width: 12),
               itemBuilder: (context, idx) {
                 final item = featuredItems[idx];
+                final isFav = favorites.contains(item.id);
                 return GestureDetector(
                   onTap: () => ItemDetailSheet.show(context, item),
                   child: Container(
@@ -299,7 +334,8 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                       border: Border.all(color: lineCol),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                          color: Colors.black
+                              .withValues(alpha: isDark ? 0.2 : 0.04),
                           blurRadius: 8,
                           offset: const Offset(0, 3),
                         ),
@@ -312,9 +348,11 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 7, vertical: 2),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFD49755).withValues(alpha: 0.15),
+                                color: const Color(0xFFD49755)
+                                    .withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
@@ -326,14 +364,19 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                                 ),
                               ),
                             ),
-                            Icon(
-                              favorites.contains(item.id)
-                                  ? Icons.favorite_rounded
-                                  : Icons.favorite_border_rounded,
-                              size: 18,
-                              color: favorites.contains(item.id)
-                                  ? AppColors.bad
-                                  : muteCol,
+                            GestureDetector(
+                              onTap: () {
+                                ref
+                                    .read(authProvider.notifier)
+                                    .toggleFavorite(item.id);
+                              },
+                              child: Icon(
+                                isFav
+                                    ? Icons.favorite_rounded
+                                    : Icons.favorite_border_rounded,
+                                size: 18,
+                                color: isFav ? AppColors.bad : muteCol,
+                              ),
                             ),
                           ],
                         ),
@@ -397,13 +440,17 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
             child: Column(
               children: [
                 Icon(
-                  Icons.coffee_outlined,
+                  filter.category == 'Favorites'
+                      ? Icons.favorite_border_rounded
+                      : Icons.coffee_outlined,
                   size: 48,
                   color: muteCol.withValues(alpha: 0.5),
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'No brews found',
+                  filter.category == 'Favorites'
+                      ? 'No favorites saved yet'
+                      : 'No brews found',
                   style: GoogleFonts.playfairDisplay(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
@@ -412,7 +459,9 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Try searching for another drink or pick a different category.',
+                  filter.category == 'Favorites'
+                      ? 'Tap the heart icon on any drink or pastry to save it here.'
+                      : 'Try searching for another drink or pick a different category.',
                   style: GoogleFonts.figtree(
                     fontSize: 14,
                     color: muteCol,

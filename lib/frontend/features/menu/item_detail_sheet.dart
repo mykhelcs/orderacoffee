@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:orderacoffee/frontend/theme/theme.dart';
+import 'package:orderacoffee/core/constants.dart';
 import 'package:orderacoffee/core/utils.dart';
 import 'package:orderacoffee/backend/models/cart_line.dart';
 import 'package:orderacoffee/backend/models/menu_item.dart';
@@ -44,6 +45,8 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
   late SizeOption _selectedSize;
   late MilkOption _selectedMilk;
   late int _selectedShots;
+  late String _selectedSugar;
+  late String? _selectedIce;
   late List<AddOnOption> _selectedAddOns;
   late int _qty;
   late TextEditingController _noteController;
@@ -63,7 +66,8 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
             SizeOption(label: 'Large', delta: 25),
           ];
     _selectedSize = edit?.customizations.size ??
-        defaultSizes.firstWhere((s) => s.label == 'Medium', orElse: () => defaultSizes.first);
+        defaultSizes.firstWhere((s) => s.label == 'Medium',
+            orElse: () => defaultSizes.first);
 
     // Initialize Milk
     final defaultMilks = widget.item.options.milks.isNotEmpty
@@ -75,10 +79,30 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
             MilkOption(label: 'Soy', delta: 20),
           ];
     _selectedMilk = edit?.customizations.milk ??
-        defaultMilks.firstWhere((m) => m.label == 'Whole' || m.label == 'Regular', orElse: () => defaultMilks.first);
+        defaultMilks.firstWhere(
+            (m) => m.label == 'Whole' || m.label == 'Regular',
+            orElse: () => defaultMilks.first);
 
     // Initialize Shots (Picture 2: 1, 2, 3)
     _selectedShots = edit?.customizations.shots ?? 2;
+
+    // Initialize Sugar Level
+    final sugarOptions = widget.item.options.sugar.isNotEmpty
+        ? widget.item.options.sugar
+        : kSugarLevels;
+    _selectedSugar = edit?.customizations.sugar ??
+        (sugarOptions.contains('100%') ? '100%' : sugarOptions.last);
+
+    // Initialize Ice Level (for Iced Coffee / Cold Drinks)
+    if (_isIcedDrink) {
+      final iceOptions = widget.item.options.ice.isNotEmpty
+          ? widget.item.options.ice
+          : kIceLevels;
+      _selectedIce = edit?.customizations.ice ??
+          (iceOptions.contains('Regular') ? 'Regular' : iceOptions.last);
+    } else {
+      _selectedIce = edit?.customizations.ice;
+    }
 
     // Initialize AddOns
     _selectedAddOns = List<AddOnOption>.from(edit?.customizations.addOns ?? []);
@@ -86,7 +110,8 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
     _qty = edit?.qty ?? 1;
     _noteController = TextEditingController(text: edit?.note ?? '');
 
-    final initialFavorites = ref.read(authProvider).profile?.favorites ?? const <String>[];
+    final initialFavorites =
+        ref.read(authProvider).profile?.favorites ?? const <String>[];
     _isFavorite = initialFavorites.contains(widget.item.id);
   }
 
@@ -101,15 +126,39 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
       widget.item.category.contains('Coffee') ||
       widget.item.category == 'Non-Coffee';
 
+  bool get _isIcedDrink =>
+      widget.item.category.toLowerCase().contains('iced') ||
+      widget.item.category.toLowerCase().contains('cold') ||
+      widget.item.name.toLowerCase().contains('iced') ||
+      widget.item.name.toLowerCase().contains('cold');
+
   double _calculateTotal() {
     if (!_isDrink) {
       return widget.item.basePrice * _qty;
     }
-    double unitPrice = widget.item.basePrice + _selectedSize.delta + _selectedMilk.delta;
+    double unitPrice =
+        widget.item.basePrice + _selectedSize.delta + _selectedMilk.delta;
     for (final addOn in _selectedAddOns) {
       unitPrice += addOn.price;
     }
     return unitPrice * _qty;
+  }
+
+  Future<void> _handleToggleFavorite() async {
+    setState(() => _isFavorite = !_isFavorite);
+    await ref.read(authProvider.notifier).toggleFavorite(widget.item.id);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _isFavorite
+                ? '${widget.item.name} added to Favorites'
+                : '${widget.item.name} removed from Favorites',
+          ),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    }
   }
 
   void _saveOrAddToCart() {
@@ -117,14 +166,18 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
       size: _isDrink ? _selectedSize : null,
       milk: _isDrink ? _selectedMilk : null,
       shots: _isDrink ? _selectedShots : null,
+      sugar: _isDrink ? _selectedSugar : null,
+      ice: (_isDrink && _isIcedDrink) ? _selectedIce : null,
       addOns: _isDrink ? _selectedAddOns : const [],
     );
 
     final cartNotifier = ref.read(cartProvider.notifier);
+    final cleanNote = _noteController.text.trim();
 
     if (widget.editLine != null) {
       cartNotifier.updateCustomizations(widget.editLine!.id, cust);
       cartNotifier.updateQty(widget.editLine!.id, _qty);
+      cartNotifier.updateNote(widget.editLine!.id, cleanNote);
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Cart updated')),
@@ -134,7 +187,7 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
         widget.item,
         cust,
         _qty,
-        note: _noteController.text.trim(),
+        note: cleanNote,
       );
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -187,15 +240,19 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final bgCanvas = isDark ? const Color(0xFF1E1919) : const Color(0xFFFAF7F2);
+    final bgCanvas =
+        isDark ? const Color(0xFF1E1919) : const Color(0xFFFAF7F2);
     final cardBg = isDark ? AppColors.cardDark : Colors.white;
     final lineCol = isDark ? AppColors.lineDark : const Color(0xFFE8DFD5);
     final inkCol = isDark ? AppColors.inkDark : const Color(0xFF1B120C);
     final muteCol = isDark ? AppColors.muteDark : const Color(0xFF7A6D65);
-    final activePillBg = isDark ? const Color(0xFFD4A373) : const Color(0xFF3B2314);
+    final activePillBg =
+        isDark ? const Color(0xFFD4A373) : const Color(0xFF3B2314);
     final activePillText = isDark ? const Color(0xFF1B120C) : Colors.white;
-    final inactivePillBg = isDark ? const Color(0xFF2C2425) : const Color(0xFFF5F1EB);
-    final inactivePillText = isDark ? AppColors.inkDark : const Color(0xFF3B2314);
+    final inactivePillBg =
+        isDark ? const Color(0xFF2C2425) : const Color(0xFFF5F1EB);
+    final inactivePillText =
+        isDark ? AppColors.inkDark : const Color(0xFF3B2314);
 
     final availableSizes = widget.item.options.sizes.isNotEmpty
         ? widget.item.options.sizes
@@ -213,6 +270,14 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
             MilkOption(label: 'Almond', delta: 30),
             MilkOption(label: 'Soy', delta: 20),
           ];
+
+    final availableSugar = widget.item.options.sugar.isNotEmpty
+        ? widget.item.options.sugar
+        : kSugarLevels;
+
+    final availableIce = widget.item.options.ice.isNotEmpty
+        ? widget.item.options.ice
+        : kIceLevels;
 
     final availableAddOns = widget.item.options.addOns.isNotEmpty
         ? widget.item.options.addOns
@@ -238,7 +303,8 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  icon: Icon(Icons.arrow_back_rounded, color: inkCol, size: 24),
+                  icon:
+                      Icon(Icons.arrow_back_rounded, color: inkCol, size: 24),
                   onPressed: () => Navigator.pop(context),
                 ),
                 Text(
@@ -251,13 +317,13 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
                 ),
                 IconButton(
                   icon: Icon(
-                    _isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                    _isFavorite
+                        ? Icons.favorite_rounded
+                        : Icons.favorite_border_rounded,
                     color: _isFavorite ? AppColors.bad : inkCol,
                     size: 24,
                   ),
-                  onPressed: () {
-                    setState(() => _isFavorite = !_isFavorite);
-                  },
+                  onPressed: _handleToggleFavorite,
                 ),
               ],
             ),
@@ -273,7 +339,8 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
                   height: 180,
                   width: double.infinity,
                   alignment: Alignment.center,
-                  child: (widget.item.imageUrl != null && widget.item.imageUrl!.isNotEmpty)
+                  child: (widget.item.imageUrl != null &&
+                          widget.item.imageUrl!.isNotEmpty)
                       ? Image.network(
                           widget.item.imageUrl!,
                           height: 170,
@@ -283,7 +350,8 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
                             return Center(
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(activePillBg),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    activePillBg),
                               ),
                             );
                           },
@@ -301,10 +369,12 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
                   padding: const EdgeInsets.fromLTRB(22, 24, 22, 16),
                   decoration: BoxDecoration(
                     color: cardBg,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(32)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+                        color: Colors.black
+                            .withValues(alpha: isDark ? 0.3 : 0.05),
                         blurRadius: 16,
                         offset: const Offset(0, -4),
                       ),
@@ -356,7 +426,8 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
                           scrollDirection: Axis.horizontal,
                           child: Row(
                             children: availableSizes.map((s) {
-                              final isSelected = _selectedSize.label == s.label;
+                              final isSelected =
+                                  _selectedSize.label == s.label;
                               String displayLabel = s.label;
                               if (s.label == 'Small') displayLabel = 'S';
                               if (s.label == 'Medium') displayLabel = 'M';
@@ -369,8 +440,12 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
                                     displayLabel,
                                     style: GoogleFonts.figtree(
                                       fontSize: 14.5,
-                                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                                      color: isSelected ? activePillText : inactivePillText,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w700
+                                          : FontWeight.w600,
+                                      color: isSelected
+                                          ? activePillText
+                                          : inactivePillText,
                                     ),
                                   ),
                                   isSelected: isSelected,
@@ -378,7 +453,8 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
                                   inactiveBg: inactivePillBg,
                                   activeText: activePillText,
                                   inactiveText: inactivePillText,
-                                  onTap: () => setState(() => _selectedSize = s),
+                                  onTap: () =>
+                                      setState(() => _selectedSize = s),
                                 ),
                               );
                             }).toList(),
@@ -391,8 +467,10 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
                           scrollDirection: Axis.horizontal,
                           child: Row(
                             children: availableMilks.map((m) {
-                              final isSelected = _selectedMilk.label == m.label;
-                              final displayLabel = m.label == 'Whole' ? 'Regular' : m.label;
+                              final isSelected =
+                                  _selectedMilk.label == m.label;
+                              final displayLabel =
+                                  m.label == 'Whole' ? 'Regular' : m.label;
 
                               return Padding(
                                 padding: const EdgeInsets.only(right: 12),
@@ -401,8 +479,12 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
                                     displayLabel,
                                     style: GoogleFonts.figtree(
                                       fontSize: 14,
-                                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                                      color: isSelected ? activePillText : inactivePillText,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w700
+                                          : FontWeight.w600,
+                                      color: isSelected
+                                          ? activePillText
+                                          : inactivePillText,
                                     ),
                                   ),
                                   isSelected: isSelected,
@@ -410,7 +492,8 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
                                   inactiveBg: inactivePillBg,
                                   activeText: activePillText,
                                   inactiveText: inactivePillText,
-                                  onTap: () => setState(() => _selectedMilk = m),
+                                  onTap: () =>
+                                      setState(() => _selectedMilk = m),
                                 ),
                               );
                             }).toList(),
@@ -429,8 +512,12 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
                                   '$shotCount',
                                   style: GoogleFonts.figtree(
                                     fontSize: 14.5,
-                                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                                    color: isSelected ? activePillText : inactivePillText,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w700
+                                        : FontWeight.w600,
+                                    color: isSelected
+                                        ? activePillText
+                                        : inactivePillText,
                                   ),
                                 ),
                                 isSelected: isSelected,
@@ -438,16 +525,91 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
                                 inactiveBg: inactivePillBg,
                                 activeText: activePillText,
                                 inactiveText: inactivePillText,
-                                onTap: () => setState(() => _selectedShots = shotCount),
+                                onTap: () =>
+                                    setState(() => _selectedShots = shotCount),
                               ),
                             );
                           }).toList(),
                         ),
 
+                        // ── SUGAR LEVEL SECTION ─────────────────────────────
+                        _buildSectionTitle('Sweetness', inkCol),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: availableSugar.map((sugarLevel) {
+                              final isSelected = _selectedSugar == sugarLevel;
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 10),
+                                child: _buildPillOption(
+                                  child: Text(
+                                    sugarLevel,
+                                    style: GoogleFonts.figtree(
+                                      fontSize: 13.5,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w700
+                                          : FontWeight.w600,
+                                      color: isSelected
+                                          ? activePillText
+                                          : inactivePillText,
+                                    ),
+                                  ),
+                                  isSelected: isSelected,
+                                  activeBg: activePillBg,
+                                  inactiveBg: inactivePillBg,
+                                  activeText: activePillText,
+                                  inactiveText: inactivePillText,
+                                  onTap: () => setState(
+                                      () => _selectedSugar = sugarLevel),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+
+                        // ── ICE LEVEL SECTION (Iced Drinks) ─────────────────
+                        if (_isIcedDrink) ...[
+                          _buildSectionTitle('Ice Level', inkCol),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: availableIce.map((iceLevel) {
+                                final isSelected = _selectedIce == iceLevel;
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 10),
+                                  child: _buildPillOption(
+                                    child: Text(
+                                      iceLevel,
+                                      style: GoogleFonts.figtree(
+                                        fontSize: 13.5,
+                                        fontWeight: isSelected
+                                            ? FontWeight.w700
+                                            : FontWeight.w600,
+                                        color: isSelected
+                                            ? activePillText
+                                            : inactivePillText,
+                                      ),
+                                    ),
+                                    isSelected: isSelected,
+                                    activeBg: activePillBg,
+                                    inactiveBg: inactivePillBg,
+                                    activeText: activePillText,
+                                    inactiveText: inactivePillText,
+                                    onTap: () =>
+                                        setState(() => _selectedIce = iceLevel),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ],
+
                         // ── EXTRA SECTION (Picture 2 Checkboxes) ─────────────
                         _buildSectionTitle('Extra', inkCol),
                         ...availableAddOns.map((addon) {
-                          final isChecked = _selectedAddOns.any((a) => a.label.toLowerCase() == addon.label.toLowerCase());
+                          final isChecked = _selectedAddOns.any((a) =>
+                              a.label.toLowerCase() ==
+                              addon.label.toLowerCase());
 
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 12),
@@ -455,7 +617,9 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
                               onTap: () {
                                 setState(() {
                                   if (isChecked) {
-                                    _selectedAddOns.removeWhere((a) => a.label.toLowerCase() == addon.label.toLowerCase());
+                                    _selectedAddOns.removeWhere((a) =>
+                                        a.label.toLowerCase() ==
+                                        addon.label.toLowerCase());
                                   } else {
                                     _selectedAddOns.add(addon);
                                   }
@@ -463,7 +627,8 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
                               },
                               borderRadius: BorderRadius.circular(10),
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 4),
                                 child: Row(
                                   children: [
                                     // Custom rounded checkbox (Picture 2)
@@ -471,15 +636,19 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
                                       width: 22,
                                       height: 22,
                                       decoration: BoxDecoration(
-                                        color: isChecked ? activePillBg : Colors.transparent,
+                                        color: isChecked
+                                            ? activePillBg
+                                            : Colors.transparent,
                                         borderRadius: BorderRadius.circular(6),
                                         border: Border.all(
-                                          color: isChecked ? activePillBg : lineCol,
+                                          color:
+                                              isChecked ? activePillBg : lineCol,
                                           width: 1.5,
                                         ),
                                       ),
                                       child: isChecked
-                                          ? Icon(Icons.check, size: 16, color: activePillText)
+                                          ? Icon(Icons.check,
+                                              size: 16, color: activePillText)
                                           : null,
                                     ),
                                     const SizedBox(width: 12),
@@ -509,7 +678,38 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
                         }),
                       ],
 
-                      const SizedBox(height: 12),
+                      // ── SPECIAL INSTRUCTIONS / NOTE ───────────────────────
+                      _buildSectionTitle('Special Instructions', inkCol),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: inactivePillBg,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: lineCol),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 2),
+                        child: TextField(
+                          controller: _noteController,
+                          maxLines: 2,
+                          style: GoogleFonts.figtree(
+                            fontSize: 13.5,
+                            color: inkCol,
+                          ),
+                          decoration: InputDecoration(
+                            hintText:
+                                'E.g. Extra hot, less foam, oat milk on the side...',
+                            hintStyle: GoogleFonts.figtree(
+                              fontSize: 13,
+                              color: muteCol,
+                            ),
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
@@ -527,7 +727,8 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
             ),
             decoration: BoxDecoration(
               color: cardBg,
-              border: Border(top: BorderSide(color: lineCol.withValues(alpha: 0.5))),
+              border: Border(
+                  top: BorderSide(color: lineCol.withValues(alpha: 0.5))),
             ),
             child: Row(
               children: [
@@ -586,7 +787,9 @@ class _ItemDetailSheetState extends ConsumerState<ItemDetailSheet> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            widget.editLine != null ? 'Save Changes' : 'Add to Cart',
+                            widget.editLine != null
+                                ? 'Save Changes'
+                                : 'Add to Cart',
                             style: GoogleFonts.figtree(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,

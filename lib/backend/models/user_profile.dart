@@ -7,6 +7,8 @@ class UserAddress {
     required this.line1,
     required this.city,
     this.notes = '',
+    this.lat,
+    this.lng,
   });
 
   final String id;
@@ -14,6 +16,11 @@ class UserAddress {
   final String line1;
   final String city;
   final String notes;
+  final double? lat;
+  final double? lng;
+
+  String get fullAddress => city.isNotEmpty ? '$line1, $city' : line1;
+  String get addressLine => fullAddress;
 
   factory UserAddress.fromMap(Map<String, dynamic> map) {
     return UserAddress(
@@ -22,6 +29,8 @@ class UserAddress {
       line1: map['line1'] as String? ?? '',
       city: map['city'] as String? ?? '',
       notes: map['notes'] as String? ?? '',
+      lat: (map['lat'] as num?)?.toDouble(),
+      lng: (map['lng'] as num?)?.toDouble(),
     );
   }
 
@@ -32,6 +41,8 @@ class UserAddress {
       'line1': line1,
       'city': city,
       'notes': notes,
+      if (lat != null) 'lat': lat,
+      if (lng != null) 'lng': lng,
     };
   }
 
@@ -41,6 +52,8 @@ class UserAddress {
     String? line1,
     String? city,
     String? notes,
+    double? lat,
+    double? lng,
   }) {
     return UserAddress(
       id: id ?? this.id,
@@ -48,6 +61,8 @@ class UserAddress {
       line1: line1 ?? this.line1,
       city: city ?? this.city,
       notes: notes ?? this.notes,
+      lat: lat ?? this.lat,
+      lng: lng ?? this.lng,
     );
   }
 
@@ -60,10 +75,12 @@ class UserAddress {
           label == other.label &&
           line1 == other.line1 &&
           city == other.city &&
-          notes == other.notes;
+          notes == other.notes &&
+          lat == other.lat &&
+          lng == other.lng;
 
   @override
-  int get hashCode => Object.hash(id, label, line1, city, notes);
+  int get hashCode => Object.hash(id, label, line1, city, notes, lat, lng);
 }
 
 class UserProfile {
@@ -94,6 +111,7 @@ class UserProfile {
   final bool isEmailVerified;
 
   bool get isAdmin => role == 'admin';
+  bool get isStaff => role == 'staff' || role == 'admin';
   bool get isCustomer => role == 'customer';
 
   factory UserProfile.fromFirestore(DocumentSnapshot doc) {
@@ -188,10 +206,32 @@ class UserProfile {
           email == other.email &&
           phone == other.phone &&
           role == other.role &&
+          listEquals(favorites, other.favorites) &&
+          listEquals(addresses, other.addresses) &&
           stamps == other.stamps &&
           fcmToken == other.fcmToken &&
           isEmailVerified == other.isEmailVerified;
 
+  static bool listEquals<T>(List<T> a, List<T> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
   @override
-  int get hashCode => Object.hash(uid, name, email, phone, role, stamps, fcmToken, isEmailVerified);
+  int get hashCode => Object.hash(
+        uid,
+        name,
+        email,
+        phone,
+        role,
+        Object.hashAll(favorites),
+        Object.hashAll(addresses),
+        stamps,
+        fcmToken,
+        isEmailVerified,
+      );
 }

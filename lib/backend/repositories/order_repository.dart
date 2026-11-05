@@ -2,9 +2,11 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:orderacoffee/core/errors/failures.dart';
 import '../models/cart_line.dart';
 import '../models/order.dart';
+import '../services/location_service.dart';
 import 'cart_repository.dart';
 import 'menu_repository.dart';
 
@@ -109,11 +111,27 @@ class OrderRepository {
       }
     }
 
+    final defaultBranch = kCafeBranches.first;
+    final bLat = draft.branchLat ?? defaultBranch.lat;
+    final bLng = draft.branchLng ?? defaultBranch.lng;
+    final dLat =
+        draft.deliveryLat ?? LocationService.defaultCustomerCoordinates.latitude;
+    final dLng =
+        draft.deliveryLng ?? LocationService.defaultCustomerCoordinates.longitude;
+
     final col = _ordersCol;
     if (col != null) {
       try {
         final docRef = await col.add({
           ...draft.toMap(),
+          'branchId': draft.branchId ?? defaultBranch.id,
+          'branchName': draft.branchName ?? defaultBranch.name,
+          'branchLat': bLat,
+          'branchLng': bLng,
+          if (draft.type == OrderType.delivery) 'deliveryLat': dLat,
+          if (draft.type == OrderType.delivery) 'deliveryLng': dLng,
+          'riderLat': bLat,
+          'riderLng': bLng,
           'status': OrderStatus.received.name,
           'createdAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
@@ -136,13 +154,29 @@ class OrderRepository {
       userName: draft.userName,
       userEmail: draft.userEmail,
       items: draft.items,
+      subtotal: draft.subtotal,
+      deliveryFee: draft.deliveryFee,
+      discount: draft.discount,
+      rewardCode: draft.rewardCode,
       total: draft.total,
       type: draft.type,
       tableNo: draft.tableNo,
       address: draft.address,
       payment: draft.payment,
+      paymentStatus: draft.paymentStatus,
       status: OrderStatus.received,
       note: draft.note,
+      paymongoCheckoutId: draft.paymongoCheckoutId,
+      paymongoCheckoutUrl: draft.paymongoCheckoutUrl,
+      paymongoPaymentId: draft.paymongoPaymentId,
+      branchId: draft.branchId ?? defaultBranch.id,
+      branchName: draft.branchName ?? defaultBranch.name,
+      branchLat: bLat,
+      branchLng: bLng,
+      deliveryLat: draft.type == OrderType.delivery ? dLat : null,
+      deliveryLng: draft.type == OrderType.delivery ? dLng : null,
+      riderLat: bLat,
+      riderLng: bLng,
       createdAt: now,
       updatedAt: now,
     );
@@ -151,8 +185,11 @@ class OrderRepository {
     _unsyncedOrderIds.add(fallbackId);
     _notifyFallback();
 
-    // Auto-progress simulated order status in background for real-time order tracking:
-    // +6s -> preparing, +14s -> ready, +28s -> completed
+    // Auto-progress simulated order status & live rider GPS coordinates in background:
+    // +6s -> preparing, +14s -> ready (rider on the way), +20s -> halfway, +28s -> completed (delivered)
+    final startPos = LatLng(bLat, bLng);
+    final endPos = LatLng(dLat, dLng);
+
     Timer(const Duration(seconds: 6), () {
       final current = _fallbackOrders[fallbackId];
       if (current != null && current.status == OrderStatus.received) {
@@ -167,8 +204,24 @@ class OrderRepository {
     Timer(const Duration(seconds: 14), () {
       final current = _fallbackOrders[fallbackId];
       if (current != null && current.status == OrderStatus.preparing) {
+        final pos = LocationService.interpolateAlongRoute(startPos, endPos, 0.35);
         _fallbackOrders[fallbackId] = current.copyWith(
           status: OrderStatus.ready,
+          riderLat: pos.latitude,
+          riderLng: pos.longitude,
+          updatedAt: DateTime.now(),
+        );
+        _notifyFallback();
+      }
+    });
+
+    Timer(const Duration(seconds: 21), () {
+      final current = _fallbackOrders[fallbackId];
+      if (current != null && current.status == OrderStatus.ready) {
+        final pos = LocationService.interpolateAlongRoute(startPos, endPos, 0.72);
+        _fallbackOrders[fallbackId] = current.copyWith(
+          riderLat: pos.latitude,
+          riderLng: pos.longitude,
           updatedAt: DateTime.now(),
         );
         _notifyFallback();
@@ -180,6 +233,9 @@ class OrderRepository {
       if (current != null && current.status == OrderStatus.ready) {
         _fallbackOrders[fallbackId] = current.copyWith(
           status: OrderStatus.completed,
+          paymentStatus: PaymentStatus.paid,
+          riderLat: endPos.latitude,
+          riderLng: endPos.longitude,
           updatedAt: DateTime.now(),
         );
         _notifyFallback();
@@ -187,6 +243,67 @@ class OrderRepository {
     });
 
     return fallbackId;
+  }
+
+  /// Updates the PayMongo payment status & reference IDs (called by checkout or PayMongo webhook).
+  Future<void> updatePaymentStatus(
+    String id,
+    PaymentStatus paymentStatus, {
+    String? paymongoCheckoutId,
+    String? paymongoCheckoutUrl,
+    String? paymongoPaymentId,
+  }) async {
+    final local = _fallbackOrders[id];
+    if (local != null) {
+      _fallbackOrders[id] = local.copyWith(
+        paymentStatus: paymentStatus,
+        paymongoCheckoutId: paymongoCheckoutId ?? local.paymongoCheckoutId,
+        paymongoCheckoutUrl: paymongoCheckoutUrl ?? local.paymongoCheckoutUrl,
+        paymongoPaymentId: paymongoPaymentId ?? local.paymongoPaymentId,
+        updatedAt: DateTime.now(),
+      );
+      _unsyncedOrderIds.add(id);
+      _notifyFallback();
+    }
+
+    final col = _ordersCol;
+    if (col == null) return;
+    try {
+      await col.doc(id).update({
+        'paymentStatus': paymentStatus.value,
+        if (paymongoCheckoutId != null)
+          'paymongoCheckoutId': paymongoCheckoutId,
+        if (paymongoCheckoutUrl != null)
+          'paymongoCheckoutUrl': paymongoCheckoutUrl,
+        if (paymongoPaymentId != null) 'paymongoPaymentId': paymongoPaymentId,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (_) {
+      // Local fallback already updated
+    }
+  }
+
+  /// Updates the live rider GPS coordinates for an active delivery order.
+  Future<void> updateRiderLocation(String id, double lat, double lng) async {
+    final local = _fallbackOrders[id];
+    if (local != null) {
+      _fallbackOrders[id] = local.copyWith(
+        riderLat: lat,
+        riderLng: lng,
+        updatedAt: DateTime.now(),
+      );
+      _notifyFallback();
+    }
+
+    final col = _ordersCol;
+    if (col == null) return;
+    try {
+      await col.doc(id).update({
+        'riderLat': lat,
+        'riderLng': lng,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (_) {}
   }
 
   /// O2: Track one order (live stream)
@@ -272,8 +389,8 @@ class OrderRepository {
             map[o.id] = o;
           }
           final combined = map.values.toList();
-          combined.sort((a, b) =>
-              (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)));
+          combined.sort((a, b) => (b.createdAt ?? DateTime(0))
+              .compareTo(a.createdAt ?? DateTime(0)));
           return combined;
         })
         .handleError((_) {
@@ -326,9 +443,11 @@ class OrderRepository {
             map[o.id] = o;
           }
           final combined = map.values.toList();
-          combined.sort((a, b) =>
-              (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)));
-          return combined.length > limit ? combined.sublist(0, limit) : combined;
+          combined.sort((a, b) => (b.createdAt ?? DateTime(0))
+              .compareTo(a.createdAt ?? DateTime(0)));
+          return combined.length > limit
+              ? combined.sublist(0, limit)
+              : combined;
         })
         .handleError((_) {
           final local = _fallbackOrders.values
@@ -481,8 +600,8 @@ class OrderRepository {
             map[o.id] = o;
           }
           final combined = map.values.toList();
-          combined.sort((a, b) =>
-              (a.createdAt ?? DateTime(0)).compareTo(b.createdAt ?? DateTime(0)));
+          combined.sort((a, b) => (a.createdAt ?? DateTime(0))
+              .compareTo(b.createdAt ?? DateTime(0)));
           return combined;
         })
         .handleError((_) {
@@ -515,8 +634,32 @@ class OrderRepository {
         );
       }
 
+      double? nextRiderLat = local.riderLat;
+      double? nextRiderLng = local.riderLng;
+      if (local.type == OrderType.delivery &&
+          local.branchLat != null &&
+          local.branchLng != null &&
+          local.deliveryLat != null &&
+          local.deliveryLng != null) {
+        final start = LatLng(local.branchLat!, local.branchLng!);
+        final end = LatLng(local.deliveryLat!, local.deliveryLng!);
+        if (next == OrderStatus.ready) {
+          final mid = LocationService.interpolateAlongRoute(start, end, 0.45);
+          nextRiderLat = mid.latitude;
+          nextRiderLng = mid.longitude;
+        } else if (next == OrderStatus.completed) {
+          nextRiderLat = end.latitude;
+          nextRiderLng = end.longitude;
+        }
+      }
+
       _fallbackOrders[id] = local.copyWith(
         status: next,
+        paymentStatus: next == OrderStatus.completed
+            ? PaymentStatus.paid
+            : local.paymentStatus,
+        riderLat: nextRiderLat,
+        riderLng: nextRiderLng,
         updatedAt: DateTime.now(),
       );
       _notifyFallback();
@@ -552,6 +695,8 @@ class OrderRepository {
     try {
       await docRef.update({
         'status': next.name,
+        if (next == OrderStatus.completed)
+          'paymentStatus': PaymentStatus.paid.value,
         'updatedAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {
@@ -562,14 +707,32 @@ class OrderRepository {
   /// O9: Get completed orders for today (for sales summary calculation)
   Future<List<Order>> getCompletedToday(DateTime startOfDay) async {
     final col = _ordersCol;
-    if (col == null) return const [];
+    if (col == null) {
+      return _fallbackOrders.values
+          .where((o) =>
+              o.status == OrderStatus.completed &&
+              o.createdAt != null &&
+              !o.createdAt!.isBefore(startOfDay))
+          .toList();
+    }
     try {
       final snapshot = await col
           .where('status', isEqualTo: OrderStatus.completed.name)
           .where('createdAt',
               isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
           .get();
-      return snapshot.docs.map(Order.fromFirestore).toList();
+      final firestoreList = snapshot.docs.map(Order.fromFirestore).toList();
+      final fallbackList = _fallbackOrders.values
+          .where((o) =>
+              o.status == OrderStatus.completed &&
+              o.createdAt != null &&
+              !o.createdAt!.isBefore(startOfDay))
+          .toList();
+      final merged = <String, Order>{};
+      for (final o in [...firestoreList, ...fallbackList]) {
+        merged[o.id] = o;
+      }
+      return merged.values.toList();
     } catch (e) {
       return _fallbackOrders.values
           .where((o) =>

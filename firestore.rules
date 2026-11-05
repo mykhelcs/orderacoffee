@@ -2,28 +2,81 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Menu items: readable and writable so initial seed and updates always succeed
-    match /menu_items/{document=**} {
-      allow read, write: if true;
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    match /categories/{document=**} {
-      allow read, write: if true;
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Customer profiles: readable and writable for registration and profile updates
+    function isStaffOrAdmin() {
+      return isSignedIn() && (
+        request.auth.token.admin == true ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'staff'])
+      );
+    }
+
+    // Menu collections: publicly readable; writable by staff/admin or during initial catalog seed
+    match /menu/{itemId} {
+      allow read: if true;
+      allow create: if isSignedIn() || !exists(/databases/$(database)/documents/menu/$(itemId));
+      allow update, delete: if isStaffOrAdmin();
+    }
+
+    match /menu_items/{itemId} {
+      allow read: if true;
+      allow create: if isSignedIn() || !exists(/databases/$(database)/documents/menu_items/$(itemId));
+      allow update, delete: if isStaffOrAdmin();
+    }
+
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isStaffOrAdmin();
+    }
+
+    // Customer profiles: scoped to the authenticated owner or staff/admin
     match /users/{userId} {
-      allow read, write: if true;
+      allow read: if isOwner(userId) || isStaffOrAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isStaffOrAdmin();
+      allow delete: if isOwner(userId) || isStaffOrAdmin();
     }
 
-    // Orders: allow customers and staff to create, read, and track orders
+    // Email OTP verification records (used during pre-auth signup flow)
+    match /email_verifications/{email} {
+      allow read, create, update: if true;
+      allow delete: if isStaffOrAdmin();
+    }
+
+    // Outbound email queue for Firebase Trigger Email extension
+    match /mail/{mailId} {
+      allow create: if true;
+      allow read, update, delete: if isStaffOrAdmin();
+    }
+
+    // Orders: customers can create and read their own orders (and cancel while 'received');
+    // staff/admin and PayMongo webhook services can read and update order/payment status
     match /orders/{orderId} {
-      allow read, write: if true;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaffOrAdmin());
+      allow update: if isStaffOrAdmin() || (
+        isSignedIn() &&
+        resource.data.userId == request.auth.uid &&
+        (
+          // Customer cancelling an order while still 'received'
+          (resource.data.status == 'received' && request.resource.data.status == 'cancelled') ||
+          // Customer completing payment status update from checkout session
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['paymentStatus', 'paymongoCheckoutId', 'paymongoCheckoutUrl', 'paymongoPaymentId', 'updatedAt']))
+        )
+      );
+      allow delete: if isStaffOrAdmin();
     }
 
-    // Default fallback rule for all collections
-    match /{document=**} {
-      allow read, write: if true;
+    // Daily sales summaries
+    match /sales/{dateId} {
+      allow read, write: if isStaffOrAdmin();
     }
   }
 }

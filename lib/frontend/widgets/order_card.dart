@@ -15,6 +15,8 @@ class OrderCard extends StatelessWidget {
     this.onTrack,
     this.onReorder,
     this.onAdvance,
+    this.onCancel,
+    this.onUpdateRiderGps,
     this.isStaffView = false,
   });
 
@@ -22,10 +24,19 @@ class OrderCard extends StatelessWidget {
   final VoidCallback? onTrack;
   final VoidCallback? onReorder;
   final VoidCallback? onAdvance;
+  final VoidCallback? onCancel;
+  final VoidCallback? onUpdateRiderGps;
   final bool isStaffView;
 
   String _itemsSummary() {
-    return order.items.map((i) => '${i.qty}x ${i.name}').join(', ');
+    return order.items.map((i) {
+      if (!isStaffView) return '${i.qty}x ${i.name}';
+      final custom = i.customizationSummary;
+      final noteStr = i.note.isNotEmpty ? ' [Note: ${i.note}]' : '';
+      return custom.isNotEmpty
+          ? '${i.qty}x ${i.name} ($custom)$noteStr'
+          : '${i.qty}x ${i.name}$noteStr';
+    }).join(isStaffView ? '\n' : ', ');
   }
 
   String? _nextStatusLabel() {
@@ -53,7 +64,10 @@ class OrderCard extends StatelessWidget {
 
     final typeDescription = switch (order.type) {
       OrderType.dineIn => 'Table ${order.tableNo ?? '-'}',
-      OrderType.delivery => 'Delivery',
+      OrderType.delivery =>
+        order.address != null && order.address!.isNotEmpty
+            ? 'Delivery • ${order.address}'
+            : 'Delivery',
       OrderType.pickup => 'Pickup',
     };
 
@@ -74,14 +88,20 @@ class OrderCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                order.id,
-                style: GoogleFonts.playfairDisplay(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: inkCol,
+              Expanded(
+                child: Text(
+                  isStaffView && order.userName.isNotEmpty
+                      ? '${order.id} • ${order.userName}'
+                      : order.id,
+                  style: GoogleFonts.playfairDisplay(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: inkCol,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              const SizedBox(width: 8),
               StatusBadge(status: order.status),
             ],
           ),
@@ -89,7 +109,7 @@ class OrderCard extends StatelessWidget {
           // Items and metadata
           Text(
             isStaffView
-                ? '${_itemsSummary()}\n$typeDescription'
+                ? '${_itemsSummary()}\n$typeDescription • ${order.payment.label} (${order.paymentStatus.name.toUpperCase()}) • ${peso(order.total)}'
                 : '${_itemsSummary()} • ${peso(order.total)}',
             style: GoogleFonts.figtree(
               fontSize: 13,
@@ -97,6 +117,17 @@ class OrderCard extends StatelessWidget {
               height: 1.4,
             ),
           ),
+          if (isStaffView && (order.note ?? '').isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Order Note: ${order.note}',
+              style: GoogleFonts.figtree(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.crema,
+              ),
+            ),
+          ],
           // Action buttons
           if (!isStaffView) ...[
             const SizedBox(height: 10),
@@ -117,12 +148,38 @@ class OrderCard extends StatelessWidget {
               ],
             ),
           ],
-          if (isStaffView && nextLabel != null && onAdvance != null) ...[
-            const SizedBox(height: 12),
-            BrandButton(
-              label: 'Mark as ${kOrderLabels[nextLabel]?.toLowerCase() ?? nextLabel}',
-              onPressed: onAdvance,
-            ),
+          if (isStaffView) ...[
+            if (nextLabel != null && onAdvance != null) ...[
+              const SizedBox(height: 12),
+              BrandButton(
+                label:
+                    'Mark as ${kOrderLabels[nextLabel]?.toLowerCase() ?? nextLabel}',
+                onPressed: onAdvance,
+              ),
+            ],
+            if ((onCancel != null && order.status == OrderStatus.received) ||
+                (onUpdateRiderGps != null &&
+                    order.type == OrderType.delivery &&
+                    order.status == OrderStatus.ready)) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  if (onCancel != null && order.status == OrderStatus.received)
+                    GhostButton(
+                      label: 'Cancel order',
+                      onPressed: onCancel,
+                    ),
+                  if (onUpdateRiderGps != null &&
+                      order.type == OrderType.delivery &&
+                      order.status == OrderStatus.ready)
+                    GhostButton(
+                      label: 'Advance Rider GPS',
+                      icon: Icons.delivery_dining_rounded,
+                      onPressed: onUpdateRiderGps,
+                    ),
+                ],
+              ),
+            ],
           ],
         ],
       ),

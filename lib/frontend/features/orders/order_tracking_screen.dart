@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:latlong2/latlong.dart';
 
 import 'package:orderacoffee/frontend/theme/theme.dart';
 import 'package:orderacoffee/core/utils.dart';
 import 'package:orderacoffee/backend/models/order.dart';
+import 'package:orderacoffee/backend/services/location_service.dart';
 import 'package:orderacoffee/frontend/features/menu/menu_provider.dart';
 import 'package:orderacoffee/frontend/widgets/cup_icon.dart';
 import 'package:orderacoffee/frontend/widgets/ghost_button.dart';
+import 'package:orderacoffee/frontend/widgets/live_order_map.dart';
 import 'package:orderacoffee/frontend/widgets/scooter_delivery_graphic.dart';
 import 'orders_provider.dart';
 
@@ -39,8 +42,10 @@ class OrderTrackingScreen extends ConsumerWidget {
     final lineCol = isDark ? AppColors.lineDark : const Color(0xFFE8DFD5);
     final inkCol = isDark ? AppColors.inkDark : const Color(0xFF1B120C);
     final muteCol = isDark ? AppColors.muteDark : const Color(0xFF7A6D65);
-    final brownAccent = isDark ? const Color(0xFFD4A373) : const Color(0xFF3B2314);
-    final lightStepBg = isDark ? const Color(0xFF2E2425) : const Color(0xFFD9D4CC);
+    final brownAccent =
+        isDark ? const Color(0xFFD4A373) : const Color(0xFF3B2314);
+    final lightStepBg =
+        isDark ? const Color(0xFF2E2425) : const Color(0xFFD9D4CC);
 
     final orderAsync = ref.watch(singleOrderStreamProvider(orderId));
     final menuItems = ref.watch(menuStreamProvider).valueOrNull ?? [];
@@ -93,17 +98,49 @@ class OrderTrackingScreen extends ConsumerWidget {
               activeStepIndex = 2;
             } else if (order.status == OrderStatus.completed) {
               activeStepIndex = 3;
+            } else if (order.status == OrderStatus.cancelled) {
+              activeStepIndex = -1;
             }
 
-            return ListView(
+            final branchCoords =
+                (order.branchLat != null && order.branchLng != null)
+                    ? LatLng(order.branchLat!, order.branchLng!)
+                    : LocationService.defaultBranch.coordinates;
+
+            final customerCoords =
+                (order.deliveryLat != null && order.deliveryLng != null)
+                    ? LatLng(order.deliveryLat!, order.deliveryLng!)
+                    : (order.type == OrderType.delivery
+                        ? LocationService.defaultCustomerCoordinates
+                        : null);
+
+            final riderCoords =
+                (order.riderLat != null && order.riderLng != null)
+                    ? LatLng(order.riderLat!, order.riderLng!)
+                    : (order.status == OrderStatus.ready &&
+                            customerCoords != null
+                        ? LocationService.interpolateLocation(
+                            branchCoords,
+                            customerCoords,
+                            0.5,
+                          )
+                        : null);
+
+            return SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              children: [
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                 // Top App Bar (Picture 3: Back button, Title, More vert)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                      icon: Icon(Icons.arrow_back_rounded, color: inkCol, size: 24),
+                      icon: Icon(
+                        Icons.arrow_back_rounded,
+                        color: inkCol,
+                        size: 24,
+                      ),
                       onPressed: () {
                         if (Navigator.of(context).canPop()) {
                           Navigator.of(context).pop();
@@ -121,7 +158,11 @@ class OrderTrackingScreen extends ConsumerWidget {
                       ),
                     ),
                     IconButton(
-                      icon: Icon(Icons.more_vert_rounded, color: inkCol, size: 24),
+                      icon: Icon(
+                        Icons.more_vert_rounded,
+                        color: inkCol,
+                        size: 24,
+                      ),
                       onPressed: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Order ref: ${order.id}')),
@@ -133,16 +174,100 @@ class OrderTrackingScreen extends ConsumerWidget {
 
                 const SizedBox(height: 14),
 
-                // Order Number & Estimated Delivery (Picture 3)
-                Text(
-                  _formatOrderCode(order.id),
-                  style: GoogleFonts.figtree(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: inkCol,
-                  ),
+                // Order Number & Payment Status Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _formatOrderCode(order.id),
+                      style: GoogleFonts.figtree(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: inkCol,
+                      ),
+                    ),
+                    _PaymentStatusBadge(order: order),
+                  ],
                 ),
                 const SizedBox(height: 12),
+
+                if (order.status == OrderStatus.cancelled) ...[
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.bad.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: AppColors.bad.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.cancel_outlined,
+                          color: AppColors.bad,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'This order has been cancelled.',
+                            style: GoogleFonts.figtree(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.bad,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                // Pending PayMongo Payment Action Banner
+                if (order.payment.isPayMongo &&
+                    order.paymentStatus == PaymentStatus.pending &&
+                    order.status != OrderStatus.cancelled) ...[
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.warn.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: AppColors.warn.withValues(alpha: 0.45),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.payment_rounded,
+                          color: AppColors.warn,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Awaiting ${order.payment.label} authorization via PayMongo.',
+                            style: GoogleFonts.figtree(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: inkCol,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            ref
+                                .read(ordersProvider.notifier)
+                                .completePayMongoPayment(order.id);
+                          },
+                          child: const Text('Authorize Now'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
                 Text(
                   'Estimated Delivery',
                   style: GoogleFonts.figtree(
@@ -184,7 +309,56 @@ class OrderTrackingScreen extends ConsumerWidget {
                   muteCol: muteCol,
                 ),
 
-                const SizedBox(height: 28),
+                const SizedBox(height: 22),
+
+                // Live Geolocation & Route Map (`flutter_map` + `latlong2`)
+                LiveOrderMap(
+                  height: 210,
+                  branchLocation: branchCoords,
+                  branchName: order.branchName ??
+                      LocationService.defaultBranch.name,
+                  customerLocation: customerCoords,
+                  riderLocation: riderCoords,
+                  showRider: order.type == OrderType.delivery &&
+                      (order.status == OrderStatus.ready ||
+                          order.riderLat != null),
+                ),
+
+                if (order.status == OrderStatus.received) ...[
+                  const SizedBox(height: 14),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        await ref
+                            .read(ordersProvider.notifier)
+                            .cancelOrder(order.id);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Order cancelled.'),
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(
+                        Icons.cancel_outlined,
+                        size: 16,
+                        color: AppColors.bad,
+                      ),
+                      label: Text(
+                        'Cancel Order',
+                        style: GoogleFonts.figtree(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.bad,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 22),
 
                 // Order Details Card (Picture 3)
                 Container(
@@ -194,7 +368,8 @@ class OrderTrackingScreen extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                        color: Colors.black
+                            .withValues(alpha: isDark ? 0.2 : 0.04),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -212,12 +387,31 @@ class OrderTrackingScreen extends ConsumerWidget {
                           color: inkCol,
                         ),
                       ),
+                      if (order.address != null &&
+                          order.address!.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Deliver to: ${order.address}',
+                          style: GoogleFonts.figtree(
+                            fontSize: 12.5,
+                            color: muteCol,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       // List of items
                       ...order.items.map((item) {
                         // Find thumbnail from catalog
-                        final match = menuItems.where((m) => m.name.toLowerCase() == item.name.toLowerCase() || m.id == item.itemId).firstOrNull;
+                        final match = menuItems
+                            .where(
+                              (m) =>
+                                  m.name.toLowerCase() ==
+                                      item.name.toLowerCase() ||
+                                  m.id == item.itemId,
+                            )
+                            .firstOrNull;
                         final imgUrl = match?.imageUrl;
+                        final customSummary = item.customizationSummary;
 
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 16),
@@ -238,12 +432,19 @@ class OrderTrackingScreen extends ConsumerWidget {
                                         width: 48,
                                         height: 48,
                                         fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => const Center(
-                                          child: CupIcon(size: 24, color: Color(0xFF5A3825)),
+                                        errorBuilder: (_, __, ___) =>
+                                            const Center(
+                                          child: CupIcon(
+                                            size: 24,
+                                            color: Color(0xFF5A3825),
+                                          ),
                                         ),
                                       )
                                     : const Center(
-                                        child: CupIcon(size: 24, color: Color(0xFF5A3825)),
+                                        child: CupIcon(
+                                          size: 24,
+                                          color: Color(0xFF5A3825),
+                                        ),
                                       ),
                               ),
                               const SizedBox(width: 14),
@@ -259,17 +460,25 @@ class OrderTrackingScreen extends ConsumerWidget {
                                         color: inkCol,
                                       ),
                                     ),
-                                    if (item.customizations.isNotEmpty)
+                                    if (customSummary.isNotEmpty)
                                       Padding(
                                         padding: const EdgeInsets.only(top: 2),
                                         child: Text(
-                                          item.customizations.values
-                                              .where((v) => v != null && v.toString().isNotEmpty)
-                                              .map((v) => v is Map ? (v['label'] ?? '') : v.toString())
-                                              .where((s) => s.isNotEmpty)
-                                              .join(' • '),
+                                          customSummary,
                                           style: GoogleFonts.figtree(
                                             fontSize: 12,
+                                            color: muteCol,
+                                          ),
+                                        ),
+                                      ),
+                                    if (item.note.isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 2),
+                                        child: Text(
+                                          'Note: ${item.note}',
+                                          style: GoogleFonts.figtree(
+                                            fontSize: 11.5,
+                                            fontStyle: FontStyle.italic,
                                             color: muteCol,
                                           ),
                                         ),
@@ -293,6 +502,74 @@ class OrderTrackingScreen extends ConsumerWidget {
                       const SizedBox(height: 8),
                       Divider(color: lineCol.withValues(alpha: 0.8)),
                       const SizedBox(height: 12),
+
+                      if (order.deliveryFee > 0 || order.discount > 0) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Subtotal',
+                              style: GoogleFonts.figtree(
+                                fontSize: 13.5,
+                                color: muteCol,
+                              ),
+                            ),
+                            Text(
+                              peso(order.computedSubtotal),
+                              style: GoogleFonts.figtree(
+                                fontSize: 13.5,
+                                color: inkCol,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                      ],
+                      if (order.deliveryFee > 0) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Delivery Fee',
+                              style: GoogleFonts.figtree(
+                                fontSize: 13.5,
+                                color: muteCol,
+                              ),
+                            ),
+                            Text(
+                              peso(order.deliveryFee),
+                              style: GoogleFonts.figtree(
+                                fontSize: 13.5,
+                                color: inkCol,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                      ],
+                      if (order.discount > 0) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Loyalty Discount',
+                              style: GoogleFonts.figtree(
+                                fontSize: 13.5,
+                                color: AppColors.ok,
+                              ),
+                            ),
+                            Text(
+                              '- ${peso(order.discount)}',
+                              style: GoogleFonts.figtree(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.ok,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                      ],
 
                       // Total Row (Picture 3)
                       Row(
@@ -322,6 +599,7 @@ class OrderTrackingScreen extends ConsumerWidget {
 
                 const SizedBox(height: 24),
               ],
+              ),
             );
           },
         ),
@@ -415,7 +693,8 @@ class OrderTrackingScreen extends ConsumerWidget {
                       steps[index].label,
                       style: GoogleFonts.figtree(
                         fontSize: 12,
-                        fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
+                        fontWeight:
+                            isCurrent ? FontWeight.w700 : FontWeight.w500,
                         color: isCurrent || isCompleted ? inkCol : muteCol,
                       ),
                     ),
@@ -426,6 +705,51 @@ class OrderTrackingScreen extends ConsumerWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _PaymentStatusBadge extends StatelessWidget {
+  const _PaymentStatusBadge({required this.order});
+
+  final Order order;
+
+  @override
+  Widget build(BuildContext context) {
+    final isPaid = order.paymentStatus == PaymentStatus.paid;
+    final isPending = order.paymentStatus == PaymentStatus.pending;
+
+    final bgColor = isPaid
+        ? AppColors.ok.withValues(alpha: 0.14)
+        : isPending
+            ? AppColors.warn.withValues(alpha: 0.15)
+            : AppColors.crema.withValues(alpha: 0.15);
+    final fgColor = isPaid
+        ? AppColors.ok
+        : isPending
+            ? AppColors.warn
+            : AppColors.crema;
+
+    final statusText = isPaid
+        ? 'PAID • ${order.payment.label}'
+        : isPending
+            ? 'PENDING • ${order.payment.label}'
+            : order.payment.label;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Text(
+        statusText,
+        style: GoogleFonts.figtree(
+          fontSize: 11.5,
+          fontWeight: FontWeight.w700,
+          color: fgColor,
+        ),
+      ),
     );
   }
 }

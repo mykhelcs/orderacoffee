@@ -27,6 +27,21 @@ class CartCustomizations {
     return total;
   }
 
+  String formatSummary({bool includeDefaultShots = false}) {
+    final parts = <String>[];
+    if (size != null) parts.add(size!.label);
+    if (milk != null) parts.add(milk!.label);
+    if (shots != null && (includeDefaultShots || shots != 2)) {
+      parts.add('${shots!} ${shots == 1 ? 'shot' : 'shots'}');
+    }
+    if (sugar != null && sugar!.isNotEmpty) parts.add('$sugar sugar');
+    if (ice != null && ice!.isNotEmpty) parts.add(ice!);
+    if (addOns.isNotEmpty) {
+      parts.add(addOns.map((a) => a.label).join(', '));
+    }
+    return parts.join(' • ');
+  }
+
   factory CartCustomizations.fromMap(Map<String, dynamic> map) {
     final rawSize = map['size'];
     final size = rawSize is Map<String, dynamic>
@@ -85,6 +100,37 @@ class CartCustomizations {
       addOns: addOns ?? this.addOns,
     );
   }
+
+  static bool _listEquals<T>(List<T> a, List<T> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CartCustomizations &&
+          runtimeType == other.runtimeType &&
+          size == other.size &&
+          milk == other.milk &&
+          sugar == other.sugar &&
+          ice == other.ice &&
+          shots == other.shots &&
+          _listEquals(addOns, other.addOns);
+
+  @override
+  int get hashCode => Object.hash(
+        size,
+        milk,
+        sugar,
+        ice,
+        shots,
+        Object.hashAll(addOns),
+      );
 }
 
 class CartLine {
@@ -167,9 +213,12 @@ class CartLine {
           runtimeType == other.runtimeType &&
           id == other.id &&
           itemId == other.itemId &&
+          basePrice == other.basePrice &&
+          customizations == other.customizations &&
           qty == other.qty &&
           note == other.note;
 
   @override
-  int get hashCode => Object.hash(id, itemId, qty, note);
+  int get hashCode =>
+      Object.hash(id, itemId, basePrice, customizations, qty, note);
 }

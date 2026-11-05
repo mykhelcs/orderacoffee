@@ -29,6 +29,7 @@ class RouterNotifier extends ChangeNotifier {
   String? redirect(BuildContext context, GoRouterState state) {
     final authState = _ref.read(authProvider);
     final isLoggedIn = authState.isAuthenticated;
+    final isStaff = authState.isAdmin || authState.profile?.role == 'staff';
     final path = state.uri.path;
     final isAuthRoute = path == '/landing' ||
         path == '/login' ||
@@ -42,6 +43,11 @@ class RouterNotifier extends ChangeNotifier {
 
     // If already logged in and navigating to auth screens (except landing), go to home
     if (isLoggedIn && (path == '/login' || path == '/signup')) {
+      return '/';
+    }
+
+    // Role guard: prevent non-staff/non-admin users from accessing /admin
+    if (isLoggedIn && path.startsWith('/admin') && !isStaff) {
       return '/';
     }
 

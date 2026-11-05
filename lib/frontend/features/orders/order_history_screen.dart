@@ -166,16 +166,16 @@ class OrderHistoryScreen extends ConsumerWidget {
               final cartNotifier = ref.read(cartProvider.notifier);
 
               for (final item in order.items) {
-                final menuItem = menuItems.firstWhere(
-                  (m) => m.name == item.name || m.id == item.itemId,
-                  orElse: () => menuItems.first,
-                );
+                final menuItem = menuItems
+                    .where((m) => m.id == item.itemId || m.name == item.name)
+                    .firstOrNull;
 
-                if (menuItem.isAvailable) {
+                if (menuItem != null && menuItem.isAvailable) {
                   cartNotifier.addLine(
                     menuItem,
-                    const CartCustomizations(),
+                    CartCustomizations.fromMap(item.customizations),
                     item.qty,
+                    note: item.note,
                   );
                   addedCount++;
                 }
@@ -185,7 +185,7 @@ class OrderHistoryScreen extends ConsumerWidget {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content:
-                        Text('Added to cart. Check options before checkout.'),
+                        Text('Added to cart with your saved customizations!'),
                   ),
                 );
                 context.go('/cart');

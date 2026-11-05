@@ -174,8 +174,8 @@ class AuthRepository {
       return true;
     }
 
-    // Default testing code fallback for offline / preview environments
-    if (cleanCode == '123456') {
+    // Default testing code fallback only in debug/preview or when Firestore is unavailable
+    if ((kDebugMode || firestore == null) && cleanCode == '123456') {
       return true;
     }
 

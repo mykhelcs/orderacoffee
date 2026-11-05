@@ -2,10 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:latlong2/latlong.dart';
 
+import 'package:orderacoffee/backend/models/user_profile.dart';
+import 'package:orderacoffee/backend/services/location_service.dart';
 import 'package:orderacoffee/frontend/theme/theme.dart';
+import 'package:orderacoffee/frontend/widgets/brand_button.dart';
+import 'package:orderacoffee/frontend/widgets/live_order_map.dart';
 import 'package:orderacoffee/frontend/widgets/main_shell.dart';
 import '../auth/auth_provider.dart';
+import '../menu/menu_provider.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -32,14 +38,21 @@ class ProfileScreen extends ConsumerWidget {
             onPressed: () => Navigator.pop(ctx),
             child: Text(
               'Cancel',
-              style: GoogleFonts.figtree(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+              style: GoogleFonts.figtree(
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.7),
+              ),
             ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF5A3825),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
             ),
             onPressed: () async {
               Navigator.pop(ctx);
@@ -58,6 +71,389 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
+  void _showDeleteAccountDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Theme.of(context).cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Delete Account',
+          style: GoogleFonts.playfairDisplay(
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+            color: AppColors.bad,
+          ),
+        ),
+        content: Text(
+          'This will permanently delete your CafeGO profile, saved addresses, and loyalty stamps. Continue?',
+          style: GoogleFonts.figtree(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.bad,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await ref.read(authProvider.notifier).deleteAccount();
+              if (context.mounted) {
+                context.go('/login');
+              }
+            },
+            child: const Text('Delete Forever'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditProfileSheet(
+    BuildContext context,
+    WidgetRef ref,
+    String initialName,
+    String initialPhone,
+  ) {
+    final nameCtrl = TextEditingController(text: initialName);
+    final phoneCtrl = TextEditingController(text: initialPhone);
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            24,
+            20,
+            24,
+            MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Edit Profile',
+                style: GoogleFonts.playfairDisplay(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Full Name',
+                  prefixIcon: Icon(Icons.person_outline_rounded),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: phoneCtrl,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'Phone Number',
+                  prefixIcon: Icon(Icons.phone_outlined),
+                ),
+              ),
+              const SizedBox(height: 20),
+              BrandButton(
+                label: 'Save Changes',
+                onPressed: () async {
+                  final name = nameCtrl.text.trim();
+                  final phone = phoneCtrl.text.trim();
+                  if (name.isEmpty) return;
+                  await ref
+                      .read(authProvider.notifier)
+                      .updateProfileDetails(name: name, phone: phone);
+                  if (ctx.mounted) {
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Profile updated!')),
+                    );
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showAddressesSheet(BuildContext context, WidgetRef ref) {
+    final labelCtrl = TextEditingController(text: 'Home');
+    final addrCtrl = TextEditingController();
+    LatLng pinnedCoords = LocationService.defaultCustomerCoordinates;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return Consumer(
+              builder: (ctx, modalRef, _) {
+                final addresses =
+                    modalRef.watch(authProvider).profile?.addresses ?? [];
+                return Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    20,
+                    20,
+                    MediaQuery.of(ctx).viewInsets.bottom + 24,
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Delivery Addresses',
+                          style: GoogleFonts.playfairDisplay(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        if (addresses.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Text(
+                              'No saved addresses yet. Add your home or office below.',
+                              style: GoogleFonts.figtree(fontSize: 13),
+                            ),
+                          )
+                        else
+                          ...addresses.map(
+                            (addr) => ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: const Icon(Icons.location_on_rounded),
+                              title: Text(
+                                addr.label,
+                                style: GoogleFonts.figtree(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              subtitle: Text(addr.addressLine),
+                              trailing: IconButton(
+                                icon: const Icon(
+                                  Icons.delete_outline_rounded,
+                                  color: AppColors.bad,
+                                ),
+                                onPressed: () {
+                                  modalRef
+                                      .read(authProvider.notifier)
+                                      .removeDeliveryAddress(addr);
+                                },
+                              ),
+                            ),
+                          ),
+                        const Divider(height: 24),
+                        Text(
+                          'Add New Address',
+                          style: GoogleFonts.figtree(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: TextField(
+                                controller: labelCtrl,
+                                decoration: const InputDecoration(
+                                  labelText: 'Label (Home/Office)',
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              flex: 4,
+                              child: TextField(
+                                controller: addrCtrl,
+                                decoration: const InputDecoration(
+                                  labelText: 'Street / Building / Unit',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        LiveOrderMap(
+                          height: 170,
+                          branchLocation:
+                              LocationService.defaultBranch.coordinates,
+                          branchName: LocationService.defaultBranch.name,
+                          customerLocation: pinnedCoords,
+                          onLocationPicked: (latLng) {
+                            setModalState(() => pinnedCoords = latLng);
+                          },
+                          onUseMyLocation: () async {
+                            final gps = await const LocationService()
+                                .getCurrentLocation();
+                            setModalState(() => pinnedCoords = gps);
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        BrandButton(
+                          label: 'Save Address',
+                          onPressed: () async {
+                            final line = addrCtrl.text.trim();
+                            if (line.isEmpty) return;
+                            final newAddr = UserAddress(
+                              id: 'addr_${DateTime.now().millisecondsSinceEpoch}',
+                              label: labelCtrl.text.trim().isEmpty
+                                  ? 'Home'
+                                  : labelCtrl.text.trim(),
+                              line1: line,
+                              city: 'Metro Manila',
+                              lat: pinnedCoords.latitude,
+                              lng: pinnedCoords.longitude,
+                            );
+                            await modalRef
+                                .read(authProvider.notifier)
+                                .addDeliveryAddress(newAddr);
+                            addrCtrl.clear();
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showStoreLocatorSheet(BuildContext context) {
+    CafeBranch selected = kCafeBranches.first;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'CafeGO Store Locator',
+                    style: GoogleFonts.playfairDisplay(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  LiveOrderMap(
+                    height: 200,
+                    branchLocation: selected.coordinates,
+                    branchName: selected.name,
+                  ),
+                  const SizedBox(height: 12),
+                  ...kCafeBranches.map(
+                    (branch) => ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        Icons.storefront_rounded,
+                        color: branch.id == selected.id
+                            ? AppColors.crema
+                            : null,
+                      ),
+                      title: Text(
+                        branch.name,
+                        style: GoogleFonts.figtree(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      subtitle: Text('${branch.address} • ${branch.hours}'),
+                      onTap: () => setModalState(() => selected = branch),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showHelpFaqSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Theme.of(context).cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Help & FAQ',
+                style: GoogleFonts.playfairDisplay(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text('How do CafeGO Comfort Club stamps work?'),
+                subtitle: Text(
+                  'Earn 1 stamp per order. Collect 8 stamps to redeem a Free Handcrafted Drink (up to ₱ 140 off) at checkout!',
+                ),
+              ),
+              const ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text('What payment methods are supported?'),
+                subtitle: Text(
+                  'We support GCash, Maya, and Credit/Debit Cards via PayMongo, plus Cash on Delivery and Pay at Counter.',
+                ),
+              ),
+              const ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text('How much is delivery?'),
+                subtitle: Text(
+                  'Standard delivery is ₱ 45 and automatically FREE on orders ₱ 500 and above.',
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -72,9 +468,18 @@ class ProfileScreen extends ConsumerWidget {
     final brandCol = isDark ? AppColors.brandDark : AppColors.brandLight;
     final currentThemeMode = ref.watch(themeModeProvider);
 
-    final displayName = (profile?.name.isNotEmpty == true) ? profile!.name : 'Coffee Lover';
-    final displayEmail = (profile?.email.isNotEmpty == true) ? profile!.email : 'guest@cafego.com';
-    final displayPhone = (profile?.phone.isNotEmpty == true) ? profile!.phone : '+63 912 345 6789';
+    final displayName =
+        (profile?.name.isNotEmpty == true) ? profile!.name : 'Coffee Lover';
+    final displayEmail = (profile?.email.isNotEmpty == true)
+        ? profile!.email
+        : 'guest@cafego.com';
+    final displayPhone = (profile?.phone.isNotEmpty == true)
+        ? profile!.phone
+        : '+63 912 345 6789';
+
+    final stamps = profile?.stamps ?? 0;
+    final stampProgress = (stamps / 8).clamp(0.0, 1.0);
+    final stampsRemaining = (8 - stamps).clamp(0, 8);
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -148,9 +553,13 @@ class ProfileScreen extends ConsumerWidget {
                         ),
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFD49755).withValues(alpha: 0.2),
+                            color:
+                                const Color(0xFFD49755).withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(99),
                           ),
                           child: Text(
@@ -185,13 +594,23 @@ class ProfileScreen extends ConsumerWidget {
                   ],
                 ),
               ),
+              IconButton(
+                tooltip: 'Edit Profile',
+                onPressed: () => _showEditProfileSheet(
+                  context,
+                  ref,
+                  displayName,
+                  displayPhone,
+                ),
+                icon: Icon(Icons.edit_outlined, color: muteCol, size: 20),
+              ),
             ],
           ),
         ),
 
         const SizedBox(height: 16),
 
-        // CafeGO Comfort Club Rewards Card
+        // CafeGO Comfort Club Rewards Card (Connected to LoyaltyRepository)
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -237,13 +656,16 @@ class ProfileScreen extends ConsumerWidget {
                     ],
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFD49755),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      '320 Pts',
+                      '$stamps / 8 Stamps',
                       style: GoogleFonts.playfairDisplay(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -258,10 +680,11 @@ class ProfileScreen extends ConsumerWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(99),
                 child: LinearProgressIndicator(
-                  value: 0.75,
+                  value: stampProgress,
                   minHeight: 7,
                   backgroundColor: Colors.white.withValues(alpha: 0.15),
-                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFD49755)),
+                  valueColor:
+                      const AlwaysStoppedAnimation<Color>(Color(0xFFD49755)),
                 ),
               ),
               const SizedBox(height: 10),
@@ -269,14 +692,16 @@ class ProfileScreen extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '80 pts to free beverage',
+                    stampsRemaining == 0
+                        ? 'Free drink reward unlocked!'
+                        : '$stampsRemaining more stamps to free beverage',
                     style: GoogleFonts.figtree(
                       fontSize: 12,
                       color: const Color(0xFFD4C8C2),
                     ),
                   ),
                   Text(
-                    '400 pts goal',
+                    '8 stamps goal',
                     style: GoogleFonts.figtree(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -285,6 +710,50 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                 ],
               ),
+              if (authState.activeRewardCode != null) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    'Active Reward Code: ${authState.activeRewardCode}',
+                    style: GoogleFonts.figtree(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFFD49755),
+                    ),
+                  ),
+                ),
+              ] else if (stamps >= 8) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFD49755),
+                      foregroundColor: const Color(0xFF1B110B),
+                    ),
+                    onPressed: () async {
+                      final code =
+                          await ref.read(authProvider.notifier).redeemStamps();
+                      if (code.isNotEmpty && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Reward unlocked! Code: $code'),
+                          ),
+                        );
+                      }
+                    },
+                    child: const Text('Redeem Free Drink (8 Stamps)'),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -321,19 +790,18 @@ class ProfileScreen extends ConsumerWidget {
               _ProfileTile(
                 icon: Icons.favorite_border_rounded,
                 title: 'My Favorites',
-                subtitle: 'Custom drinks & pastries',
-                onTap: () => context.go('/'),
+                subtitle: 'Custom drinks & pastries (${profile?.favorites.length ?? 0})',
+                onTap: () {
+                  ref.read(menuFilterProvider.notifier).setCategory('Favorites');
+                  context.go('/');
+                },
               ),
               Divider(height: 1, indent: 56, endIndent: 20, color: lineCol),
               _ProfileTile(
                 icon: Icons.location_on_outlined,
                 title: 'Delivery Addresses',
                 subtitle: 'Saved home & office spots',
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Delivery addresses managed at checkout')),
-                  );
-                },
+                onTap: () => _showAddressesSheet(context, ref),
               ),
               Divider(height: 1, indent: 56, endIndent: 20, color: lineCol),
               _ProfileTile(
@@ -385,14 +853,14 @@ class ProfileScreen extends ConsumerWidget {
                 icon: Icons.help_outline_rounded,
                 title: 'Help & FAQ',
                 subtitle: 'Questions about ordering and rewards',
-                onTap: () {},
+                onTap: () => _showHelpFaqSheet(context),
               ),
               Divider(height: 1, indent: 56, endIndent: 20, color: lineCol),
               _ProfileTile(
                 icon: Icons.storefront_outlined,
                 title: 'CafeGO Store Locator',
                 subtitle: 'Find your nearest branch',
-                onTap: () {},
+                onTap: () => _showStoreLocatorSheet(context),
               ),
               if (profile?.isAdmin == true || profile?.role == 'staff') ...[
                 Divider(height: 1, indent: 56, endIndent: 20, color: lineCol),
@@ -422,11 +890,31 @@ class ProfileScreen extends ConsumerWidget {
             ),
           ),
           style: OutlinedButton.styleFrom(
-            side: BorderSide(color: const Color(0xFFD6336C).withValues(alpha: 0.4)),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            side: BorderSide(
+              color: const Color(0xFFD6336C).withValues(alpha: 0.4),
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             padding: const EdgeInsets.symmetric(vertical: 14),
           ),
         ),
+
+        if (profile != null) ...[
+          const SizedBox(height: 8),
+          Center(
+            child: TextButton(
+              onPressed: () => _showDeleteAccountDialog(context, ref),
+              child: Text(
+                'Delete Account',
+                style: GoogleFonts.figtree(
+                  fontSize: 12.5,
+                  color: muteCol,
+                ),
+              ),
+            ),
+          ),
+        ],
 
         const SizedBox(height: 36),
       ],
@@ -486,7 +974,8 @@ class _ProfileTile extends StatelessWidget {
           color: muteCol,
         ),
       ),
-      trailing: trailing ?? Icon(Icons.chevron_right_rounded, color: muteCol, size: 20),
+      trailing:
+          trailing ?? Icon(Icons.chevron_right_rounded, color: muteCol, size: 20),
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );

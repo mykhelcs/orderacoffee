@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:orderacoffee/backend/seed/seed_menu_data.dart';
 import 'package:orderacoffee/backend/models/menu_item.dart';
 import 'package:orderacoffee/backend/repositories/menu_repository.dart';
+import '../auth/auth_provider.dart';
 
 // ─── Production Repository Provider ──────────────────────────────────────────
 
@@ -10,12 +11,24 @@ final menuRepositoryProvider = Provider<MenuRepository>((ref) {
   return MenuRepository();
 });
 
-// ─── Menu Stream ─────────────────────────────────────────────────────────────
+// ─── Menu Stream (Customer Visible Items) ────────────────────────────────────
 
 final menuStreamProvider = StreamProvider<List<MenuItem>>((ref) {
   final repo = ref.watch(menuRepositoryProvider);
   repo.seedIfEmpty();
   return repo.watchMenu().map((items) {
+    if (items.isEmpty) {
+      return kDefaultMenuItems;
+    }
+    return items;
+  }).handleError((_) => kDefaultMenuItems);
+});
+
+// ─── All Menu Stream (Admin Catalog including Hidden Items) ──────────────────
+
+final allMenuStreamProvider = StreamProvider<List<MenuItem>>((ref) {
+  final repo = ref.watch(menuRepositoryProvider);
+  return repo.watchAllMenu().map((items) {
     if (items.isEmpty) {
       return kDefaultMenuItems;
     }
@@ -72,14 +85,24 @@ final filteredMenuProvider = Provider<List<MenuItem>>((ref) {
     error: (_, __) => kDefaultMenuItems,
   );
   final filter = ref.watch(menuFilterProvider);
+  final favorites =
+      ref.watch(authProvider).profile?.favorites ?? const <String>[];
 
   return items.where((item) {
-    final catOk =
-        filter.category == 'All' || item.category == filter.category;
+    final bool catOk;
+    if (filter.category == 'All') {
+      catOk = true;
+    } else if (filter.category == 'Favorites') {
+      catOk = favorites.contains(item.id);
+    } else {
+      catOk = item.category == filter.category;
+    }
+
     final q = filter.query.toLowerCase();
     final qOk = q.isEmpty ||
         item.name.toLowerCase().contains(q) ||
-        item.category.toLowerCase().contains(q);
+        item.category.toLowerCase().contains(q) ||
+        item.description.toLowerCase().contains(q);
     return catOk && qOk;
   }).toList();
 });
