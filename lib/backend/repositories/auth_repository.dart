@@ -195,43 +195,74 @@ class AuthRepository {
       throw const AuthFailure('Firebase is not initialized');
     }
 
+    User? user;
     try {
       final credential = await a.createUserWithEmailAndPassword(
         email: email.trim(),
         password: password,
       );
-      final user = credential.user;
-      if (user == null) {
-        throw const AuthFailure('Failed to create user account');
+      user = credential.user;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'email-already-in-use') {
+        // Self-healing: if the account was created during an earlier verification attempt
+        // where saving the Firestore profile failed, sign in using the provided password
+        // so we can recover and complete profile initialization.
+        try {
+          final signinCred = await a.signInWithEmailAndPassword(
+            email: email.trim(),
+            password: password,
+          );
+          user = signinCred.user;
+        } catch (_) {
+          throw AuthFailure(
+            'The email address is already in use by another account.',
+            e.code,
+          );
+        }
+      } else {
+        throw AuthFailure(e.message ?? 'Authentication error', e.code);
       }
+    }
 
+    if (user == null) {
+      throw const AuthFailure('Failed to create user account');
+    }
+
+    try {
       await user.updateDisplayName(name.trim());
+    } catch (_) {}
 
-      // Hash password using salted SHA-256 before saving to Firestore
-      final passwordHash = hashPassword(password, salt: user.uid);
+    // Hash password using salted SHA-256 before saving to Firestore
+    final passwordHash = hashPassword(password, salt: user.uid);
 
-      final profile = UserProfile(
-        uid: user.uid,
-        name: name.trim(),
-        email: email.trim(),
-        phone: phone.trim(),
-        role: 'customer',
-        favorites: const [],
-        stamps: 0,
-        addresses: const [],
-        createdAt: DateTime.now(),
-        isEmailVerified: true,
-      );
+    final profile = UserProfile(
+      uid: user.uid,
+      name: name.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
+      role: 'customer',
+      favorites: const [],
+      stamps: 0,
+      addresses: const [],
+      createdAt: DateTime.now(),
+      isEmailVerified: true,
+    );
 
+    try {
       await col.doc(user.uid).set({
         ...profile.toMap(),
         'passwordHash': passwordHash,
         'createdAt': FieldValue.serverTimestamp(),
       });
-
       return profile;
-    } on FirebaseAuthException catch (e) {
-      throw AuthFailure(e.message ?? 'Authentication error', e.code);
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        throw const AuthFailure(
+          'Database permission denied: Please publish firestore.rules in Firebase Console for project coughfee-app.',
+          'permission-denied',
+        );
+      }
+      throw AuthFailure('Failed to initialize user profile: ${e.message}', e.code);
     } catch (e) {
       if (e is AppException) rethrow;
       throw AuthFailure(e.toString());

@@ -65,6 +65,15 @@ class _EmailVerificationScreenState
   String get _currentCode =>
       _controllers.map((c) => c.text.trim()).join();
 
+  String _formatErrorMessage(dynamic error) {
+    var msg = error.toString();
+    msg = msg.replaceFirst(RegExp(r'^[A-Za-z]+Failure(\s*\([^)]*\))?:\s*'), '');
+    if (msg.contains('permission-denied') || msg.contains('PERMISSION_DENIED')) {
+      return 'Database permission denied: Please publish the Firestore security rules in Firebase Console for project coughfee-app.';
+    }
+    return msg;
+  }
+
   Future<void> _handleVerify() async {
     final code = _currentCode;
     if (code.length < _codeLength) {
@@ -84,9 +93,7 @@ class _EmailVerificationScreenState
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e
-              .toString()
-              .replaceFirst(RegExp(r'^[A-Za-z]+Failure(\s*\([^)]*\))?:\s*'), '');
+          _errorMessage = _formatErrorMessage(e);
         });
       }
     }
@@ -109,9 +116,7 @@ class _EmailVerificationScreenState
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e
-              .toString()
-              .replaceFirst(RegExp(r'^[A-Za-z]+Failure(\s*\([^)]*\))?:\s*'), '');
+          _errorMessage = _formatErrorMessage(e);
         });
       }
     }
