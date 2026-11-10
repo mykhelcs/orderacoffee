@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -16,6 +19,59 @@ import '../menu/menu_provider.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
+
+  Widget _buildAvatarImage(String? photoUrl, String displayName) {
+    Widget fallback() => Center(
+      child: Text(
+        displayName.isNotEmpty ? displayName[0].toUpperCase() : 'C',
+        style: GoogleFonts.playfairDisplay(
+          fontSize: 26,
+          fontWeight: FontWeight.bold,
+          color: const Color(0xFFF7F1EB),
+        ),
+      ),
+    );
+
+    if (photoUrl == null || photoUrl.isEmpty) {
+      return fallback();
+    }
+
+    if (photoUrl.startsWith('http://') || photoUrl.startsWith('https://')) {
+      return Image.network(
+        photoUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => fallback(),
+      );
+    }
+
+    if (photoUrl.startsWith('data:image')) {
+      try {
+        final commaIdx = photoUrl.indexOf(',');
+        final base64Str = commaIdx != -1 ? photoUrl.substring(commaIdx + 1) : photoUrl;
+        final bytes = base64Decode(base64Str);
+        return Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => fallback(),
+        );
+      } catch (_) {
+        return fallback();
+      }
+    }
+
+    try {
+      final file = File(photoUrl);
+      if (file.existsSync()) {
+        return Image.file(
+          file,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => fallback(),
+        );
+      }
+    } catch (_) {}
+
+    return fallback();
+  }
 
   void _showSignOutDialog(BuildContext context, WidgetRef ref) {
     showDialog(
@@ -622,36 +678,7 @@ class ProfileScreen extends ConsumerWidget {
                           ),
                         ],
                       ),
-                      child: (profile?.photoUrl != null &&
-                              profile!.photoUrl!.isNotEmpty)
-                          ? Image.network(
-                              profile.photoUrl!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Center(
-                                child: Text(
-                                  displayName.isNotEmpty
-                                      ? displayName[0].toUpperCase()
-                                      : 'C',
-                                  style: GoogleFonts.playfairDisplay(
-                                    fontSize: 26,
-                                    fontWeight: FontWeight.bold,
-                                    color: const Color(0xFFF7F1EB),
-                                  ),
-                                ),
-                              ),
-                            )
-                          : Center(
-                              child: Text(
-                                displayName.isNotEmpty
-                                    ? displayName[0].toUpperCase()
-                                    : 'C',
-                                style: GoogleFonts.playfairDisplay(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFFF7F1EB),
-                                ),
-                              ),
-                            ),
+                      child: _buildAvatarImage(profile?.photoUrl, displayName),
                     ),
                     Positioned(
                       bottom: -2,
