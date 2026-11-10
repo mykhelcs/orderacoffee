@@ -202,7 +202,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               _passwordController.text,
             );
         if (mounted) {
-          context.go('/');
+          final isStaff = ref.read(authProvider).isAdmin ||
+              ref.read(authProvider).profile?.role == 'staff';
+          context.go(isStaff ? '/admin' : '/');
         }
       }
     } catch (e) {
@@ -801,6 +803,60 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                         ),
 
                         const SizedBox(height: 28),
+
+                        // ─── Admin Quick Demo Sign In ─────────────────────────
+                        if (!isSignUpActive) ...[
+                          OutlinedButton.icon(
+                            key: const Key('adminDemoLoginButton'),
+                            onPressed: () async {
+                              setState(() {
+                                _emailController.text = 'admin@cafego.ph';
+                                _passwordController.text = 'Admin@CafeGo2024!';
+                                _errorMessage = null;
+                                _isLoading = true;
+                              });
+                              try {
+                                await ref.read(authProvider.notifier).signInAsAdmin();
+                                if (!mounted) return;
+                                context.go('/admin');
+                              } catch (e) {
+                                if (mounted) {
+                                  setState(() => _errorMessage = e.toString());
+                                }
+                              } finally {
+                                if (mounted) {
+                                  setState(() => _isLoading = false);
+                                }
+                              }
+                            },
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(
+                                color: const Color(0xFFD4A373).withValues(alpha: 0.6),
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                            ),
+                            icon: const Icon(
+                              Icons.shield_outlined,
+                              size: 16,
+                              color: Color(0xFFD4A373),
+                            ),
+                            label: Text(
+                              'Sign in as Admin Demo',
+                              style: GoogleFonts.figtree(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFFD4A373),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
 
                         // ─── Bottom Mode Switch Prompt ───────────────────────
                         GestureDetector(

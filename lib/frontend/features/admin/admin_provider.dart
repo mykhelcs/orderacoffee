@@ -2,13 +2,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:orderacoffee/backend/models/menu_item.dart';
 import 'package:orderacoffee/backend/models/order.dart';
+import 'package:orderacoffee/backend/models/user_profile.dart';
 import 'package:orderacoffee/backend/repositories/reports_repository.dart';
 import 'package:orderacoffee/backend/services/location_service.dart';
+import '../auth/auth_provider.dart';
 import '../menu/menu_provider.dart';
 import '../orders/orders_provider.dart';
 
 final reportsRepositoryProvider = Provider<ReportsRepository>((ref) {
   return ReportsRepository();
+});
+
+final storeStatusProvider = StateProvider<bool>((ref) => true);
+
+final allOrdersStreamProvider = StreamProvider<List<Order>>((ref) {
+  return ref.watch(orderRepositoryProvider).liveQueue();
+});
+
+final allUsersStreamProvider = StreamProvider<List<UserProfile>>((ref) {
+  return ref.watch(userRepositoryProvider).watchAllUsers();
 });
 
 final completedTodayProvider = FutureProvider<List<Order>>((ref) async {
@@ -111,6 +123,15 @@ class AdminNotifier {
 
   Future<void> deleteMenuItem(String itemId) async {
     await _ref.read(menuRepositoryProvider).deleteItem(itemId);
+  }
+
+  Future<void> updateUserRole(String uid, String newRole) async {
+    await _ref.read(userRepositoryProvider).updateRole(uid, newRole);
+    _ref.invalidate(allUsersStreamProvider);
+  }
+
+  void toggleStoreStatus(bool isOpen) {
+    _ref.read(storeStatusProvider.notifier).state = isOpen;
   }
 }
 

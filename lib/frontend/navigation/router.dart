@@ -12,6 +12,7 @@ import 'package:orderacoffee/frontend/features/checkout/checkout_screen.dart';
 import 'package:orderacoffee/frontend/features/landing/landing_screen.dart';
 import 'package:orderacoffee/frontend/features/menu/menu_screen.dart';
 import 'package:orderacoffee/frontend/features/orders/order_history_screen.dart';
+import 'package:orderacoffee/frontend/features/orders/order_receipt_screen.dart';
 import 'package:orderacoffee/frontend/features/orders/order_tracking_screen.dart';
 import 'package:orderacoffee/frontend/features/profile/profile_screen.dart';
 import 'package:orderacoffee/frontend/widgets/main_shell.dart';
@@ -41,9 +42,9 @@ class RouterNotifier extends ChangeNotifier {
       return '/landing';
     }
 
-    // If already logged in and navigating to auth screens (except landing), go to home
+    // If already logged in and navigating to auth screens (except landing), route appropriately
     if (isLoggedIn && (path == '/login' || path == '/signup')) {
-      return '/';
+      return isStaff ? '/admin' : '/';
     }
 
     // Role guard: prevent non-staff/non-admin users from accessing /admin
@@ -121,6 +122,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final id = state.pathParameters['id'] ?? '';
           return OrderTrackingScreen(orderId: id);
+        },
+      ),
+      GoRoute(
+        path: '/order-receipt/:id',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final id = state.pathParameters['id'] ?? '';
+          return OrderReceiptScreen(orderId: id);
         },
       ),
     ],

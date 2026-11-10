@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:orderacoffee/backend/models/menu_item.dart';
 import 'package:orderacoffee/backend/models/order.dart';
 import 'package:orderacoffee/backend/seed/seed_menu_data.dart';
 import 'package:orderacoffee/core/utils.dart';

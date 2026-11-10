@@ -105,6 +105,15 @@ class LocationService {
     return double.parse((meters / 1000.0).toStringAsFixed(2));
   }
 
+  /// Computes distance-based delivery fee in PHP.
+  /// Base fee is ₱45 for up to 2.0 km, with ₱10 per extra km (rounded to nearest ₱5).
+  static double computeDeliveryFeeByDistance(LatLng branch, LatLng customer) {
+    final km = computeDistanceKm(branch, customer);
+    if (km <= 2.0) return 45.0;
+    final extra = ((km - 2.0) * 10.0 / 5.0).round() * 5.0;
+    return 45.0 + extra;
+  }
+
   /// Estimates delivery time in minutes based on distance (prep time + rider travel).
   static int computeEtaMinutes(LatLng branch, LatLng destination) {
     final km = computeDistanceKm(branch, destination);

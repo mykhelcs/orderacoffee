@@ -69,7 +69,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   double _computeDeliveryFee(double subtotal) {
     if (_selectedType != OrderType.delivery) return 0.0;
     if (subtotal >= kFreeDeliveryThreshold) return 0.0;
-    return kStandardDeliveryFee;
+    return LocationService.computeDeliveryFeeByDistance(
+      _selectedBranch.coordinates,
+      _deliveryCoords,
+    );
   }
 
   double _computeDiscount(double subtotal, bool canRedeem) {
@@ -212,6 +215,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
       if (!mounted) return;
 
+      if (paymentMethod == PaymentMethod.counter) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Order placed successfully!')),
+        );
+        context.go('/order-receipt/$orderId');
+        return;
+      }
+
       final paymongoSession = ref.read(ordersProvider).lastPaymongoSession;
       if (paymentMethod.isPayMongo && paymongoSession != null) {
         await _showPayMongoAuthorizationSheet(
@@ -291,7 +302,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        'PayMongo Checkout',
+                        'Complete Payment',
                         style: GoogleFonts.figtree(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
@@ -712,9 +723,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       final isSelected = paymentMethod == method;
                       return ChoiceChip(
                         label: Text(
-                          method.isPayMongo
-                              ? '${method.label} (PayMongo)'
-                              : method.label,
+                          method.label,
                           style: GoogleFonts.figtree(
                             fontSize: 12.5,
                             fontWeight:
@@ -873,25 +882,33 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     const SizedBox(height: 4),
                   ],
                   if (_selectedType == OrderType.delivery) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Delivery Fee (Free ₱500+)',
-                          style: GoogleFonts.figtree(
-                            fontSize: 13.5,
-                            color: muteCol,
-                          ),
-                        ),
-                        Text(
-                          deliveryFee == 0 ? 'FREE' : peso(deliveryFee),
-                          style: GoogleFonts.figtree(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w600,
-                            color: deliveryFee == 0 ? AppColors.ok : inkCol,
-                          ),
-                        ),
-                      ],
+                    Builder(
+                      builder: (context) {
+                        final km = LocationService.computeDistanceKm(
+                          _selectedBranch.coordinates,
+                          _deliveryCoords,
+                        );
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Delivery (${km.toStringAsFixed(1)} km)',
+                              style: GoogleFonts.figtree(
+                                fontSize: 13.5,
+                                color: muteCol,
+                              ),
+                            ),
+                            Text(
+                              deliveryFee == 0 ? 'FREE' : peso(deliveryFee),
+                              style: GoogleFonts.figtree(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                color: deliveryFee == 0 ? AppColors.ok : inkCol,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 4),
                   ],

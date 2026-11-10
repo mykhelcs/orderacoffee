@@ -72,7 +72,7 @@ class SmtpService {
       ..text = 'Your 6-digit verification code is: $otpCode. It expires in 10 minutes.';
 
     if (SmtpConfig.replyToEmail.isNotEmpty) {
-      message.headers['Reply-To'] = Address(SmtpConfig.replyToEmail, SmtpConfig.senderName);
+      message.headers['Reply-To'] = const Address(SmtpConfig.replyToEmail, SmtpConfig.senderName);
     }
 
     message.html = '''

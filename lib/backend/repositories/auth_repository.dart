@@ -373,4 +373,56 @@ class AuthRepository {
       throw AuthFailure(e.toString());
     }
   }
+
+  // ─── Admin Account Seeding & Defaults ─────────────────────────────────────
+
+  static const defaultAdminEmail = 'admin@cafego.ph';
+  static const defaultAdminPassword = 'Admin@CafeGo2024!';
+  static const defaultAdminUid = 'admin-master';
+
+  /// Ensures a dedicated administrative account is provisioned in Firebase Auth
+  /// and Cloud Firestore with role: 'admin'.
+  Future<void> ensureAdminAccountExists({
+    String email = defaultAdminEmail,
+    String password = defaultAdminPassword,
+    String name = 'Master Admin',
+  }) async {
+    final a = auth;
+    final col = _usersCol;
+    if (a == null || col == null) return;
+
+    try {
+      User? adminUser;
+      try {
+        final cred = await a.signInWithEmailAndPassword(
+          email: email.trim(),
+          password: password,
+        );
+        adminUser = cred.user;
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
+          try {
+            final cred = await a.createUserWithEmailAndPassword(
+              email: email.trim(),
+              password: password,
+            );
+            adminUser = cred.user;
+          } catch (_) {}
+        }
+      } catch (_) {}
+
+      if (adminUser != null) {
+        await col.doc(adminUser.uid).set({
+          'name': name,
+          'email': email.trim(),
+          'phone': '+63 917 000 0001',
+          'role': 'admin',
+          'isEmailVerified': true,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+    } catch (e) {
+      debugPrint('[Admin Provisioning] Warning: Could not seed admin in Firestore/Auth: $e');
+    }
+  }
 }

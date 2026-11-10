@@ -23,6 +23,7 @@ class LiveOrderMap extends StatefulWidget {
     this.riderLocation,
     this.showRider = false,
     this.height = 220,
+    this.borderRadius,
     this.onLocationPicked,
     this.onUseMyLocation,
   });
@@ -33,6 +34,7 @@ class LiveOrderMap extends StatefulWidget {
   final LatLng? riderLocation;
   final bool showRider;
   final double height;
+  final BorderRadius? borderRadius;
   final ValueChanged<LatLng>? onLocationPicked;
   final VoidCallback? onUseMyLocation;
 
@@ -95,8 +97,10 @@ class _LiveOrderMapState extends State<LiveOrderMap> {
       height: widget.height,
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF251F1E) : const Color(0xFFEDE6DC),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: lineCol),
+        borderRadius: widget.borderRadius ?? BorderRadius.circular(22),
+        border: widget.borderRadius == BorderRadius.zero
+            ? null
+            : Border.all(color: lineCol),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.06),
