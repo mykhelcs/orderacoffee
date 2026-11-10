@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:orderacoffee/backend/models/menu_item.dart';
 import 'package:orderacoffee/backend/models/order.dart';
@@ -11,12 +13,15 @@ import 'package:orderacoffee/core/constants.dart';
 import 'package:orderacoffee/core/utils.dart';
 import 'package:orderacoffee/frontend/features/auth/auth_provider.dart';
 import 'package:orderacoffee/frontend/theme/theme.dart';
+import 'package:orderacoffee/frontend/widgets/app_logo.dart';
 import 'package:orderacoffee/frontend/widgets/brand_button.dart';
 import 'package:orderacoffee/frontend/widgets/order_card.dart';
 
 import '../menu/menu_provider.dart';
 import '../orders/orders_provider.dart';
 import 'admin_provider.dart';
+import 'widgets/admin_charts.dart';
+import 'widgets/order_details_modal.dart';
 
 class AdminScreen extends ConsumerStatefulWidget {
   const AdminScreen({super.key});
@@ -121,10 +126,92 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                       maxLines: 2,
                       decoration: const InputDecoration(labelText: 'Description'),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
+                    // Picture Upload & Interactive Preview
+                    Row(
+                      children: [
+                        Container(
+                          width: 64,
+                          height: 64,
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF3F3536) : const Color(0xFFF1E9E4),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: isDark ? AppColors.lineDark : AppColors.lineLight),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: imgCtrl.text.isNotEmpty
+                              ? (imgCtrl.text.startsWith('data:image')
+                                  ? Image.memory(
+                                      base64Decode(imgCtrl.text.split(',').last),
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_rounded),
+                                    )
+                                  : Image.network(
+                                      imgCtrl.text,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_rounded),
+                                    ))
+                              : Icon(Icons.photo_library_outlined, color: Colors.grey[400]),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              OutlinedButton.icon(
+                                icon: const Icon(Icons.upload_file_rounded, size: 18),
+                                label: Text(imgCtrl.text.isNotEmpty ? 'Change Photo' : 'Upload Picture'),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                                onPressed: () async {
+                                  final picker = ImagePicker();
+                                  final xfile = await picker.pickImage(
+                                    source: ImageSource.gallery,
+                                    maxWidth: 800,
+                                    maxHeight: 800,
+                                    imageQuality: 85,
+                                  );
+                                  if (xfile != null) {
+                                    final bytes = await xfile.readAsBytes();
+                                    final dataUrl = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+                                    setDialogState(() {
+                                      imgCtrl.text = dataUrl;
+                                    });
+                                    try {
+                                      final id = existing?.id ?? 'item_${DateTime.now().millisecondsSinceEpoch}';
+                                      final url = await ref.read(menuRepositoryProvider).uploadPhoto(id, bytes);
+                                      setDialogState(() {
+                                        imgCtrl.text = url;
+                                      });
+                                    } catch (_) {}
+                                  }
+                                },
+                              ),
+                              if (imgCtrl.text.isNotEmpty)
+                                TextButton(
+                                  onPressed: () => setDialogState(() => imgCtrl.clear()),
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: const Size(0, 24),
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    foregroundColor: Colors.redAccent,
+                                  ),
+                                  child: const Text('Remove photo', style: TextStyle(fontSize: 11)),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
                     TextField(
                       controller: imgCtrl,
-                      decoration: const InputDecoration(labelText: 'Image URL'),
+                      decoration: const InputDecoration(
+                        labelText: 'Or Image URL',
+                        hintText: 'https://...',
+                      ),
                     ),
                   ],
                 ),
@@ -282,6 +369,59 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
 
     return Scaffold(
       backgroundColor: bgCol,
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: cardBg,
+          border: Border(top: BorderSide(color: lineCol)),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _AdminTabPill(
+                  icon: Icons.receipt_long_rounded,
+                  label: 'Orders',
+                  badgeCount: queue.length,
+                  isSelected: _selectedTabIndex == 0,
+                  selectedColor: brandCol,
+                  unselectedColor: muteCol,
+                  textColor: inkCol,
+                  onTap: () => setState(() => _selectedTabIndex = 0),
+                ),
+                _AdminTabPill(
+                  icon: Icons.coffee_rounded,
+                  label: 'Catalog',
+                  isSelected: _selectedTabIndex == 1,
+                  selectedColor: brandCol,
+                  unselectedColor: muteCol,
+                  textColor: inkCol,
+                  onTap: () => setState(() => _selectedTabIndex = 1),
+                ),
+                _AdminTabPill(
+                  icon: Icons.insights_rounded,
+                  label: 'Analytics',
+                  isSelected: _selectedTabIndex == 2,
+                  selectedColor: brandCol,
+                  unselectedColor: muteCol,
+                  textColor: inkCol,
+                  onTap: () => setState(() => _selectedTabIndex = 2),
+                ),
+                _AdminTabPill(
+                  icon: Icons.people_outline_rounded,
+                  label: 'Staff/Users',
+                  isSelected: _selectedTabIndex == 3,
+                  selectedColor: brandCol,
+                  unselectedColor: muteCol,
+                  textColor: inkCol,
+                  onTap: () => setState(() => _selectedTabIndex = 3),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -294,22 +434,24 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
               ),
               child: Row(
                 children: [
+                  const AppLogo(fontSize: 16),
+                  const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: const Color(0xFFD4A373).withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: const Color(0xFFD4A373).withValues(alpha: 0.5)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.shield_rounded, size: 14, color: Color(0xFFD4A373)),
-                        const SizedBox(width: 5),
+                        const Icon(Icons.shield_rounded, size: 12, color: Color(0xFFD4A373)),
+                        const SizedBox(width: 4),
                         Text(
                           'ADMIN CONSOLE',
                           style: GoogleFonts.figtree(
-                            fontSize: 11,
+                            fontSize: 10,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.5,
                             color: const Color(0xFFD4A373),
@@ -377,59 +519,6 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                         context.go('/login');
                       }
                     },
-                  ),
-                ],
-              ),
-            ),
-
-            // ── Modern Segmented Admin Tabs ──
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: cardBg,
-                border: Border(bottom: BorderSide(color: lineCol)),
-              ),
-              child: Row(
-                children: [
-                  _AdminTabPill(
-                    icon: Icons.receipt_long_rounded,
-                    label: 'Orders',
-                    badgeCount: queue.length,
-                    isSelected: _selectedTabIndex == 0,
-                    selectedColor: brandCol,
-                    unselectedColor: muteCol,
-                    textColor: inkCol,
-                    onTap: () => setState(() => _selectedTabIndex = 0),
-                  ),
-                  const SizedBox(width: 8),
-                  _AdminTabPill(
-                    icon: Icons.coffee_rounded,
-                    label: 'Catalog',
-                    isSelected: _selectedTabIndex == 1,
-                    selectedColor: brandCol,
-                    unselectedColor: muteCol,
-                    textColor: inkCol,
-                    onTap: () => setState(() => _selectedTabIndex = 1),
-                  ),
-                  const SizedBox(width: 8),
-                  _AdminTabPill(
-                    icon: Icons.insights_rounded,
-                    label: 'Analytics',
-                    isSelected: _selectedTabIndex == 2,
-                    selectedColor: brandCol,
-                    unselectedColor: muteCol,
-                    textColor: inkCol,
-                    onTap: () => setState(() => _selectedTabIndex = 2),
-                  ),
-                  const SizedBox(width: 8),
-                  _AdminTabPill(
-                    icon: Icons.people_outline_rounded,
-                    label: 'Staff/Users',
-                    isSelected: _selectedTabIndex == 3,
-                    selectedColor: brandCol,
-                    unselectedColor: muteCol,
-                    textColor: inkCol,
-                    onTap: () => setState(() => _selectedTabIndex = 3),
                   ),
                 ],
               ),
@@ -589,6 +678,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                     return OrderCard(
                       order: order,
                       isStaffView: true,
+                      onTap: () => OrderDetailsModal.show(context, order),
                       onAdvance: nextStatus != null
                           ? () async {
                               await ref.read(adminProvider).advanceOrder(order.id, nextStatus);
@@ -972,6 +1062,15 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
             ),
           ],
         ),
+
+        const SizedBox(height: 20),
+
+        // ── Real-Time Dashboard Analytics Graphs ──
+        AdminSalesChart(orders: [...completedToday, ...queue]),
+        const SizedBox(height: 14),
+        AdminCategoryDistributionChart(orders: [...completedToday, ...queue]),
+        const SizedBox(height: 14),
+        AdminOrderStatusDistributionChart(orders: [...completedToday, ...queue]),
 
         const SizedBox(height: 24),
 

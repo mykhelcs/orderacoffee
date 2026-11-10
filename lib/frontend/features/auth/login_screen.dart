@@ -436,7 +436,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'to continue to COUGHFEE',
+                        'to continue to CafeGO',
                         style: GoogleFonts.figtree(
                           fontSize: 13,
                           color: const Color(0xFF5F6368),

@@ -1,11 +1,11 @@
 {
-    "name": "orderacoffee",
-    "short_name": "orderacoffee",
+    "name": "CafeGO – Mobile Coffee Ordering",
+    "short_name": "CafeGO",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#1E1715",
+    "theme_color": "#D4A373",
+    "description": "CafeGO – Your daily comfort brew. Mobile coffee ordering and live kitchen queue.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

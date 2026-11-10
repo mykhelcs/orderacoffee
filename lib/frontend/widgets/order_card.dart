@@ -12,6 +12,7 @@ class OrderCard extends StatelessWidget {
   const OrderCard({
     super.key,
     required this.order,
+    this.onTap,
     this.onTrack,
     this.onReorder,
     this.onAdvance,
@@ -21,6 +22,7 @@ class OrderCard extends StatelessWidget {
   });
 
   final Order order;
+  final VoidCallback? onTap;
   final VoidCallback? onTrack;
   final VoidCallback? onReorder;
   final VoidCallback? onAdvance;
@@ -73,7 +75,7 @@ class OrderCard extends StatelessWidget {
 
     final nextLabel = _nextStatusLabel();
 
-    return Container(
+    final cardContent = Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -84,14 +86,16 @@ class OrderCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Row: Order ID + Status badge
+          // Row: Customer Name (staff view) / Order ID + Status badge
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
                 child: Text(
-                  isStaffView && order.userName.isNotEmpty
-                      ? '${order.id} • ${order.userName}'
+                  isStaffView
+                      ? (order.userName.trim().isNotEmpty
+                          ? order.userName
+                          : 'Customer')
                       : order.id,
                   style: GoogleFonts.playfairDisplay(
                     fontSize: 17,
@@ -184,5 +188,15 @@ class OrderCard extends StatelessWidget {
         ],
       ),
     );
+
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: cardContent,
+      );
+    }
+
+    return cardContent;
   }
 }

@@ -1,5 +1,9 @@
-/// App-wide constants for COUGHFEE.
+/// App-wide constants for CafeGO.
 library;
+
+/// Brand display name
+const String kAppName = 'CafeGO';
+const String kAppTagline = 'Your daily comfort brew';
 
 /// Menu category labels (matches CATS in HTML reference).
 const List<String> kCategories = [

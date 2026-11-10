@@ -86,6 +86,20 @@ class AdminNotifier {
     await _ref.read(orderRepositoryProvider).cancelOrder(orderId);
   }
 
+  Future<void> assignDriver(
+    String orderId, {
+    required String driverId,
+    required String driverName,
+    String? driverPhone,
+  }) async {
+    await _ref.read(orderRepositoryProvider).assignDriver(
+          orderId,
+          driverId: driverId,
+          driverName: driverName,
+          driverPhone: driverPhone,
+        );
+  }
+
   Future<void> advanceRiderGps(Order order) async {
     final branch = (order.branchLat != null && order.branchLng != null)
         ? LatLng(order.branchLat!, order.branchLng!)

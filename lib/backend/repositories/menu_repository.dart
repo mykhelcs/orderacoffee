@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:orderacoffee/core/errors/failures.dart';
 import 'package:orderacoffee/backend/seed/seed_menu_data.dart';
 import '../models/menu_item.dart';
@@ -14,6 +16,37 @@ class MenuRepository {
 
   final FirebaseFirestore? _firestore;
   final FirebaseStorage? _storage;
+
+  // In-memory & disk client cache for slow network / offline readiness
+  static List<MenuItem> _memoryCache = [];
+  static const String _kMenuCacheKey = 'cafego_cached_menu_items';
+
+  /// Preloads cached menu from local disk storage into memory
+  static Future<List<MenuItem>> loadFromDiskCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = prefs.getString(_kMenuCacheKey);
+      if (jsonStr != null && jsonStr.isNotEmpty) {
+        final List decoded = jsonDecode(jsonStr) as List;
+        _memoryCache = decoded.map<MenuItem>((m) {
+          final itemMap = Map<String, dynamic>.from(m as Map);
+          final itemId = itemMap['id'] as String? ?? '';
+          return MenuItem.fromMap(itemMap, id: itemId);
+        }).toList();
+      }
+    } catch (_) {}
+    return _memoryCache;
+  }
+
+  /// Persists menu items to local disk storage
+  static Future<void> saveToDiskCache(List<MenuItem> items) async {
+    try {
+      _memoryCache = items;
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = jsonEncode(items.map((i) => i.toMap()).toList());
+      await prefs.setString(_kMenuCacheKey, jsonStr);
+    } catch (_) {}
+  }
 
   FirebaseFirestore? get firestore {
     if (_firestore != null) return _firestore;
@@ -94,7 +127,13 @@ class MenuRepository {
   /// M1: List visible menu items (live stream, ordered by category)
   Stream<List<MenuItem>> watchMenu() {
     final col = _menuCol;
-    if (col == null) return Stream.value(const []);
+    if (col == null) {
+      return Stream.value(
+        _memoryCache.isNotEmpty
+            ? _memoryCache.where((item) => !item.isHidden).toList()
+            : const [],
+      );
+    }
     try {
       return col.snapshots().map((s) {
         final items = s.docs
@@ -102,10 +141,16 @@ class MenuRepository {
             .where((item) => !item.isHidden)
             .toList();
         items.sort((a, b) => a.category.compareTo(b.category));
+        if (items.isNotEmpty) {
+          saveToDiskCache(items);
+        }
         return items;
-      }).handleError((_) => const <MenuItem>[]);
+      }).handleError((_) =>
+          _memoryCache.where((item) => !item.isHidden).toList());
     } catch (_) {
-      return Stream.value(const []);
+      return Stream.value(
+        _memoryCache.where((item) => !item.isHidden).toList(),
+      );
     }
   }
 
@@ -138,15 +183,28 @@ class MenuRepository {
     }
   }
 
-  /// M3: Get single menu item by ID
+  /// M3: Get single menu item by ID (with fallback to client memory/disk cache)
   Future<MenuItem> getItem(String itemId) async {
     final col = _menuCol;
-    if (col == null) throw NotFoundFailure('Menu item not found: $itemId');
-    final doc = await col.doc(itemId).get();
-    if (!doc.exists) {
+    if (col == null) {
+      final cached = _memoryCache.where((i) => i.id == itemId).firstOrNull;
+      if (cached != null) return cached;
       throw NotFoundFailure('Menu item not found: $itemId');
     }
-    return MenuItem.fromFirestore(doc);
+    try {
+      final doc = await col.doc(itemId).get();
+      if (!doc.exists) {
+        final cached = _memoryCache.where((i) => i.id == itemId).firstOrNull;
+        if (cached != null) return cached;
+        throw NotFoundFailure('Menu item not found: $itemId');
+      }
+      return MenuItem.fromFirestore(doc);
+    } catch (e) {
+      final cached = _memoryCache.where((i) => i.id == itemId).firstOrNull;
+      if (cached != null) return cached;
+      if (e is NotFoundFailure) rethrow;
+      throw NotFoundFailure('Menu item not found: $itemId');
+    }
   }
 
   /// M4: Search menu items by query string (case-insensitive on name & category)
