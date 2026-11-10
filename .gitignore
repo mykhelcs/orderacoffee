@@ -3,7 +3,7 @@
 .env.*
 !.env.example
 .firebase/
-
+.IMPLEMENTATION_PLAN.md
 # Miscellaneous
 *.class
 *.log
