@@ -52,7 +52,7 @@ class SmtpService {
 
     if (!SmtpConfig.isConfigured) {
       debugPrint(
-        '[SMTP Note] SMTP credentials not set in lib/core/smtp_config.dart. '
+        '[SMTP Note] SMTP credentials not configured (check your .env file or --dart-define-from-file=.env). '
         'Email to $cleanRecipient will not be dispatched over network until credentials are provided.',
       );
       return false;

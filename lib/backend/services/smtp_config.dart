@@ -1,6 +1,7 @@
 /// SMTP Configuration for sending OTP verification codes.
 ///
-/// Supports compile-time injection via `--dart-define`:
+/// Supports injection via `--dart-define-from-file=.env` or `--dart-define`:
+///   flutter run --dart-define-from-file=.env
 ///   flutter run --dart-define=SMTP_USERNAME=you@gmail.com --dart-define=SMTP_PASSWORD=your_app_password
 class SmtpConfig {
   SmtpConfig._();
@@ -24,10 +25,10 @@ class SmtpConfig {
     defaultValue: 'cafego.mobile@gmail.com',
   );
 
-  /// Your SMTP password or Google App Password (inject via --dart-define=SMTP_PASSWORD=...).
+  /// Your SMTP password or Google App Password (loaded from .env).
   static const String password = String.fromEnvironment(
     'SMTP_PASSWORD',
-    defaultValue: 'prallewkuojzshkn',
+    defaultValue: '',
   );
 
   /// The from email shown in the recipient's inbox.
