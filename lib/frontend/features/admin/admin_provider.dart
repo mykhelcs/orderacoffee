@@ -123,6 +123,10 @@ class AdminNotifier {
     await _ref.read(menuRepositoryProvider).toggleSoldOut(itemId, isAvailable);
   }
 
+  Future<void> updateItemStock(String itemId, int newStock) async {
+    await _ref.read(menuRepositoryProvider).updateStock(itemId, newStock);
+  }
+
   Future<void> toggleItemHidden(String itemId, bool isHidden) async {
     await _ref.read(menuRepositoryProvider).toggleHidden(itemId, isHidden);
   }

@@ -149,6 +149,8 @@ class MenuItem {
     this.isAvailable = true,
     this.isHidden = false,
     this.options = const MenuOptions(),
+    this.stock = 50,
+    this.costPerUnit = 60.0,
     this.updatedAt,
   });
 
@@ -161,6 +163,8 @@ class MenuItem {
   final bool isAvailable;
   final bool isHidden;
   final MenuOptions options;
+  final int stock;
+  final double costPerUnit;
   final DateTime? updatedAt;
 
   factory MenuItem.fromFirestore(DocumentSnapshot doc) {
@@ -196,6 +200,8 @@ class MenuItem {
       isAvailable: map['isAvailable'] as bool? ?? true,
       isHidden: map['isHidden'] as bool? ?? false,
       options: options,
+      stock: (map['stock'] as num?)?.toInt() ?? 50,
+      costPerUnit: (map['costPerUnit'] as num?)?.toDouble() ?? 60.0,
       updatedAt: parsedUpdatedAt,
     );
   }
@@ -210,6 +216,8 @@ class MenuItem {
       'isAvailable': isAvailable,
       'isHidden': isHidden,
       'options': options.toMap(),
+      'stock': stock,
+      'costPerUnit': costPerUnit,
       if (updatedAt != null) 'updatedAt': Timestamp.fromDate(updatedAt!),
     };
   }
@@ -224,6 +232,8 @@ class MenuItem {
     bool? isAvailable,
     bool? isHidden,
     MenuOptions? options,
+    int? stock,
+    double? costPerUnit,
     DateTime? updatedAt,
   }) {
     return MenuItem(
@@ -236,6 +246,8 @@ class MenuItem {
       isAvailable: isAvailable ?? this.isAvailable,
       isHidden: isHidden ?? this.isHidden,
       options: options ?? this.options,
+      stock: stock ?? this.stock,
+      costPerUnit: costPerUnit ?? this.costPerUnit,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }

@@ -9,12 +9,14 @@ import 'package:orderacoffee/frontend/features/auth/login_screen.dart';
 import 'package:orderacoffee/frontend/features/auth/signup_screen.dart';
 import 'package:orderacoffee/frontend/features/cart/cart_screen.dart';
 import 'package:orderacoffee/frontend/features/checkout/checkout_screen.dart';
+import 'package:orderacoffee/frontend/features/driver/driver_screen.dart';
 import 'package:orderacoffee/frontend/features/landing/landing_screen.dart';
 import 'package:orderacoffee/frontend/features/menu/menu_screen.dart';
 import 'package:orderacoffee/frontend/features/orders/order_history_screen.dart';
 import 'package:orderacoffee/frontend/features/orders/order_receipt_screen.dart';
 import 'package:orderacoffee/frontend/features/orders/order_tracking_screen.dart';
 import 'package:orderacoffee/frontend/features/profile/profile_screen.dart';
+import 'package:orderacoffee/frontend/features/staff/staff_screen.dart';
 import 'package:orderacoffee/frontend/widgets/main_shell.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -178,6 +180,24 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/admin',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const AdminScreen(),
+      ),
+
+      // ──────────────────────────────────────────────────────────────
+      // STAFF ROUTES (Kitchen Display System & Cashier)
+      // ──────────────────────────────────────────────────────────────
+      GoRoute(
+        path: '/staff',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const StaffScreen(),
+      ),
+
+      // ──────────────────────────────────────────────────────────────
+      // DRIVER ROUTES (Delivery Cockpit & GPS)
+      // ──────────────────────────────────────────────────────────────
+      GoRoute(
+        path: '/driver',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const DriverScreen(),
       ),
 
       // ──────────────────────────────────────────────────────────────

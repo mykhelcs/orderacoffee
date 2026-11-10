@@ -321,4 +321,29 @@ class MenuRepository {
       throw ValidationFailure('Failed to delete photo: $e');
     }
   }
+
+  /// M12: Update item stock level
+  Future<void> updateStock(String id, int newStock) async {
+    final col = _menuCol;
+    final clamped = newStock < 0 ? 0 : newStock;
+    if (col != null) {
+      try {
+        await col.doc(id).update({
+          'stock': clamped,
+          'isAvailable': clamped > 0,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        debugPrint('[Stock] Firestore stock update error: $e');
+      }
+    }
+    final idx = _memoryCache.indexWhere((i) => i.id == id);
+    if (idx != -1) {
+      _memoryCache[idx] = _memoryCache[idx].copyWith(
+        stock: clamped,
+        isAvailable: clamped > 0,
+      );
+      saveToDiskCache(_memoryCache);
+    }
+  }
 }

@@ -62,6 +62,9 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
     final priceCtrl = TextEditingController(
       text: existing != null ? existing.basePrice.toStringAsFixed(0) : '150',
     );
+    final stockCtrl = TextEditingController(
+      text: existing != null ? existing.stock.toString() : '50',
+    );
     final descCtrl = TextEditingController(text: existing?.description ?? '');
     final imgCtrl = TextEditingController(text: existing?.imageUrl ?? '');
     String selectedCat = existing?.category ?? 'Hot Coffee';
@@ -115,10 +118,24 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                       },
                     ),
                     const SizedBox(height: 10),
-                    TextField(
-                      controller: priceCtrl,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Base Price (₱)'),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: priceCtrl,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(labelText: 'Base Price (₱)'),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: stockCtrl,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(labelText: 'Stock Units'),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 10),
                     TextField(
@@ -239,6 +256,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                       isAvailable: existing?.isAvailable ?? true,
                       isHidden: existing?.isHidden ?? false,
                       options: existing?.options ?? (isCoffee ? defaultDrinkOptions : const MenuOptions()),
+                      stock: int.tryParse(stockCtrl.text.trim()) ?? 50,
                     );
 
                     try {
@@ -921,6 +939,67 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                                 Text(
                                   '${item.category} • ${peso(item.basePrice)}',
                                   style: GoogleFonts.figtree(fontSize: 13, color: muteCol),
+                                ),
+                                const SizedBox(height: 3),
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Stock: ${item.stock}',
+                                      style: GoogleFonts.figtree(
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: item.stock < 5 ? Colors.redAccent : brandCol,
+                                      ),
+                                    ),
+                                    if (item.stock < 5) ...[
+                                      const SizedBox(width: 5),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                        decoration: BoxDecoration(
+                                          color: Colors.redAccent.withValues(alpha: 0.15),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          'Low (<5)',
+                                          style: GoogleFonts.figtree(
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.w800,
+                                            color: Colors.redAccent,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                    const SizedBox(width: 8),
+                                    InkWell(
+                                      onTap: () async {
+                                        if (item.stock > 0) {
+                                          await ref.read(adminProvider).updateItemStock(item.id, item.stock - 1);
+                                        }
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.all(2),
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: lineCol),
+                                        ),
+                                        child: Icon(Icons.remove, size: 12, color: muteCol),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    InkWell(
+                                      onTap: () async {
+                                        await ref.read(adminProvider).updateItemStock(item.id, item.stock + 1);
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.all(2),
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: lineCol),
+                                        ),
+                                        child: Icon(Icons.add, size: 12, color: muteCol),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),

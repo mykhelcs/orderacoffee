@@ -777,4 +777,30 @@ class OrderRepository {
       }
     }
   }
+
+  /// O12: Record cash payment receipt (for cashier / staff)
+  Future<void> markPaymentPaid(String orderId, {String? handledBy}) async {
+    final local = _fallbackOrders[orderId];
+    if (local != null) {
+      _fallbackOrders[orderId] = local.copyWith(
+        paymentStatus: PaymentStatus.paid,
+        updatedAt: DateTime.now(),
+      );
+      _notifyFallback();
+    }
+
+    final col = _ordersCol;
+    if (col != null) {
+      try {
+        await col.doc(orderId).update({
+          'paymentStatus': PaymentStatus.paid.value,
+          if (handledBy != null) 'paymentHandledBy': handledBy,
+          'paymentHandledAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        debugPrint('[Cashier] Failed to update Firestore with paid payment: $e');
+      }
+    }
+  }
 }
