@@ -1,0 +1,40 @@
+[
+  {
+    "role": "admin",
+    "email": "admin@cafego.ph",
+    "password": "Admin@123456",
+    "name": "Admin User",
+    "phone": "+63912345601",
+    "uid": "8sJe87j7TMM0cCzGsuM4YkPMZeA2"
+  },
+  {
+    "role": "staff",
+    "email": "staff@cafego.ph",
+    "password": "Staff@123456",
+    "name": "Staff User",
+    "phone": "+63912345602",
+    "uid": "Es1dTJTuIjcUnp0dvQSR9oWeRJl2"
+  },
+  {
+    "role": "driver",
+    "email": "driver@cafego.ph",
+    "password": "Driver@123456",
+    "name": "Driver User",
+    "phone": "+63912345603",
+    "vehicleType": "motorcycle",
+    "vehicleNumber": "ABC-1234",
+    "isAvailable": false,
+    "currentDeliveryId": null,
+    "totalDeliveries": 0,
+    "averageRating": null,
+    "uid": "RWy68IJ9vGMZo8TZM1MTVxRECXh1"
+  },
+  {
+    "role": "customer",
+    "email": "customer@cafego.ph",
+    "password": "Customer@123456",
+    "name": "Customer User",
+    "phone": "+63912345604",
+    "uid": "trKExqOCWsPqEOWEe1xnqiy7Q3S2"
+  }
+]

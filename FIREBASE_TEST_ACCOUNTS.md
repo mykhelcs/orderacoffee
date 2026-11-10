@@ -15,7 +15,8 @@ Password: Admin@123456
 Role:     admin
 Name:     Admin User
 Phone:    +63912345601
-Status:   ✅ Ready to create
+UID:      8sJe87j7TMM0cCzGsuM4YkPMZeA2
+Status:   ✅ Provisioned (Auth + Firestore)
 ```
 
 ### 👨‍💼 Staff Account
@@ -25,7 +26,8 @@ Password: Staff@123456
 Role:     staff
 Name:     Staff User
 Phone:    +63912345602
-Status:   ✅ Ready to create
+UID:      Es1dTJTuIjcUnp0dvQSR9oWeRJl2
+Status:   ✅ Provisioned (Auth + Firestore)
 ```
 
 ### 🚗 Driver Account
@@ -37,7 +39,8 @@ Name:        Driver User
 Phone:       +63912345603
 Vehicle:     Motorcycle
 License:     ABC-1234
-Status:      ✅ Ready to create
+UID:         RWy68IJ9vGMZo8TZM1MTVxRECXh1
+Status:      ✅ Provisioned (Auth + Firestore)
 ```
 
 ### 👥 Customer Account
@@ -47,7 +50,8 @@ Password: Customer@123456
 Role:     customer
 Name:     Customer User
 Phone:    +63912345604
-Status:   ✅ Ready to create
+UID:      trKExqOCWsPqEOWEe1xnqiy7Q3S2
+Status:   ✅ Provisioned (Auth + Firestore)
 ```
 
 ---
@@ -386,6 +390,6 @@ firebase firestore:delete --recursive --project coughfee-app users/USER_UID
 
 ---
 
-**Status**: Ready for account creation
+**Status**: ✅ All accounts provisioned in Firebase Auth & Firestore
 **Last Updated**: November 10, 2026
 

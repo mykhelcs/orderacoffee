@@ -1,24 +1,24 @@
 # CafeGO RBAC Refactoring Implementation Plan
 **Project**: Strict Role-Based Access Control (RBAC) across authentication, routing, and business logic
-**Status**: Batch 1 ✅ COMPLETE | Firebase Accounts 📋 READY | Batch 2 📋 READY | Batch 3 📋 READY
+**Status**: Batch 1 ✅ COMPLETE | Firebase Accounts ✅ COMPLETE | Batch 2 📋 READY | Batch 3 📋 READY
 **Last Updated**: November 10, 2026
 **CI/CD**: GitHub Actions automated builds and deployments
 **Live App**: https://mykhelcs.github.io/orderacoffee/
 
 ---
 
-## FIREBASE TEST ACCOUNTS SETUP 📋 READY
+## FIREBASE TEST ACCOUNTS SETUP ✅ COMPLETE
 
-### Status: ✅ DOCUMENTATION COMPLETE, ACCOUNTS NOT YET CREATED
+### Status: ✅ ACCOUNTS FULLY PROVISIONED (Auth + Firestore + Custom Claims)
 
-#### Test Account Credentials (Ready to Create)
+#### Test Account Credentials & Live Provisioning
 
-| Role | Email | Password | Purpose |
-|------|-------|----------|---------|
-| **Admin** | admin@cafego.ph | Admin@123456 | System management, menu, inventory, analytics, payroll |
-| **Staff** | staff@cafego.ph | Staff@123456 | Order queue, payments, transaction records |
-| **Driver** | driver@cafego.ph | Driver@123456 | Deliveries, tracking, location, earnings |
-| **Customer** | customer@cafego.ph | Customer@123456 | Menu browsing, cart, ordering, order tracking |
+| Role | Email | Password | UID | Status |
+|------|-------|----------|-----|--------|
+| **Admin** | admin@cafego.ph | Admin@123456 | `8sJe87j7TMM0cCzGsuM4YkPMZeA2` | ✅ Active (Auth, Firestore, Claim: admin) |
+| **Staff** | staff@cafego.ph | Staff@123456 | `Es1dTJTuIjcUnp0dvQSR9oWeRJl2` | ✅ Active (Auth, Firestore, Claim: staff) |
+| **Driver** | driver@cafego.ph | Driver@123456 | `RWy68IJ9vGMZo8TZM1MTVxRECXh1` | ✅ Active (Auth, Firestore, Claim: driver) |
+| **Customer** | customer@cafego.ph | Customer@123456 | `trKExqOCWsPqEOWEe1xnqiy7Q3S2` | ✅ Active (Auth, Firestore, Claim: customer) |
 
 #### Setup Options (Choose One)
 
