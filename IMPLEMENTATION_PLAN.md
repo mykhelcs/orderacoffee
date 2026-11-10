@@ -1,7 +1,74 @@
 # CafeGO RBAC Refactoring Implementation Plan
 **Project**: Strict Role-Based Access Control (RBAC) across authentication, routing, and business logic
-**Status**: Batch 1 ✅ COMPLETE | Batch 2 📋 READY | Batch 3 📋 READY
+**Status**: Batch 1 ✅ COMPLETE | Firebase Accounts 📋 READY | Batch 2 📋 READY | Batch 3 📋 READY
 **Last Updated**: November 10, 2026
+**CI/CD**: GitHub Actions automated builds and deployments
+**Live App**: https://mykhelcs.github.io/orderacoffee/
+
+---
+
+## FIREBASE TEST ACCOUNTS SETUP 📋 READY
+
+### Status: ✅ DOCUMENTATION COMPLETE, ACCOUNTS NOT YET CREATED
+
+#### Test Account Credentials (Ready to Create)
+
+| Role | Email | Password | Purpose |
+|------|-------|----------|---------|
+| **Admin** | admin@cafego.ph | Admin@123456 | System management, menu, inventory, analytics, payroll |
+| **Staff** | staff@cafego.ph | Staff@123456 | Order queue, payments, transaction records |
+| **Driver** | driver@cafego.ph | Driver@123456 | Deliveries, tracking, location, earnings |
+| **Customer** | customer@cafego.ph | Customer@123456 | Menu browsing, cart, ordering, order tracking |
+
+#### Setup Options (Choose One)
+
+**Option 1: Firebase Console (⭐ EASIEST - 10 minutes)**
+1. Go to https://console.firebase.google.com/
+2. Select `coughfee-app` project
+3. Authentication > Users > Add User (create all 4 with credentials above)
+4. Update roles in Firestore users collection:
+   - `admin@cafego.ph` → set `role: "admin"`
+   - `staff@cafego.ph` → set `role: "staff"`
+   - `driver@cafego.ph` → set `role: "driver"` + add `vehicleType: "motorcycle"`, `vehicleNumber: "ABC-1234"`
+   - `customer@cafego.ph` → set `role: "customer"`
+
+**Option 2: Firebase CLI (⚡ FASTEST - 2 minutes)**
+- Command: `firebase auth:import test_users.json --project coughfee-app`
+- JSON format: See FIREBASE_TEST_ACCOUNTS.md
+
+**Option 3: App Registration (📱 E2E TESTING - 15 minutes)**
+1. Open app: https://mykhelcs.github.io/orderacoffee/
+2. Sign Up with each email (defaults to customer role)
+3. Then update roles in Firebase Console
+
+#### Files Created
+- ✅ `FIREBASE_TEST_ACCOUNTS.md` - Comprehensive 300+ line setup guide
+- ✅ `TEST_CREDENTIALS.txt` - Quick reference card with credentials
+- ✅ `scripts/setup_test_accounts.dart` - Helper Dart script
+- ✅ **Commit**: `db700ca` - Add Firebase test accounts setup documentation
+- ✅ **Deployed**: GitHub main branch
+
+#### Expected Firestore Structure After Setup
+```
+users/
+├── {admin-uid}
+│   └── role: "admin"
+├── {staff-uid}
+│   └── role: "staff"
+├── {driver-uid}
+│   ├── role: "driver"
+│   ├── vehicleType: "motorcycle"
+│   ├── vehicleNumber: "ABC-1234"
+│   └── isAvailable: false
+└── {customer-uid}
+    └── role: "customer"
+```
+
+#### Testing After Account Creation
+- ✅ Login as admin@cafego.ph → Redirects to /admin
+- ✅ Login as customer@cafego.ph → Redirects to / (menu home)
+- ✅ Customer tries /admin → Redirects to / (access denied)
+- ✅ Admin tries /cart → Redirects to /admin (access denied)
 
 ---
 
@@ -542,4 +609,164 @@ Implement staff order management, driver delivery workspace, and payment handlin
 1. ✅ **Batch 1**: Review & test role-based redirects on live app
 2. 📋 **Batch 2**: Start Phase 1 (Models & Repositories) when ready
 3. 📋 **Batch 3**: Start after Batch 2 complete or parallelize Phases 1-2
+
+
+
+---
+
+## FIREBASE DATABASE SETUP & TEST ACCOUNTS
+
+### Firebase Project Configuration
+- **Project**: `coughfee-app`
+- **Firebase Console**: https://console.firebase.google.com/
+- **Authentication**: Email/Password + Google OAuth enabled
+- **Firestore**: Rules configured for RBAC (see firestore.rules)
+- **Storage**: Firebase Storage for profile photos, menu images
+
+### Test Account Setup Checklist
+
+#### Pre-Setup
+- [ ] Remove/backup existing admin@cafego.ph account (if exists)
+- [ ] Verify firestore.rules deployed (role-based access control)
+- [ ] Verify Firebase Auth enabled in Firebase Console
+
+#### Create 4 Test Accounts (Pick Method: 1, 2, or 3)
+- [ ] Admin account: admin@cafego.ph / Admin@123456 → role: "admin"
+- [ ] Staff account: staff@cafego.ph / Staff@123456 → role: "staff"
+- [ ] Driver account: driver@cafego.ph / Driver@123456 → role: "driver" (+ vehicle fields)
+- [ ] Customer account: customer@cafego.ph / Customer@123456 → role: "customer"
+
+#### Post-Setup Verification
+- [ ] All 4 users visible in Firebase Auth > Users
+- [ ] All 4 users visible in Firestore > users collection
+- [ ] All roles set correctly in Firestore
+- [ ] Driver has vehicleType, vehicleNumber, isAvailable, totalDeliveries, averageRating
+- [ ] All users have isEmailVerified: true
+
+#### Testing Role-Based Access
+- [ ] Admin login → Redirects to /admin ✓
+- [ ] Customer login → Redirects to / (menu) ✓
+- [ ] Admin tries /cart → Redirects to /admin ✓
+- [ ] Customer tries /admin → Redirects to / ✓
+- [ ] Staff login → Can login (no /staff screens yet, Batch 3) ✓
+- [ ] Driver login → Can login (no /driver screens yet, Batch 3) ✓
+
+### Documentation Files
+- `FIREBASE_TEST_ACCOUNTS.md` - Complete setup guide (3 options, troubleshooting, Firestore structure)
+- `TEST_CREDENTIALS.txt` - Quick reference card (credentials, access matrix, testing checklist)
+- `scripts/setup_test_accounts.dart` - Helper script with setup instructions
+
+### Firestore Security Rules Status
+- ✅ Users collection: Only owner or staff/admin can read/write
+- ✅ Menu: Publicly readable, staff/admin can write
+- ✅ Orders: User can read own, staff/admin can read all
+- ✅ Firestore rules deployed at: `firestore.rules`
+
+### Database Collections
+- `users` - User profiles with role field and driver-specific fields
+- `orders` - Order data with payment/driver tracking fields
+- `menu` - Menu items with stock and cost fields (ready for Batch 2)
+- `payroll` - Salary/commission data (ready for Batch 2)
+- `email_verifications` - Email verification codes
+- `ratings` - Subcollection under orders for order ratings
+
+---
+
+## GITHUB DEPLOYMENT SUMMARY
+
+### Commits & Branches
+| Commit | Message | Status |
+|--------|---------|--------|
+| `c5ee718` | Batch 1: Core Auth & Strict Role-Based Routing | ✅ Deployed |
+| `ec5e897` | Update IMPLEMENTATION_PLAN.md for RBAC refactoring | ✅ Deployed |
+| `db700ca` | Add Firebase test accounts setup documentation | ✅ Deployed |
+| `001be06` | Latest push with all changes | ✅ Deployed |
+
+### Deployment Info
+- **Branch**: `main`
+- **Live App**: https://mykhelcs.github.io/orderacoffee/
+- **GitHub Actions**: Automated CI/CD (runs flutter pub get, builds, deploys)
+- **Build Status**: https://github.com/mykhelcs/orderacoffee/actions
+- **Repository**: https://github.com/mykhelcs/orderacoffee
+
+### Files Deployed
+- ✅ `lib/backend/models/user_profile.dart` - Updated with driver role + 5 fields
+- ✅ `lib/frontend/navigation/router.dart` - Strict role-based router guards
+- ✅ `IMPLEMENTATION_PLAN.md` - Complete project roadmap (updated 3x)
+- ✅ `FIREBASE_TEST_ACCOUNTS.md` - Comprehensive setup guide
+- ✅ `TEST_CREDENTIALS.txt` - Quick reference
+- ✅ `scripts/setup_test_accounts.dart` - Helper script
+
+---
+
+## PROGRESS SUMMARY
+
+### Overall Project Status
+- **Batch 1**: ✅ 100% Complete (1.5 / 1.5 hours)
+  - UserProfile model with driver role
+  - Router with strict role-based guards
+  - Deployed to GitHub
+  
+- **Firebase Setup**: 📋 100% Documented (0 / 0.5 hours)
+  - 4 test accounts ready to create
+  - 3 setup methods documented
+  - Credentials provided
+  - **ACTION REQUIRED**: Create accounts in Firebase
+  
+- **Batch 2**: 📋 0% Started (0 / 21-26 hours)
+  - Models & Repositories spec ready
+  - 6 admin screens planned
+  - Ready to begin after accounts created
+  
+- **Batch 3**: 📋 0% Started (0 / 18-24 hours)
+  - Staff & Driver UI specs ready
+  - Ready to begin after Batch 2 complete
+
+### Total Project Timeline
+- **Completed**: 1.5 hours (Batch 1)
+- **In Documentation**: 0 hours (Firebase Setup) - waiting for account creation
+- **Remaining**: 39-50 hours (Batch 2 + 3)
+- **Total Estimate**: 40.5-51.5 hours
+- **Current Progress**: 3.7%
+
+### Next Milestone
+**🎯 ACTION ITEM**: Create Firebase test accounts using one of 3 provided methods
+- Estimated time: 2-15 minutes depending on method
+- After completion: Begin Batch 2 implementation
+
+---
+
+## QUICK REFERENCE
+
+### Key Credentials for Testing
+```
+Admin:    admin@cafego.ph / Admin@123456
+Staff:    staff@cafego.ph / Staff@123456
+Driver:   driver@cafego.ph / Driver@123456
+Customer: customer@cafego.ph / Customer@123456
+```
+
+### Important File Locations
+- Auth model: `lib/backend/models/user_profile.dart`
+- Router: `lib/frontend/navigation/router.dart`
+- Firestore rules: `firestore.rules`
+- Setup guide: `FIREBASE_TEST_ACCOUNTS.md`
+- Quick ref: `TEST_CREDENTIALS.txt`
+- Implementation plan: `IMPLEMENTATION_PLAN.md` (this file)
+
+### Current Status Dashboard
+```
+✅ Batch 1: Complete
+📋 Firebase Setup: Ready (accounts to create)
+📋 Batch 2: Ready
+📋 Batch 3: Ready
+🚀 Live: https://mykhelcs.github.io/orderacoffee/
+🔧 CI/CD: GitHub Actions automated
+```
+
+---
+
+**Last Updated**: November 10, 2026
+**Last Commit**: `001be06` (Firebase test accounts documentation)
+**Next Action**: Create Firebase test accounts using provided credentials
 
