@@ -97,6 +97,13 @@ class UserProfile {
     this.createdAt,
     this.isEmailVerified = true,
     this.photoUrl,
+    // Driver-specific fields
+    this.vehicleType,
+    this.vehicleNumber,
+    this.isAvailable = false,
+    this.currentDeliveryId,
+    this.totalDeliveries = 0,
+    this.averageRating,
   });
 
   final String uid;
@@ -111,9 +118,19 @@ class UserProfile {
   final DateTime? createdAt;
   final bool isEmailVerified;
   final String? photoUrl;
+  
+  // Driver-specific fields
+  final String? vehicleType; // motorcycle, car, van
+  final String? vehicleNumber; // license plate
+  final bool isAvailable; // driver online/offline status
+  final String? currentDeliveryId; // current order ID being delivered
+  final int totalDeliveries; // lifetime delivery count
+  final double? averageRating; // driver rating 1-5 stars
 
   bool get isAdmin => role == 'admin';
   bool get isStaff => role == 'staff' || role == 'admin';
+  bool get isCoreStaff => role == 'staff'; // Staff only, excluding admins
+  bool get isDriver => role == 'driver';
   bool get isCustomer => role == 'customer';
 
   factory UserProfile.fromFirestore(DocumentSnapshot doc) {
@@ -153,6 +170,13 @@ class UserProfile {
       createdAt: parsedCreatedAt,
       isEmailVerified: map['isEmailVerified'] as bool? ?? true,
       photoUrl: map['photoUrl'] as String?,
+      // Driver fields
+      vehicleType: map['vehicleType'] as String?,
+      vehicleNumber: map['vehicleNumber'] as String?,
+      isAvailable: map['isAvailable'] as bool? ?? false,
+      currentDeliveryId: map['currentDeliveryId'] as String?,
+      totalDeliveries: (map['totalDeliveries'] as num?)?.toInt() ?? 0,
+      averageRating: (map['averageRating'] as num?)?.toDouble(),
     );
   }
 
@@ -169,6 +193,13 @@ class UserProfile {
       if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
       'isEmailVerified': isEmailVerified,
       if (photoUrl != null) 'photoUrl': photoUrl,
+      // Driver fields
+      if (vehicleType != null) 'vehicleType': vehicleType,
+      if (vehicleNumber != null) 'vehicleNumber': vehicleNumber,
+      'isAvailable': isAvailable,
+      if (currentDeliveryId != null) 'currentDeliveryId': currentDeliveryId,
+      'totalDeliveries': totalDeliveries,
+      if (averageRating != null) 'averageRating': averageRating,
     };
   }
 
@@ -185,6 +216,12 @@ class UserProfile {
     DateTime? createdAt,
     bool? isEmailVerified,
     String? photoUrl,
+    String? vehicleType,
+    String? vehicleNumber,
+    bool? isAvailable,
+    String? currentDeliveryId,
+    int? totalDeliveries,
+    double? averageRating,
   }) {
     return UserProfile(
       uid: uid ?? this.uid,
@@ -199,6 +236,12 @@ class UserProfile {
       createdAt: createdAt ?? this.createdAt,
       isEmailVerified: isEmailVerified ?? this.isEmailVerified,
       photoUrl: photoUrl ?? this.photoUrl,
+      vehicleType: vehicleType ?? this.vehicleType,
+      vehicleNumber: vehicleNumber ?? this.vehicleNumber,
+      isAvailable: isAvailable ?? this.isAvailable,
+      currentDeliveryId: currentDeliveryId ?? this.currentDeliveryId,
+      totalDeliveries: totalDeliveries ?? this.totalDeliveries,
+      averageRating: averageRating ?? this.averageRating,
     );
   }
 
@@ -217,7 +260,13 @@ class UserProfile {
           stamps == other.stamps &&
           fcmToken == other.fcmToken &&
           isEmailVerified == other.isEmailVerified &&
-          photoUrl == other.photoUrl;
+          photoUrl == other.photoUrl &&
+          vehicleType == other.vehicleType &&
+          vehicleNumber == other.vehicleNumber &&
+          isAvailable == other.isAvailable &&
+          currentDeliveryId == other.currentDeliveryId &&
+          totalDeliveries == other.totalDeliveries &&
+          averageRating == other.averageRating;
 
   static bool listEquals<T>(List<T> a, List<T> b) {
     if (identical(a, b)) return true;
@@ -241,5 +290,11 @@ class UserProfile {
         fcmToken,
         isEmailVerified,
         photoUrl,
+        vehicleType,
+        vehicleNumber,
+        isAvailable,
+        currentDeliveryId,
+        totalDeliveries,
+        averageRating,
       );
 }

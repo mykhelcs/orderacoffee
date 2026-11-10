@@ -36,26 +36,72 @@ class RouterNotifier extends ChangeNotifier {
   String? redirect(BuildContext context, GoRouterState state) {
     final authState = _ref.read(authProvider);
     final isLoggedIn = authState.isAuthenticated;
-    final isStaff = authState.isAdmin || authState.profile?.role == 'staff';
+    final role = authState.profile?.role;
+    final isAdmin = role == 'admin';
+    final isStaff = role == 'staff';
+    final isDriver = role == 'driver';
+    final isCustomer = role == 'customer';
     final path = state.uri.path;
+
+    // Define public auth routes
     final isAuthRoute = path == '/landing' ||
         path == '/login' ||
         path == '/signup' ||
         path == '/verify-email';
 
-    // If not logged in and trying to access protected screens, start at landing/login
+    // Define role-specific route prefixes
+    final isAdminPath = path.startsWith('/admin');
+    final isStaffPath = path.startsWith('/staff');
+    final isDriverPath = path.startsWith('/driver');
+    final isCustomerPath =
+        path == '/' || path.startsWith('/cart') || path.startsWith('/orders') || path.startsWith('/profile');
+
+    // ─── Login/Auth Flow ──────────────────────────────────────────
+    // If not logged in and trying to access protected screens, redirect to landing
     if (!isLoggedIn && !isAuthRoute) {
       return '/landing';
     }
 
-    // If already logged in and navigating to auth screens (except landing), route appropriately
+    // If already logged in and trying to access auth screens, redirect to role dashboard
     if (isLoggedIn && (path == '/login' || path == '/signup')) {
-      return isStaff ? '/admin' : '/';
+      if (isAdmin) {
+        return '/admin';
+      } else if (isStaff) {
+        return '/staff';
+      } else if (isDriver) {
+        return '/driver';
+      } else {
+        return '/';
+      }
     }
 
-    // Role guard: prevent non-staff/non-admin users from accessing /admin
-    if (isLoggedIn && path.startsWith('/admin') && !isStaff) {
-      return '/';
+    // ─── Strict Role-Based Access Control ──────────────────────────
+
+    // Admin routes: only accessible by admin
+    if (isLoggedIn && isAdminPath && !isAdmin) {
+      return isStaff ? '/staff' : isDriver ? '/driver' : '/';
+    }
+
+    // Staff routes: only accessible by staff (not admin, not customer, not driver)
+    if (isLoggedIn && isStaffPath && !(isStaff && !isAdmin)) {
+      return isAdmin ? '/admin' : isDriver ? '/driver' : '/';
+    }
+
+    // Driver routes: only accessible by driver
+    if (isLoggedIn && isDriverPath && !isDriver) {
+      return isAdmin ? '/admin' : isStaff ? '/staff' : '/';
+    }
+
+    // Customer routes: only accessible by customer
+    if (isLoggedIn && isCustomerPath && !isCustomer) {
+      return isAdmin ? '/admin' : isStaff ? '/staff' : isDriver ? '/driver' : '/';
+    }
+
+    // Checkout and order tracking: prevent admin/staff from accessing
+    if (isLoggedIn && (path.startsWith('/checkout') || path.startsWith('/order'))) {
+      if (isAdmin || isStaff || isDriver) {
+        return isAdmin ? '/admin' : isStaff ? '/staff' : '/driver';
+      }
     }
 
     return null;
@@ -75,6 +121,9 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: routerNotifier,
     redirect: routerNotifier.redirect,
     routes: [
+      // ──────────────────────────────────────────────────────────────
+      // PUBLIC AUTH ROUTES (Shared by all roles)
+      // ──────────────────────────────────────────────────────────────
       GoRoute(
         path: '/landing',
         builder: (context, state) => const LandingScreen(),
@@ -91,32 +140,49 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/verify-email',
         builder: (context, state) => const EmailVerificationScreen(),
       ),
+
+      // ──────────────────────────────────────────────────────────────
+      // CUSTOMER SHELL ROUTES (Shell with MainShell widget)
+      // ──────────────────────────────────────────────────────────────
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
         builder: (context, state, child) => MainShell(child: child),
         routes: [
+          // Customer Home / Menu
           GoRoute(
             path: '/',
             builder: (context, state) => const MenuScreen(),
           ),
+          // Customer Cart
           GoRoute(
             path: '/cart',
             builder: (context, state) => const CartScreen(),
           ),
+          // Customer Orders
           GoRoute(
             path: '/orders',
             builder: (context, state) => const OrderHistoryScreen(),
           ),
+          // Customer Profile
           GoRoute(
             path: '/profile',
             builder: (context, state) => const ProfileScreen(),
           ),
-          GoRoute(
-            path: '/admin',
-            builder: (context, state) => const AdminScreen(),
-          ),
         ],
       ),
+
+      // ──────────────────────────────────────────────────────────────
+      // ADMIN ROUTES (Admin-only dashboard)
+      // ──────────────────────────────────────────────────────────────
+      GoRoute(
+        path: '/admin',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const AdminScreen(),
+      ),
+
+      // ──────────────────────────────────────────────────────────────
+      // CHECKOUT & ORDER TRACKING (Customer-only, outside shell)
+      // ──────────────────────────────────────────────────────────────
       GoRoute(
         path: '/checkout',
         parentNavigatorKey: _rootNavigatorKey,
