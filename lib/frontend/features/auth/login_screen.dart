@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:orderacoffee/core/philippine_phone_input_formatter.dart';
+import 'package:orderacoffee/frontend/widgets/app_logo.dart';
 import 'package:orderacoffee/frontend/widgets/philippine_phone_field.dart';
 import 'auth_provider.dart';
 
@@ -856,6 +857,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             ),
                           ),
                         ),
+                        // Prominent Brand Logo in Header
+                        Center(
+                          child: SafeArea(
+                            bottom: false,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.38),
+                                borderRadius: BorderRadius.circular(22),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.18),
+                                ),
+                              ),
+                              child: const AppLogo(
+                                fontSize: 22,
+                                textColor: Colors.white,
+                                showSubtitle: true,
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -1406,60 +1428,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                         ),
 
                         const SizedBox(height: 28),
-
-                        // ─── Admin Quick Demo Sign In ─────────────────────────
-                        if (!isSignUpActive) ...[
-                          OutlinedButton.icon(
-                            key: const Key('adminDemoLoginButton'),
-                            onPressed: () async {
-                              setState(() {
-                                _emailController.text = 'admin@cafego.ph';
-                                _passwordController.text = 'Admin@CafeGo2024!';
-                                _errorMessage = null;
-                                _isLoading = true;
-                              });
-                              try {
-                                await ref.read(authProvider.notifier).signInAsAdmin();
-                                if (!mounted) return;
-                                context.go('/admin');
-                              } catch (e) {
-                                if (mounted) {
-                                  setState(() => _errorMessage = e.toString());
-                                }
-                              } finally {
-                                if (mounted) {
-                                  setState(() => _isLoading = false);
-                                }
-                              }
-                            },
-                            style: OutlinedButton.styleFrom(
-                              side: BorderSide(
-                                color: const Color(0xFFD4A373).withValues(alpha: 0.6),
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                            ),
-                            icon: const Icon(
-                              Icons.shield_outlined,
-                              size: 16,
-                              color: Color(0xFFD4A373),
-                            ),
-                            label: Text(
-                              'Sign in as Admin Demo',
-                              style: GoogleFonts.figtree(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFFD4A373),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                        ],
 
                         // ─── Bottom Mode Switch Prompt ───────────────────────
                         GestureDetector(
