@@ -96,6 +96,7 @@ class UserProfile {
     this.fcmToken,
     this.createdAt,
     this.isEmailVerified = true,
+    this.photoUrl,
   });
 
   final String uid;
@@ -109,6 +110,7 @@ class UserProfile {
   final String? fcmToken;
   final DateTime? createdAt;
   final bool isEmailVerified;
+  final String? photoUrl;
 
   bool get isAdmin => role == 'admin';
   bool get isStaff => role == 'staff' || role == 'admin';
@@ -150,6 +152,7 @@ class UserProfile {
       fcmToken: map['fcmToken'] as String?,
       createdAt: parsedCreatedAt,
       isEmailVerified: map['isEmailVerified'] as bool? ?? true,
+      photoUrl: map['photoUrl'] as String?,
     );
   }
 
@@ -165,6 +168,7 @@ class UserProfile {
       if (fcmToken != null) 'fcmToken': fcmToken,
       if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
       'isEmailVerified': isEmailVerified,
+      if (photoUrl != null) 'photoUrl': photoUrl,
     };
   }
 
@@ -180,6 +184,7 @@ class UserProfile {
     String? fcmToken,
     DateTime? createdAt,
     bool? isEmailVerified,
+    String? photoUrl,
   }) {
     return UserProfile(
       uid: uid ?? this.uid,
@@ -193,6 +198,7 @@ class UserProfile {
       fcmToken: fcmToken ?? this.fcmToken,
       createdAt: createdAt ?? this.createdAt,
       isEmailVerified: isEmailVerified ?? this.isEmailVerified,
+      photoUrl: photoUrl ?? this.photoUrl,
     );
   }
 
@@ -210,7 +216,8 @@ class UserProfile {
           listEquals(addresses, other.addresses) &&
           stamps == other.stamps &&
           fcmToken == other.fcmToken &&
-          isEmailVerified == other.isEmailVerified;
+          isEmailVerified == other.isEmailVerified &&
+          photoUrl == other.photoUrl;
 
   static bool listEquals<T>(List<T> a, List<T> b) {
     if (identical(a, b)) return true;
@@ -233,5 +240,6 @@ class UserProfile {
         stamps,
         fcmToken,
         isEmailVerified,
+        photoUrl,
       );
 }

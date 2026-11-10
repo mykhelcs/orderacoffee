@@ -63,14 +63,6 @@ enum PaymentMethod {
         PaymentMethod.card => 'Card',
       };
 
-  String get displayLabel => switch (this) {
-        PaymentMethod.cash => 'Cash on delivery',
-        PaymentMethod.counter => 'Pay at counter',
-        PaymentMethod.gcash => 'GCash (PayMongo)',
-        PaymentMethod.maya => 'Maya (PayMongo)',
-        PaymentMethod.card => 'Card (PayMongo)',
-      };
-
   String get paymongoMethodType => switch (this) {
         PaymentMethod.gcash => 'gcash',
         PaymentMethod.maya => 'paymaya',

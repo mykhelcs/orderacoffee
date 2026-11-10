@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'package:orderacoffee/backend/models/user_profile.dart';
@@ -110,6 +111,100 @@ class ProfileScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  void _showImagePickerSheet(BuildContext context, WidgetRef ref) {
+    final picker = ImagePicker();
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Theme.of(context).cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Wrap(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.camera_alt_outlined),
+                  title: Text(
+                    'Take Photo',
+                    style: GoogleFonts.figtree(fontWeight: FontWeight.w600),
+                  ),
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    try {
+                      final photo = await picker.pickImage(
+                        source: ImageSource.camera,
+                        maxWidth: 800,
+                        maxHeight: 800,
+                        imageQuality: 85,
+                      );
+                      if (photo != null) {
+                        await ref
+                            .read(authProvider.notifier)
+                            .uploadProfilePhoto(photo);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Profile photo updated!'),
+                            ),
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Failed to update photo: $e')),
+                        );
+                      }
+                    }
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: Text(
+                    'Choose from Gallery',
+                    style: GoogleFonts.figtree(fontWeight: FontWeight.w600),
+                  ),
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    try {
+                      final photo = await picker.pickImage(
+                        source: ImageSource.gallery,
+                        maxWidth: 800,
+                        maxHeight: 800,
+                        imageQuality: 85,
+                      );
+                      if (photo != null) {
+                        await ref
+                            .read(authProvider.notifier)
+                            .uploadProfilePhoto(photo);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Profile photo updated!'),
+                            ),
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Failed to update photo: $e')),
+                        );
+                      }
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -501,34 +596,81 @@ class ProfileScreen extends ConsumerWidget {
           ),
           child: Row(
             children: [
-              // Avatar
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF7A4A2F), Color(0xFF3B2317)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(22),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF3B2317).withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
+              // Avatar with Photo / Initials & Picker Trigger
+              GestureDetector(
+                onTap: () => _showImagePickerSheet(context, ref),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      clipBehavior: Clip.antiAlias,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF7A4A2F), Color(0xFF3B2317)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF3B2317)
+                                .withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: (profile?.photoUrl != null &&
+                              profile!.photoUrl!.isNotEmpty)
+                          ? Image.network(
+                              profile.photoUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Center(
+                                child: Text(
+                                  displayName.isNotEmpty
+                                      ? displayName[0].toUpperCase()
+                                      : 'C',
+                                  style: GoogleFonts.playfairDisplay(
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFFF7F1EB),
+                                  ),
+                                ),
+                              ),
+                            )
+                          : Center(
+                              child: Text(
+                                displayName.isNotEmpty
+                                    ? displayName[0].toUpperCase()
+                                    : 'C',
+                                style: GoogleFonts.playfairDisplay(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFFF7F1EB),
+                                ),
+                              ),
+                            ),
+                    ),
+                    Positioned(
+                      bottom: -2,
+                      right: -2,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD49755),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: cardBg, width: 2),
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt_rounded,
+                          size: 13,
+                          color: Color(0xFF1B110B),
+                        ),
+                      ),
                     ),
                   ],
-                ),
-                child: Center(
-                  child: Text(
-                    displayName.isNotEmpty ? displayName[0].toUpperCase() : 'C',
-                    style: GoogleFonts.playfairDisplay(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFFF7F1EB),
-                    ),
-                  ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -676,16 +818,23 @@ class ProfileScreen extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 16),
-              // Progress bar
-              ClipRRect(
-                borderRadius: BorderRadius.circular(99),
-                child: LinearProgressIndicator(
-                  value: stampProgress,
-                  minHeight: 7,
-                  backgroundColor: Colors.white.withValues(alpha: 0.15),
-                  valueColor:
-                      const AlwaysStoppedAnimation<Color>(Color(0xFFD49755)),
-                ),
+              // Animated progress bar
+              TweenAnimationBuilder<double>(
+                tween: Tween<double>(begin: 0.0, end: stampProgress),
+                duration: const Duration(milliseconds: 700),
+                curve: Curves.easeOutCubic,
+                builder: (context, value, _) {
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(99),
+                    child: LinearProgressIndicator(
+                      value: value,
+                      minHeight: 7,
+                      backgroundColor: Colors.white.withValues(alpha: 0.15),
+                      valueColor:
+                          const AlwaysStoppedAnimation<Color>(Color(0xFFD49755)),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 10),
               Row(
@@ -710,6 +859,42 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                 ],
               ),
+              if (stamps == 4) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD49755).withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFFD49755).withValues(alpha: 0.6),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.military_tech_rounded,
+                        color: Color(0xFFD49755),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Milestone Reached! 4 stamps down, 4 to go for a free drink! 🎉',
+                          style: GoogleFonts.figtree(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFFF7F1EB),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               if (authState.activeRewardCode != null) ...[
                 const SizedBox(height: 10),
                 Container(

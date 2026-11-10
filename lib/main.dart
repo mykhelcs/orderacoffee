@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'backend/config/firebase_options.dart';
+import 'backend/repositories/auth_repository.dart';
 import 'backend/repositories/menu_repository.dart';
 import 'backend/repositories/order_repository.dart';
+import 'backend/services/notification_service.dart';
 import 'frontend/navigation/router.dart';
 import 'frontend/theme/theme.dart';
 import 'frontend/widgets/main_shell.dart';
@@ -19,10 +21,18 @@ void main() async {
     // Automatic background synchronization: upload 37 menu products and sync orders to Cloud Firestore
     unawaited(MenuRepository().syncMenuToFirestore());
     unawaited(OrderRepository().syncPendingOrdersToFirestore());
+    unawaited(AuthRepository().ensureAdminAccountExists());
     OrderRepository.startPeriodicAutoSync();
   } catch (e) {
     debugPrint('Firebase initialization error: $e');
   }
+
+  try {
+    await NotificationService.initialize();
+  } catch (e) {
+    debugPrint('NotificationService initialization error: $e');
+  }
+
   runApp(const ProviderScope(child: CoughfeeApp()));
 }
 

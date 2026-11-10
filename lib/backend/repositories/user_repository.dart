@@ -81,6 +81,19 @@ class UserRepository {
     }
   }
 
+  /// Update profile photo URL
+  Future<void> updatePhotoUrl(String uid, String url) async {
+    final col = _usersCol;
+    if (col == null) return;
+    try {
+      await col.doc(uid).update({
+        'photoUrl': url,
+      });
+    } catch (e) {
+      throw ValidationFailure('Failed to update photo URL: $e');
+    }
+  }
+
   /// U4: Add address via FieldValue.arrayUnion
   Future<void> addAddress(String uid, UserAddress address) async {
     final col = _usersCol;
@@ -131,4 +144,79 @@ class UserRepository {
       throw PermissionFailure('Failed to list customers: $e');
     }
   }
+
+  /// List all users across all roles (Admin only)
+  Future<List<UserProfile>> listAllUsers() async {
+    final col = _usersCol;
+    if (col == null) {
+      return _fallbackSampleUsers;
+    }
+    try {
+      final snapshot = await col.get();
+      if (snapshot.docs.isEmpty) {
+        return _fallbackSampleUsers;
+      }
+      return snapshot.docs.map(UserProfile.fromFirestore).toList();
+    } catch (_) {
+      return _fallbackSampleUsers;
+    }
+  }
+
+  /// Stream all users (Admin only)
+  Stream<List<UserProfile>> watchAllUsers() {
+    final col = _usersCol;
+    if (col == null) {
+      return Stream.value(_fallbackSampleUsers);
+    }
+    return col.snapshots().map((snapshot) {
+      if (snapshot.docs.isEmpty) return _fallbackSampleUsers;
+      return snapshot.docs.map(UserProfile.fromFirestore).toList();
+    }).handleError((_) => _fallbackSampleUsers);
+  }
+
+  /// Update user role (Admin only)
+  Future<void> updateRole(String uid, String newRole) async {
+    final col = _usersCol;
+    if (col == null) return;
+    try {
+      await col.doc(uid).update({'role': newRole});
+    } catch (e) {
+      throw ValidationFailure('Failed to update role: $e');
+    }
+  }
+
+  static final List<UserProfile> _fallbackSampleUsers = [
+    const UserProfile(
+      uid: 'admin-master',
+      name: 'Master Admin',
+      email: 'admin@cafego.ph',
+      phone: '+63 917 000 0001',
+      role: 'admin',
+      stamps: 10,
+    ),
+    const UserProfile(
+      uid: 'staff-sample',
+      name: 'Barista Carlo',
+      email: 'carlo@cafego.ph',
+      phone: '+63 918 111 2222',
+      role: 'staff',
+      stamps: 5,
+    ),
+    const UserProfile(
+      uid: 'user-sample-1',
+      name: 'Maria Santos',
+      email: 'maria.santos@gmail.com',
+      phone: '+63 919 333 4444',
+      role: 'customer',
+      stamps: 7,
+    ),
+    const UserProfile(
+      uid: 'user-sample-2',
+      name: 'Juan dela Cruz',
+      email: 'juan.delacruz@yahoo.com',
+      phone: '+63 912 345 6789',
+      role: 'customer',
+      stamps: 3,
+    ),
+  ];
 }
