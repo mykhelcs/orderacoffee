@@ -209,6 +209,10 @@ class OrderDraft {
     this.deliveryLng,
     this.riderLat,
     this.riderLng,
+    this.driverId,
+    this.driverName,
+    this.driverPhone,
+    this.driverStatus,
   }) : _explicitSubtotal = subtotal;
 
   final String userId;
@@ -236,6 +240,10 @@ class OrderDraft {
   final double? deliveryLng;
   final double? riderLat;
   final double? riderLng;
+  final String? driverId;
+  final String? driverName;
+  final String? driverPhone;
+  final String? driverStatus;
 
   /// Computes standard delivery fee: ₱ 45 for delivery under ₱ 500, free otherwise.
   static double computeDeliveryFee(OrderType type, double subtotal) {
@@ -306,6 +314,10 @@ class OrderDraft {
       if (deliveryLng != null) 'deliveryLng': deliveryLng,
       if (riderLat != null) 'riderLat': riderLat,
       if (riderLng != null) 'riderLng': riderLng,
+      if (driverId != null) 'driverId': driverId,
+      if (driverName != null) 'driverName': driverName,
+      if (driverPhone != null) 'driverPhone': driverPhone,
+      if (driverStatus != null) 'driverStatus': driverStatus,
     };
   }
 }
@@ -340,6 +352,10 @@ class Order {
     this.deliveryLng,
     this.riderLat,
     this.riderLng,
+    this.driverId,
+    this.driverName,
+    this.driverPhone,
+    this.driverStatus,
     this.createdAt,
     this.updatedAt,
   });
@@ -372,6 +388,10 @@ class Order {
   final double? deliveryLng;
   final double? riderLat;
   final double? riderLng;
+  final String? driverId;
+  final String? driverName;
+  final String? driverPhone;
+  final String? driverStatus;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -426,6 +446,10 @@ class Order {
       deliveryLng: (map['deliveryLng'] as num?)?.toDouble(),
       riderLat: (map['riderLat'] as num?)?.toDouble(),
       riderLng: (map['riderLng'] as num?)?.toDouble(),
+      driverId: map['driverId'] as String?,
+      driverName: map['driverName'] as String?,
+      driverPhone: map['driverPhone'] as String?,
+      driverStatus: map['driverStatus'] as String?,
       createdAt: parseDate(map['createdAt']),
       updatedAt: parseDate(map['updatedAt']),
     );
@@ -463,6 +487,10 @@ class Order {
       if (deliveryLng != null) 'deliveryLng': deliveryLng,
       if (riderLat != null) 'riderLat': riderLat,
       if (riderLng != null) 'riderLng': riderLng,
+      if (driverId != null) 'driverId': driverId,
+      if (driverName != null) 'driverName': driverName,
+      if (driverPhone != null) 'driverPhone': driverPhone,
+      if (driverStatus != null) 'driverStatus': driverStatus,
       if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
       if (updatedAt != null) 'updatedAt': Timestamp.fromDate(updatedAt!),
     };
@@ -497,6 +525,10 @@ class Order {
     double? deliveryLng,
     double? riderLat,
     double? riderLng,
+    String? driverId,
+    String? driverName,
+    String? driverPhone,
+    String? driverStatus,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -529,6 +561,10 @@ class Order {
       deliveryLng: deliveryLng ?? this.deliveryLng,
       riderLat: riderLat ?? this.riderLat,
       riderLng: riderLng ?? this.riderLng,
+      driverId: driverId ?? this.driverId,
+      driverName: driverName ?? this.driverName,
+      driverPhone: driverPhone ?? this.driverPhone,
+      driverStatus: driverStatus ?? this.driverStatus,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -544,6 +580,7 @@ class Order {
           total == other.total &&
           status == other.status &&
           paymentStatus == other.paymentStatus &&
+          driverId == other.driverId &&
           riderLat == other.riderLat &&
           riderLng == other.riderLng;
 

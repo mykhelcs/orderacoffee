@@ -742,4 +742,39 @@ class OrderRepository {
           .toList();
     }
   }
+
+  /// O11: Assign driver to order (for live delivery synchronization)
+  Future<void> assignDriver(
+    String orderId, {
+    required String driverId,
+    required String driverName,
+    String? driverPhone,
+  }) async {
+    final local = _fallbackOrders[orderId];
+    if (local != null) {
+      _fallbackOrders[orderId] = local.copyWith(
+        driverId: driverId,
+        driverName: driverName,
+        driverPhone: driverPhone,
+        driverStatus: 'assigned',
+        updatedAt: DateTime.now(),
+      );
+      _notifyFallback();
+    }
+
+    final col = _ordersCol;
+    if (col != null) {
+      try {
+        await col.doc(orderId).update({
+          'driverId': driverId,
+          'driverName': driverName,
+          if (driverPhone != null) 'driverPhone': driverPhone,
+          'driverStatus': 'assigned',
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        debugPrint('[Driver Sync] Failed to update Firestore with assigned driver: $e');
+      }
+    }
+  }
 }

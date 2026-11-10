@@ -196,6 +196,46 @@ void main() {
       expect(fromMap.status, OrderStatus.received);
       expect(fromMap.total, 220.0);
     });
+
+    test('Order supports driver synchronization fields and assignment copyWith', () {
+      const order = Order(
+        id: 'ord_sync_1',
+        userId: 'u1',
+        userName: 'Bob',
+        items: [
+          OrderItem(itemId: 'i1', name: 'Cold Brew', qty: 2, unitPrice: 110.0),
+        ],
+        total: 220.0,
+        type: OrderType.delivery,
+        payment: PaymentMethod.cash,
+        status: OrderStatus.ready,
+        driverId: 'driver_99',
+        driverName: 'Kuya Rider',
+        driverPhone: '+63 917 123 4567',
+        driverStatus: 'assigned',
+      );
+
+      final map = order.toMap();
+      expect(map['driverId'], equals('driver_99'));
+      expect(map['driverName'], equals('Kuya Rider'));
+      expect(map['driverPhone'], equals('+63 917 123 4567'));
+      expect(map['driverStatus'], equals('assigned'));
+
+      final fromMap = Order.fromMap(map, id: 'ord_sync_1');
+      expect(fromMap.driverId, equals('driver_99'));
+      expect(fromMap.driverName, equals('Kuya Rider'));
+      expect(fromMap.driverPhone, equals('+63 917 123 4567'));
+      expect(fromMap.driverStatus, equals('assigned'));
+
+      final reassigned = fromMap.copyWith(
+        driverStatus: 'on_the_way',
+        riderLat: 14.5547,
+        riderLng: 121.0244,
+      );
+      expect(reassigned.driverStatus, equals('on_the_way'));
+      expect(reassigned.riderLat, equals(14.5547));
+      expect(reassigned.riderLng, equals(121.0244));
+    });
   });
 
   group('SalesSummary Model', () {

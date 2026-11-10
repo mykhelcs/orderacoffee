@@ -112,17 +112,31 @@ void main() {
       expect(find.text('Staff/Users'), findsOneWidget);
     });
 
-    testWidgets('Orders tab renders active order with customer name and status filter chips', (tester) async {
+    testWidgets('Orders tab renders active order with customer name and suppresses UUID', (tester) async {
       await tester.pumpWidget(createAdminTestWidget());
       await tester.pumpAndSettle();
 
-      // Check order
+      // Check order shows only customer name and suppresses raw UUID
       expect(find.textContaining('Maria Santos'), findsOneWidget);
-      expect(find.textContaining('ORD-9001'), findsOneWidget);
+      expect(find.textContaining('ORD-9001'), findsNothing);
 
       // Check status chips
       expect(find.textContaining('All'), findsWidgets);
       expect(find.textContaining('Received'), findsWidgets);
+    });
+
+    testWidgets('Tapping order opens Order Details Modal', (tester) async {
+      await tester.pumpWidget(createAdminTestWidget());
+      await tester.pumpAndSettle();
+
+      // Tap the order card
+      await tester.tap(find.text('Maria Santos'));
+      await tester.pumpAndSettle();
+
+      // Modal should display customer name and items
+      expect(find.text('Items Ordered (1)'), findsOneWidget);
+      expect(find.text('1x Spanish Latte'), findsOneWidget);
+      expect(find.text('Total Amount'), findsOneWidget);
     });
 
     testWidgets('Switching to Catalog tab renders menu products and Add Item button', (tester) async {
@@ -139,9 +153,21 @@ void main() {
       expect(find.text('Signature Cold Brew'), findsOneWidget);
       expect(find.text('In Stock'), findsOneWidget);
       expect(find.text('Sold Out'), findsOneWidget);
+
+      // Tap Add Item button to open dialog
+      await tester.tap(find.byKey(const Key('adminAddProductButton')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Add New Product'), findsOneWidget);
+      expect(find.text('Upload Picture'), findsOneWidget);
+      expect(find.text('Cancel'), findsOneWidget);
+
+      // Dismiss dialog
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
     });
 
-    testWidgets('Switching to Analytics tab renders Financial Overview cards', (tester) async {
+    testWidgets('Switching to Analytics tab renders Financial Overview cards and dashboard graphs', (tester) async {
       await tester.pumpWidget(createAdminTestWidget());
       await tester.pumpAndSettle();
 
@@ -153,6 +179,15 @@ void main() {
       expect(find.text("Today's Revenue"), findsOneWidget);
       expect(find.text('Average Order Value'), findsOneWidget);
       expect(find.text('Active in Queue'), findsOneWidget);
+
+      // Verify dashboard charts
+      expect(find.text('Hourly Revenue & Demand'), findsOneWidget);
+
+      await tester.scrollUntilVisible(find.text('Sales by Menu Category'), 100);
+      expect(find.text('Sales by Menu Category'), findsOneWidget);
+
+      await tester.scrollUntilVisible(find.text('Fulfillment Status Distribution'), 100);
+      expect(find.text('Fulfillment Status Distribution'), findsOneWidget);
     });
 
     testWidgets('Switching to Staff/Users tab renders directory header', (tester) async {
