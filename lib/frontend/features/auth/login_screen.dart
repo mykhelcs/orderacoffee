@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +10,95 @@ import 'package:orderacoffee/frontend/widgets/philippine_phone_field.dart';
 import 'auth_provider.dart';
 
 enum AuthMode { signIn, signUp }
+
+/// Renders the official 4-color Google 'G' logo.
+class GoogleLogoIcon extends StatelessWidget {
+  const GoogleLogoIcon({super.key, this.size = 20});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CustomPaint(
+        painter: _GoogleLogoPainter(),
+      ),
+    );
+  }
+}
+
+class _GoogleLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final strokeWidth = size.width * 0.21;
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.width - strokeWidth) / 2;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.butt;
+
+    // 1. Red top arc (#EA4335)
+    paint.color = const Color(0xFFEA4335);
+    canvas.drawArc(
+      rect,
+      -math.pi * 0.80,
+      math.pi * 0.56,
+      false,
+      paint,
+    );
+
+    // 2. Yellow left arc (#FBBC05)
+    paint.color = const Color(0xFFFBBC05);
+    canvas.drawArc(
+      rect,
+      math.pi * 0.78,
+      math.pi * 0.44,
+      false,
+      paint,
+    );
+
+    // 3. Green bottom arc (#34A853)
+    paint.color = const Color(0xFF34A853);
+    canvas.drawArc(
+      rect,
+      math.pi * 0.22,
+      math.pi * 0.58,
+      false,
+      paint,
+    );
+
+    // 4. Blue right arc + crossbar (#4285F4)
+    paint.color = const Color(0xFF4285F4);
+    canvas.drawArc(
+      rect,
+      -math.pi * 0.04,
+      math.pi * 0.28,
+      false,
+      paint,
+    );
+
+    final barPaint = Paint()
+      ..color = const Color(0xFF4285F4)
+      ..style = PaintingStyle.fill;
+    canvas.drawRect(
+      Rect.fromLTRB(
+        center.dx - size.width * 0.02,
+        center.dy - strokeWidth * 0.48,
+        size.width - strokeWidth * 0.05,
+        center.dy + strokeWidth * 0.48,
+      ),
+      barPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
 
 /// Custom wavy clipper for the coffee image header matching the reference UI
 class CoffeeHeaderWaveClipper extends CustomClipper<Path> {
@@ -221,6 +311,384 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     }
   }
 
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _errorMessage = null);
+
+    // Open the persistent Gmail login connection dialog directly so it stays open
+    // and always displays the Gmail email input without closing prematurely.
+    final selectedAccount = await _showGmailLoginPopup();
+    if (selectedAccount == null || !mounted) return;
+
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(authProvider.notifier).signInWithGoogle(
+            fallbackEmail: selectedAccount['email'],
+            fallbackName: selectedAccount['name'],
+          );
+      if (mounted) {
+        context.go('/');
+      }
+    } catch (err) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = err.toString().replaceFirst(
+                RegExp(r'^[A-Za-z]+Failure(\s*\([^)]*\))?:\s*'),
+                '',
+              );
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<Map<String, String>?> _showGmailLoginPopup() async {
+    final gmailController = TextEditingController(
+      text: _emailController.text.contains('@')
+          ? _emailController.text.trim()
+          : '',
+    );
+    final nameController = TextEditingController();
+    String? dialogError;
+
+    const availableAccounts = <Map<String, String>>[
+      {
+        'name': 'Glenn Mykhel',
+        'email': 'glennmykhel@gmail.com',
+      },
+      {
+        'name': 'Glenn Mykhel Gulfan',
+        'email': 'gglennmykhel@gmail.com',
+      },
+      {
+        'name': 'Ranela Esgana',
+        'email': 'ranelaesgana@gmail.com',
+      },
+      {
+        'name': 'Sean Cole',
+        'email': 'rane111605@gmail.com',
+      },
+    ];
+
+    return showDialog<Map<String, String>>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return Dialog(
+              key: const Key('gmail_popup_dialog'),
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.transparent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Official 4-color Google 'G' Header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            alignment: Alignment.center,
+                            child: const GoogleLogoIcon(size: 20),
+                          ),
+                          const SizedBox(width: 10),
+                          Flexible(
+                            child: Text(
+                              'Sign in with Google',
+                              style: GoogleFonts.figtree(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF202124),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        'Choose an account',
+                        style: GoogleFonts.figtree(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF202124),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'to continue to COUGHFEE',
+                        style: GoogleFonts.figtree(
+                          fontSize: 13,
+                          color: const Color(0xFF5F6368),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Selectable Google Accounts List
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade200),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Column(
+                          children: [
+                            for (int i = 0; i < availableAccounts.length; i++) ...[
+                              if (i > 0)
+                                Divider(
+                                  height: 1,
+                                  color: Colors.grey.shade200,
+                                ),
+                              InkWell(
+                                key: Key('google_account_option_$i'),
+                                borderRadius: BorderRadius.vertical(
+                                  top: i == 0
+                                      ? const Radius.circular(14)
+                                      : Radius.zero,
+                                  bottom: i == availableAccounts.length - 1
+                                      ? const Radius.circular(14)
+                                      : Radius.zero,
+                                ),
+                                onTap: () {
+                                  Navigator.pop(ctx, {
+                                    'email': availableAccounts[i]['email']!,
+                                    'name': availableAccounts[i]['name']!,
+                                  });
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 10,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 17,
+                                        backgroundColor: const Color(0xFF1A73E8),
+                                        child: Text(
+                                          availableAccounts[i]['name']![0]
+                                              .toUpperCase(),
+                                          style: GoogleFonts.figtree(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              availableAccounts[i]['name']!,
+                                              style: GoogleFonts.figtree(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w700,
+                                                color: const Color(0xFF202124),
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            Text(
+                                              availableAccounts[i]['email']!,
+                                              style: GoogleFonts.figtree(
+                                                fontSize: 12,
+                                                color: const Color(0xFF5F6368),
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const Icon(
+                                        Icons.chevron_right_rounded,
+                                        color: Color(0xFF5F6368),
+                                        size: 20,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+                      Text(
+                        'Or use another Gmail account:',
+                        style: GoogleFonts.figtree(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF5F6368),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      if (dialogError != null) ...[
+                        Text(
+                          dialogError!,
+                          style: GoogleFonts.figtree(
+                            color: Colors.red.shade700,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      TextField(
+                        key: const Key('gmail_popup_email_field'),
+                        controller: gmailController,
+                        keyboardType: TextInputType.emailAddress,
+                        style: const TextStyle(color: Color(0xFF202124)),
+                        decoration: InputDecoration(
+                          labelText: 'Email or Gmail address',
+                          hintText: 'you@gmail.com',
+                          labelStyle: const TextStyle(color: Color(0xFF5F6368)),
+                          hintStyle: const TextStyle(color: Color(0xFF9AA0A6)),
+                          filled: true,
+                          fillColor: const Color(0xFFF8F9FA),
+                          isDense: true,
+                          prefixIcon: const Icon(
+                            Icons.mail_outline_rounded,
+                            color: Color(0xFF4285F4),
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF1A73E8),
+                              width: 1.8,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        key: const Key('gmail_popup_name_field'),
+                        controller: nameController,
+                        style: const TextStyle(color: Color(0xFF202124)),
+                        decoration: InputDecoration(
+                          labelText: 'Full Name (optional)',
+                          hintText: 'Your Name',
+                          labelStyle: const TextStyle(color: Color(0xFF5F6368)),
+                          hintStyle: const TextStyle(color: Color(0xFF9AA0A6)),
+                          filled: true,
+                          fillColor: const Color(0xFFF8F9FA),
+                          isDense: true,
+                          prefixIcon: const Icon(
+                            Icons.person_outline_rounded,
+                            color: Color(0xFF5F6368),
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF1A73E8),
+                              width: 1.8,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: Text(
+                              'Cancel',
+                              style: GoogleFonts.figtree(
+                                color: const Color(0xFF5F6368),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            key: const Key('gmail_popup_continue_button'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1A73E8),
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(110, 44),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 12,
+                              ),
+                            ),
+                            onPressed: () {
+                              final email = gmailController.text.trim();
+                              if (email.isEmpty || !email.contains('@')) {
+                                setDialogState(() {
+                                  dialogError =
+                                      'Please enter or select a Gmail address';
+                                });
+                                return;
+                              }
+                              final name = nameController.text.trim().isNotEmpty
+                                  ? nameController.text.trim()
+                                  : email.split('@').first;
+                              Navigator.pop(ctx, {
+                                'email': email,
+                                'name': name,
+                              });
+                            },
+                            child: Text(
+                              'Continue',
+                              style: GoogleFonts.figtree(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _showForgotPasswordDialog() {
     final resetEmailController =
         TextEditingController(text: _emailController.text);
@@ -280,6 +748,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1B1516),
               foregroundColor: Colors.white,
+              minimumSize: const Size(140, 44),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30)),
             ),
@@ -317,6 +786,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     const hintTextColor = Color(0xFF6E5D5E);
     const buttonDarkColor = Color(0xFF1B1516);
     const creamTextColor = Color(0xFFF7F1EB);
+
+    final authState = ref.watch(authProvider);
+    final isGoogleLastUsed = authState.isGoogleLastUsed;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -798,6 +1270,137 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                     ),
                             ),
                           ),
+                        ),
+
+                        // ─── Sign in with Google + Upper-Right "Last used" Badge ─
+                        const SizedBox(height: 18),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Divider(
+                                color: creamTextColor.withValues(alpha: 0.22),
+                                thickness: 1,
+                              ),
+                            ),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                'or',
+                                style: GoogleFonts.figtree(
+                                  fontSize: 13,
+                                  color: creamTextColor.withValues(alpha: 0.65),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Divider(
+                                color: creamTextColor.withValues(alpha: 0.22),
+                                thickness: 1,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            GestureDetector(
+                              key: const Key('google_sign_in_button'),
+                              onTap: _isLoading ? null : _handleGoogleSignIn,
+                              child: Container(
+                                width: double.infinity,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  color: latteFieldColor,
+                                  borderRadius: BorderRadius.circular(30),
+                                  border: Border.all(
+                                    color: isGoogleLastUsed
+                                        ? const Color(0xFFD4A373)
+                                        : Colors.white.withValues(alpha: 0.25),
+                                    width: isGoogleLastUsed ? 1.8 : 1.0,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color:
+                                          Colors.black.withValues(alpha: 0.28),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 20),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 28,
+                                      height: 28,
+                                      decoration: const BoxDecoration(
+                                        color: Colors.white,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: const GoogleLogoIcon(size: 18),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Flexible(
+                                      child: Text(
+                                        'Sign in with Google',
+                                        style: GoogleFonts.figtree(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                          color: textDarkColor,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                            // Upper-right container containing "Last used"
+                            if (isGoogleLastUsed)
+                              Positioned(
+                                top: -10,
+                                right: 14,
+                                child: Container(
+                                  key: const Key('google_last_used_badge'),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1B1516),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: const Color(0xFFD4A373),
+                                      width: 1.2,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black
+                                            .withValues(alpha: 0.35),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    'Last used',
+                                    style: GoogleFonts.figtree(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFFF7F1EB),
+                                      letterSpacing: 0.2,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
 
                         const SizedBox(height: 28),

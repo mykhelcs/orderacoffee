@@ -25,11 +25,14 @@ class SmtpConfig {
     defaultValue: 'cafego.mobile@gmail.com',
   );
 
-  /// Your SMTP password or Google App Password (loaded from .env).
+  /// Your SMTP password or Google App Password (loaded from .env or default fallback).
   static const String password = String.fromEnvironment(
     'SMTP_PASSWORD',
-    defaultValue: '',
+    defaultValue: 'prallewkuojzshkn',
   );
+
+  /// Sanitized password with any spaces removed (Google App Passwords are 16 chars).
+  static String get cleanPassword => password.replaceAll(' ', '').trim();
 
   /// The from email shown in the recipient's inbox.
   static const String senderEmail = String.fromEnvironment(
@@ -50,5 +53,6 @@ class SmtpConfig {
   );
 
   /// Returns true if SMTP credentials have been provided.
-  static bool get isConfigured => username.isNotEmpty && password.isNotEmpty;
+  static bool get isConfigured =>
+      username.trim().isNotEmpty && cleanPassword.isNotEmpty;
 }

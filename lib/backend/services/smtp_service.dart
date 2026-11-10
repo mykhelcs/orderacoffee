@@ -12,17 +12,34 @@ class SmtpService {
 
   final Future<SendReport> Function(Message message, SmtpServer server) _sendFunction;
 
-  SmtpServer _resolveSmtpServer() {
-    if (SmtpConfig.host.contains('gmail') && SmtpConfig.username.isNotEmpty) {
-      return gmail(SmtpConfig.username, SmtpConfig.password);
+  SmtpServer _resolvePrimarySmtpServer() {
+    final cleanUser = SmtpConfig.username.trim();
+    final cleanPass = SmtpConfig.cleanPassword;
+
+    if (SmtpConfig.host.contains('gmail') && cleanUser.isNotEmpty) {
+      return gmail(cleanUser, cleanPass);
     }
 
     return SmtpServer(
       SmtpConfig.host,
       port: SmtpConfig.port,
       ssl: SmtpConfig.ssl,
-      username: SmtpConfig.username.isNotEmpty ? SmtpConfig.username : null,
-      password: SmtpConfig.password.isNotEmpty ? SmtpConfig.password : null,
+      username: cleanUser.isNotEmpty ? cleanUser : null,
+      password: cleanPass.isNotEmpty ? cleanPass : null,
+      allowInsecure: true,
+    );
+  }
+
+  SmtpServer _resolveFallbackSslServer() {
+    final cleanUser = SmtpConfig.username.trim();
+    final cleanPass = SmtpConfig.cleanPassword;
+
+    return SmtpServer(
+      SmtpConfig.host,
+      port: 465,
+      ssl: true,
+      username: cleanUser.isNotEmpty ? cleanUser : null,
+      password: cleanPass.isNotEmpty ? cleanPass : null,
       allowInsecure: true,
     );
   }
@@ -62,8 +79,8 @@ class SmtpService {
     // Gmail address to ensure SPF and DKIM alignment; otherwise destination
     // mail servers (Gmail, Yahoo, Outlook) mark the email as spam or discard it.
     final fromAddress = (SmtpConfig.host.contains('gmail') && SmtpConfig.username.isNotEmpty)
-        ? SmtpConfig.username
-        : (SmtpConfig.senderEmail.isNotEmpty ? SmtpConfig.senderEmail : SmtpConfig.username);
+        ? SmtpConfig.username.trim()
+        : (SmtpConfig.senderEmail.isNotEmpty ? SmtpConfig.senderEmail.trim() : SmtpConfig.username.trim());
 
     final message = Message()
       ..from = Address(fromAddress, SmtpConfig.senderName)
@@ -72,7 +89,7 @@ class SmtpService {
       ..text = 'Your 6-digit verification code is: $otpCode. It expires in 10 minutes.';
 
     if (SmtpConfig.replyToEmail.isNotEmpty) {
-      message.headers['Reply-To'] = Address(SmtpConfig.replyToEmail, SmtpConfig.senderName);
+      message.headers['Reply-To'] = const Address(SmtpConfig.replyToEmail, SmtpConfig.senderName);
     }
 
     message.html = '''
@@ -98,13 +115,21 @@ class SmtpService {
       ''';
 
     try {
-      final server = _resolveSmtpServer();
-      await _sendFunction(message, server);
-      debugPrint('[SMTP Success] Verification email dispatched to $cleanRecipient');
+      final primaryServer = _resolvePrimarySmtpServer();
+      await _sendFunction(message, primaryServer);
+      debugPrint('[SMTP Success] Verification email dispatched to $cleanRecipient (port ${primaryServer.port})');
       return true;
-    } catch (e) {
-      debugPrint('[SMTP Error] Failed to send email to $cleanRecipient via SMTP: $e');
-      return false;
+    } catch (primaryError) {
+      debugPrint('[SMTP Notice] Primary SMTP port failed ($primaryError). Retrying via explicit SSL port 465...');
+      try {
+        final fallbackServer = _resolveFallbackSslServer();
+        await _sendFunction(message, fallbackServer);
+        debugPrint('[SMTP Success] Verification email dispatched to $cleanRecipient via SSL port 465');
+        return true;
+      } catch (fallbackError) {
+        debugPrint('[SMTP Error] Failed to send email to $cleanRecipient via SMTP: $fallbackError');
+        return false;
+      }
     }
   }
 }

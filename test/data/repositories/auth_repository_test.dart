@@ -1,7 +1,10 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mailer/mailer.dart';
+import 'package:mailer/smtp_server.dart';
 import 'package:orderacoffee/core/errors/failures.dart';
+import 'package:orderacoffee/backend/services/smtp_config.dart';
 import 'package:orderacoffee/backend/services/smtp_service.dart';
 import 'package:orderacoffee/backend/repositories/auth_repository.dart';
 
@@ -12,6 +15,16 @@ class _FakeSmtpService extends SmtpService {
     required String otpCode,
   }) async {
     return true;
+  }
+}
+
+class _FailingSmtpService extends SmtpService {
+  @override
+  Future<bool> sendOtpEmail({
+    required String recipientEmail,
+    required String otpCode,
+  }) async {
+    return false;
   }
 }
 
@@ -164,6 +177,63 @@ void main() {
         () => repository.verifyEmailCode(email: 'verify3@coffee.com', code: '000000'),
         throwsA(isA<ValidationFailure>()),
       );
+    });
+
+    test('SmtpConfig isConfigured is true by default with non-empty cleanPassword', () {
+      expect(SmtpConfig.isConfigured, isTrue);
+      expect(SmtpConfig.cleanPassword, isNotEmpty);
+      expect(SmtpConfig.cleanPassword.contains(' '), isFalse);
+    });
+
+    test('SmtpService retries fallback port 465 SSL when primary SMTP attempt fails', () async {
+      int attempts = 0;
+      final List<int> portsTried = [];
+      final service = SmtpService(
+        sendFunction: (Message msg, SmtpServer server) async {
+          attempts++;
+          portsTried.add(server.port);
+          if (attempts == 1) {
+            throw Exception('Primary port 587 blocked');
+          }
+          return SendReport(msg, DateTime.now(), DateTime.now(), DateTime.now());
+        },
+      );
+
+      final sent = await service.sendOtpEmail(
+        recipientEmail: 'customer@gmail.com',
+        otpCode: '123456',
+      );
+      expect(sent, isTrue);
+      expect(attempts, 2);
+      expect(portsTried, containsAll([587, 465]));
+    });
+
+    test('sendEmailVerificationCode throws AuthFailure when SMTP dispatch fails', () async {
+      final failingRepo = AuthRepository(
+        auth: mockAuth,
+        firestore: fakeFirestore,
+        smtpService: _FailingSmtpService(),
+      );
+
+      expect(
+        () => failingRepo.sendEmailVerificationCode('fail@coffee.com'),
+        throwsA(isA<AuthFailure>()),
+      );
+    });
+
+    test('signInWithGoogle authenticates and initializes Google user profile in Firestore', () async {
+      final profile = await repository.signInWithGoogle(
+        fallbackEmail: 'googleuser@gmail.com',
+        fallbackName: 'Google Coffee User',
+      );
+
+      expect(profile.email, 'googleuser@gmail.com');
+      expect(profile.name, 'Google Coffee User');
+      expect(profile.isEmailVerified, isTrue);
+
+      final doc = await fakeFirestore.collection('users').doc(profile.uid).get();
+      expect(doc.exists, isTrue);
+      expect(doc.data()?['email'], 'googleuser@gmail.com');
     });
   });
 }

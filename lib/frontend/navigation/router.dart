@@ -21,7 +21,13 @@ final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
 class RouterNotifier extends ChangeNotifier {
   RouterNotifier(this._ref) {
-    _ref.listen<AuthState>(authProvider, (_, __) => notifyListeners());
+    _ref.listen<AuthState>(authProvider, (previous, next) {
+      if (previous?.isAuthenticated != next.isAuthenticated ||
+          previous?.isAdmin != next.isAdmin ||
+          previous?.profile?.role != next.profile?.role) {
+        notifyListeners();
+      }
+    });
   }
 
   final Ref _ref;

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:orderacoffee/backend/models/user_profile.dart';
@@ -43,6 +44,7 @@ class AuthState {
     this.lastGeneratedCode,
     this.isVerificationSent = false,
     this.activeRewardCode,
+    this.lastLoginMethod,
   });
 
   final UserProfile? profile;
@@ -54,9 +56,11 @@ class AuthState {
   final String? lastGeneratedCode;
   final bool isVerificationSent;
   final String? activeRewardCode;
+  final String? lastLoginMethod;
 
   bool get isAuthenticated => profile != null;
   bool get isAdmin => profile?.isAdmin ?? false;
+  bool get isGoogleLastUsed => lastLoginMethod == 'google';
 
   AuthState copyWith({
     UserProfile? profile,
@@ -68,6 +72,7 @@ class AuthState {
     String? lastGeneratedCode,
     bool? isVerificationSent,
     String? activeRewardCode,
+    String? lastLoginMethod,
     bool clearProfile = false,
     bool clearError = false,
     bool clearPending = false,
@@ -91,6 +96,7 @@ class AuthState {
       activeRewardCode: clearRewardCode
           ? null
           : (activeRewardCode ?? this.activeRewardCode),
+      lastLoginMethod: lastLoginMethod ?? this.lastLoginMethod,
     );
   }
 
@@ -106,7 +112,8 @@ class AuthState {
           pendingEmail == other.pendingEmail &&
           lastGeneratedCode == other.lastGeneratedCode &&
           isVerificationSent == other.isVerificationSent &&
-          activeRewardCode == other.activeRewardCode;
+          activeRewardCode == other.activeRewardCode &&
+          lastLoginMethod == other.lastLoginMethod;
 
   @override
   int get hashCode => Object.hash(
@@ -118,6 +125,7 @@ class AuthState {
         lastGeneratedCode,
         isVerificationSent,
         activeRewardCode,
+        lastLoginMethod,
       );
 }
 
@@ -134,8 +142,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
         _loyaltyRepo = loyaltyRepo,
         _notificationRepo = notificationRepo,
         super(const AuthState()) {
+    _loadLastLoginMethod();
     _listenToAuthChanges();
   }
+
+  static const String _lastLoginMethodKey = 'last_login_method';
 
   final AuthRepository _authRepo;
   final UserRepository _userRepo;
@@ -144,13 +155,33 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final NotificationRepository? _notificationRepo;
   StreamSubscription? _authSub;
 
+  Future<void> _loadLastLoginMethod() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedMethod = prefs.getString(_lastLoginMethodKey);
+      if (savedMethod != null && savedMethod.isNotEmpty && mounted) {
+        state = state.copyWith(lastLoginMethod: savedMethod);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveLastLoginMethod(String method) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_lastLoginMethodKey, method);
+    } catch (_) {}
+  }
+
   void _listenToAuthChanges() {
     try {
       _authSub = _authRepo.watchAuthState().listen((user) async {
         if (user != null) {
           try {
             final profile = await _userRepo.getProfile(user.uid);
-            state = AuthState(profile: profile);
+            state = AuthState(
+              profile: profile,
+              lastLoginMethod: state.lastLoginMethod,
+            );
             _registerPushNotifications(user.uid);
           } catch (_) {
             final baseProfile = UserProfile(
@@ -163,12 +194,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
               role: 'customer',
               isEmailVerified: true,
             );
-            state = AuthState(profile: baseProfile);
+            state = AuthState(
+              profile: baseProfile,
+              lastLoginMethod: state.lastLoginMethod,
+            );
           }
         } else {
-          if (state.profile == null ||
-              !state.profile!.uid.startsWith('preview-')) {
-            state = const AuthState();
+          final currentUid = state.profile?.uid ?? '';
+          final isGoogleOrPreview = state.lastLoginMethod == 'google' ||
+              currentUid.startsWith('preview-') ||
+              currentUid.startsWith('google-');
+          if (state.profile == null || !isGoogleOrPreview) {
+            state = AuthState(lastLoginMethod: state.lastLoginMethod);
           }
         }
       });
@@ -201,9 +238,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final user = await _authRepo.logIn(email: email, password: password);
+      await _saveLastLoginMethod('email');
       try {
         final profile = await _userRepo.getProfile(user.uid);
-        state = AuthState(profile: profile);
+        state = AuthState(profile: profile, lastLoginMethod: 'email');
         unawaited(_registerPushNotifications(user.uid));
       } catch (_) {
         final baseProfile = UserProfile(
@@ -214,13 +252,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
           role: 'customer',
           isEmailVerified: true,
         );
-        state = AuthState(profile: baseProfile);
+        state = AuthState(profile: baseProfile, lastLoginMethod: 'email');
       }
     } catch (e) {
       final errStr = e.toString();
       if (errStr.contains('not initialized') ||
           errStr.contains('no-app') ||
           errStr.contains('FirebaseException')) {
+        await _saveLastLoginMethod('email');
         final isAdm = email.toLowerCase().contains('admin');
         final previewProfile = UserProfile(
           uid: isAdm ? 'preview-admin' : 'preview-customer',
@@ -252,12 +291,39 @@ class AuthNotifier extends StateNotifier<AuthState> {
           ],
           isEmailVerified: true,
         );
-        state = AuthState(profile: previewProfile);
+        state = AuthState(profile: previewProfile, lastLoginMethod: 'email');
         return;
       }
       state = state.copyWith(
         isLoading: false,
         clearProfile: true,
+        error: e.toString(),
+      );
+      rethrow;
+    }
+  }
+
+  // ─── Sign in with Google ────────────────────────────────────────────────
+
+  Future<void> signInWithGoogle({
+    String? fallbackEmail,
+    String? fallbackName,
+  }) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final profile = await _authRepo.signInWithGoogle(
+        fallbackEmail: fallbackEmail,
+        fallbackName: fallbackName,
+      );
+      await _saveLastLoginMethod('google');
+      state = AuthState(
+        profile: profile,
+        lastLoginMethod: 'google',
+      );
+      unawaited(_registerPushNotifications(profile.uid));
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
         error: e.toString(),
       );
       rethrow;
@@ -574,15 +640,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
   // ─── Sign out & Delete Account ──────────────────────────────────────────
 
   Future<void> signOut() async {
+    final prevMethod = state.lastLoginMethod;
     await _authRepo.logOut();
-    state = const AuthState();
+    state = AuthState(lastLoginMethod: prevMethod);
   }
 
   Future<void> deleteAccount() async {
+    final prevMethod = state.lastLoginMethod;
     try {
       await _authRepo.deleteAccount();
     } catch (_) {}
-    state = const AuthState();
+    state = AuthState(lastLoginMethod: prevMethod);
   }
 
   // ─── Reset password ─────────────────────────────────────────────────────

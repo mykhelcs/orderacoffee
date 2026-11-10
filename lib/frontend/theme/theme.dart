@@ -136,7 +136,7 @@ ThemeData _buildTheme(ColorScheme scheme) {
       style: ElevatedButton.styleFrom(
         backgroundColor: scheme.primary,
         foregroundColor: scheme.onPrimary,
-        minimumSize: const Size.fromHeight(50),
+        minimumSize: const Size(88, 50),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
         textStyle: GoogleFonts.playfairDisplay(fontWeight: FontWeight.w600, fontSize: 16),
       ),
