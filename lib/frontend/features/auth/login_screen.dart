@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:orderacoffee/core/philippine_phone_input_formatter.dart';
-import 'package:orderacoffee/frontend/widgets/app_logo.dart';
 import 'package:orderacoffee/frontend/widgets/philippine_phone_field.dart';
 import 'auth_provider.dart';
 
@@ -857,24 +856,51 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             ),
                           ),
                         ),
-                        // Prominent Brand Logo in Header
-                        Center(
-                          child: SafeArea(
-                            bottom: false,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.38),
-                                borderRadius: BorderRadius.circular(22),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.18),
+                        // Clean "CafeGO" & "Your daily comfort brew" header branding
+                        SafeArea(
+                          bottom: false,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 28.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'CafeGO',
+                                  style: GoogleFonts.playfairDisplay(
+                                    fontSize: lerpDouble(42.0, 32.0, modeVal)!,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                    letterSpacing: -1.0,
+                                    height: 1.0,
+                                    shadows: [
+                                      Shadow(
+                                        color: Colors.black.withValues(alpha: 0.5),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              child: const AppLogo(
-                                fontSize: 22,
-                                textColor: Colors.white,
-                                showSubtitle: true,
-                              ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Your daily comfort brew',
+                                  style: GoogleFonts.playfairDisplay(
+                                    fontSize: lerpDouble(19.0, 15.0, modeVal)!,
+                                    fontStyle: FontStyle.italic,
+                                    fontWeight: FontWeight.w400,
+                                    color: const Color(0xFFF7F1EB),
+                                    shadows: [
+                                      Shadow(
+                                        color: Colors.black.withValues(alpha: 0.6),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 3),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(height: lerpDouble(24.0, 18.0, modeVal)!),
+                              ],
                             ),
                           ),
                         ),
