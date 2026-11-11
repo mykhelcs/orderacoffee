@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:orderacoffee/frontend/features/auth/login_screen.dart';
+import 'package:orderacoffee/frontend/widgets/app_logo.dart';
 
 void main() {
   testWidgets('LoginScreen renders correctly with tabs, fields, and login button',
@@ -16,6 +17,9 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify CafeGO Sign In screen elements match reference
+    expect(find.text('CafeGO'), findsOneWidget);
+    expect(find.text('Your daily comfort brew'), findsOneWidget);
+    expect(find.byType(AppLogo), findsNothing);
     expect(find.text('Sign In'), findsOneWidget);
     expect(find.text('Sign Up'), findsOneWidget);
     expect(find.text('Login'), findsOneWidget);
