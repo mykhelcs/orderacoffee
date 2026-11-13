@@ -76,6 +76,7 @@ class CartNotifier extends StateNotifier<CartState> {
     int qty, {
     String note = '',
   }) {
+    if (qty <= 0) return;
     final cleanNote = note.trim();
     final existingIdx = state.lines.indexWhere(
       (l) =>

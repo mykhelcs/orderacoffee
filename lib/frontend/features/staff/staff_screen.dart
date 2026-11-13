@@ -5,9 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:orderacoffee/backend/models/order.dart';
-import 'package:orderacoffee/core/constants.dart';
 import 'package:orderacoffee/core/utils.dart';
-import 'package:orderacoffee/frontend/features/admin/admin_provider.dart';
 import 'package:orderacoffee/frontend/features/auth/auth_provider.dart';
 import 'package:orderacoffee/frontend/features/orders/orders_provider.dart';
 import 'package:orderacoffee/frontend/theme/theme.dart';
@@ -49,6 +47,22 @@ class _StaffScreenState extends ConsumerState<StaffScreen> {
     final mins = diff.inMinutes.toString().padLeft(2, '0');
     final secs = (diff.inSeconds % 60).toString().padLeft(2, '0');
     return '$mins:$secs';
+  }
+
+  Future<void> _advanceOrderStatus(
+    BuildContext context,
+    String orderId,
+    OrderStatus next,
+  ) async {
+    try {
+      await ref.read(orderRepositoryProvider).advanceStatus(orderId, next);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update order status: $e')),
+        );
+      }
+    }
   }
 
   void _showCashierDrawer(BuildContext context, Order order) {
@@ -237,17 +251,27 @@ class _StaffScreenState extends ConsumerState<StaffScreen> {
                           ? () async {
                               Navigator.pop(ctx);
                               final staffUid = ref.read(authProvider).profile?.uid;
-                              await ref.read(orderRepositoryProvider).markPaymentPaid(
-                                    order.id,
-                                    handledBy: staffUid,
+                              try {
+                                await ref.read(orderRepositoryProvider).markPaymentPaid(
+                                      order.id,
+                                      handledBy: staffUid,
+                                    );
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Payment recorded! Change: ${peso(change)}'),
+                                      backgroundColor: Colors.green,
+                                    ),
                                   );
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Payment recorded! Change: ${peso(change)}'),
-                                    backgroundColor: Colors.green,
-                                  ),
-                                );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Failed to record payment: $e'),
+                                    ),
+                                  );
+                                }
                               }
                             }
                           : null,
@@ -260,7 +284,7 @@ class _StaffScreenState extends ConsumerState<StaffScreen> {
           },
         );
       },
-    );
+    ).whenComplete(cashCtrl.dispose);
   }
 
   @override
@@ -520,33 +544,33 @@ class _StaffScreenState extends ConsumerState<StaffScreen> {
                                     Expanded(
                                       child: BrandButton(
                                         label: 'Start Preparing',
-                                        onPressed: () async {
-                                          await ref
-                                              .read(orderRepositoryProvider)
-                                              .advanceStatus(order.id, OrderStatus.preparing);
-                                        },
+                                        onPressed: () => _advanceOrderStatus(
+                                          context,
+                                          order.id,
+                                          OrderStatus.preparing,
+                                        ),
                                       ),
                                     ),
                                   if (order.status == OrderStatus.preparing)
                                     Expanded(
                                       child: BrandButton(
                                         label: 'Mark as Ready',
-                                        onPressed: () async {
-                                          await ref
-                                              .read(orderRepositoryProvider)
-                                              .advanceStatus(order.id, OrderStatus.ready);
-                                        },
+                                        onPressed: () => _advanceOrderStatus(
+                                          context,
+                                          order.id,
+                                          OrderStatus.ready,
+                                        ),
                                       ),
                                     ),
                                   if (order.status == OrderStatus.ready)
                                     Expanded(
                                       child: BrandButton(
                                         label: 'Mark as Handed Off',
-                                        onPressed: () async {
-                                          await ref
-                                              .read(orderRepositoryProvider)
-                                              .advanceStatus(order.id, OrderStatus.completed);
-                                        },
+                                        onPressed: () => _advanceOrderStatus(
+                                          context,
+                                          order.id,
+                                          OrderStatus.completed,
+                                        ),
                                       ),
                                     ),
                                   if (isUnpaid) ...[

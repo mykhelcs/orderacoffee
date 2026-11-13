@@ -5,8 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'backend/config/firebase_options.dart';
-import 'backend/repositories/auth_repository.dart';
-import 'backend/repositories/menu_repository.dart';
 import 'backend/repositories/order_repository.dart';
 import 'backend/services/notification_service.dart';
 import 'frontend/navigation/router.dart';
@@ -25,10 +23,8 @@ void main() async {
         cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
       );
     } catch (_) {}
-    // Automatic background synchronization: upload 37 menu products and sync orders to Cloud Firestore
-    unawaited(MenuRepository().syncMenuToFirestore());
+    // Automatic background synchronization for pending local orders
     unawaited(OrderRepository().syncPendingOrdersToFirestore());
-    unawaited(AuthRepository().ensureAdminAccountExists());
     OrderRepository.startPeriodicAutoSync();
   } catch (e) {
     debugPrint('Firebase initialization error: $e');

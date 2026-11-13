@@ -1,0 +1,1831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CafeGO Order — Final System Presentation</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --ink: #000000;
+      --ink-muted: #404040;
+      --ink-subtle: #666666;
+      --line: #000000;
+      --line-soft: #cfcfcf;
+      --surface: #f7f7f7;
+      --surface-alt: #ededed;
+      --toolbar-h: 54px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: #e5e5e5;
+      color: var(--ink);
+      font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+      line-height: 1.45;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Control Toolbar */
+    .toolbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--toolbar-h);
+      background: #000000;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 clamp(12px, 2.5vw, 28px);
+      z-index: 200;
+      border-bottom: 2px solid #000000;
+      gap: 12px;
+    }
+
+    .toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .toolbar-brand {
+      font-size: clamp(13px, 1.1vw, 15px);
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .toolbar-progress {
+      display: inline-block;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: 1px solid #888888;
+      padding: 2px 8px;
+      white-space: nowrap;
+    }
+
+    .toolbar-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: nowrap;
+    }
+
+    .toolbar button {
+      background: #000000;
+      color: #ffffff;
+      border: 1px solid #ffffff;
+      padding: 6px 11px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.12s ease, color 0.12s ease;
+    }
+
+    .toolbar button:hover:not(:disabled),
+    .toolbar button.active-btn {
+      background: #ffffff;
+      color: #000000;
+    }
+
+    .toolbar button:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .slide-counter {
+      font-size: 13px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      min-width: 60px;
+      text-align: center;
+      letter-spacing: 0.06em;
+    }
+
+    /* Main Responsive Full-Viewport Stage */
+    .stage {
+      position: fixed;
+      top: var(--toolbar-h);
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 0;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    .deck {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Slide Card — Maximized to Fill 100% of Viewport */
+    .slide {
+      display: none;
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      border: none;
+      padding: clamp(18px, 3vh, 44px) clamp(20px, 4vw, 64px);
+      flex-direction: column;
+      justify-content: space-between;
+      overflow-y: auto;
+    }
+
+    .slide.active {
+      display: flex;
+    }
+
+    /* Overview Grid Mode */
+    body.overview-mode {
+      overflow-y: auto;
+      background: #e5e5e5;
+    }
+
+    body.overview-mode .stage {
+      position: static;
+      margin-top: var(--toolbar-h);
+      height: auto;
+      overflow: visible;
+      padding: clamp(16px, 2.5vw, 32px);
+      background: #e5e5e5;
+    }
+
+    body.overview-mode .deck {
+      height: auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr));
+      gap: 22px;
+    }
+
+    body.overview-mode .slide {
+      display: flex;
+      height: auto;
+      min-height: 440px;
+      border: 2px solid var(--line);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
+      cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    body.overview-mode .slide:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+    }
+
+    /* Slide Header */
+    .slide-header {
+      border-bottom: 2px solid var(--line);
+      padding-bottom: clamp(10px, 1.2vh, 16px);
+      margin-bottom: clamp(12px, 1.8vh, 22px);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    .slide-kicker {
+      font-size: clamp(10px, 0.85vw, 12px);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--ink-muted);
+      margin-bottom: 4px;
+    }
+
+    .slide-title {
+      font-size: clamp(20px, 2.3vw, 32px);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.12;
+      color: var(--ink);
+    }
+
+    .slide-num {
+      font-size: clamp(12px, 1vw, 15px);
+      font-weight: 800;
+      border: 2px solid var(--line);
+      padding: 4px 12px;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* Slide Body */
+    .slide-body {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: clamp(12px, 1.6vh, 20px);
+      min-height: 0;
+    }
+
+    /* Slide Footer */
+    .slide-footer {
+      border-top: 1px solid var(--line-soft);
+      padding-top: clamp(8px, 1vh, 12px);
+      margin-top: clamp(12px, 1.6vh, 20px);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: clamp(10px, 0.8vw, 12px);
+      color: var(--ink-subtle);
+      letter-spacing: 0.04em;
+      flex-shrink: 0;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    /* Typography Helpers */
+    .lead {
+      font-size: clamp(14px, 1.25vw, 18px);
+      color: var(--ink-muted);
+      line-height: 1.5;
+    }
+
+    h3 {
+      font-size: clamp(13px, 1.05vw, 16px);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+      color: var(--ink);
+    }
+
+    p, li, td, th {
+      font-size: clamp(12px, 0.96vw, 15px);
+    }
+
+    ul.clean {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: clamp(5px, 0.7vh, 9px);
+    }
+
+    ul.clean li {
+      position: relative;
+      padding-left: 16px;
+      line-height: 1.42;
+    }
+
+    ul.clean li::before {
+      content: "▪";
+      position: absolute;
+      left: 0;
+      top: 0;
+      font-weight: 700;
+    }
+
+    .mono {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 0.9em;
+      background: var(--surface-alt);
+      padding: 1px 5px;
+      border: 1px solid var(--line-soft);
+    }
+
+    .tag {
+      display: inline-block;
+      border: 1.5px solid var(--line);
+      padding: 2px 7px;
+      font-size: clamp(10px, 0.75vw, 11px);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: #ffffff;
+    }
+
+    .tag-solid {
+      background: #000000;
+      color: #ffffff;
+    }
+
+    /* Responsive Grids & Containers */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: clamp(12px, 1.8vw, 24px);
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: clamp(10px, 1.5vw, 20px);
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: clamp(10px, 1.4vw, 18px);
+    }
+
+    .box {
+      border: 1.5px solid var(--line);
+      padding: clamp(12px, 1.4vw, 20px);
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .box-soft {
+      border: 1.5px solid var(--line-soft);
+      padding: clamp(12px, 1.4vw, 20px);
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .box-inv {
+      border: 2px solid #000000;
+      background: #000000;
+      color: #ffffff;
+      padding: clamp(12px, 1.4vw, 20px);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .box-inv h3,
+    .box-inv .stat-label {
+      color: #ffffff;
+    }
+
+    .stat-num {
+      font-size: clamp(22px, 2.6vw, 38px);
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat-label {
+      font-size: clamp(11px, 0.85vw, 13px);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-muted);
+    }
+
+    /* Tables */
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      border: 1px solid var(--line);
+      padding: clamp(6px, 0.8vh, 10px) clamp(8px, 1vw, 12px);
+      text-align: left;
+      vertical-align: top;
+      line-height: 1.36;
+    }
+
+    th {
+      background: #000000;
+      color: #ffffff;
+      font-size: clamp(10px, 0.82vw, 12px);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    tr:nth-child(even) td {
+      background: var(--surface);
+    }
+
+    /* Title Slide */
+    .title-hero {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: clamp(14px, 2vh, 24px);
+      height: 100%;
+    }
+
+    .title-badge {
+      display: inline-block;
+      align-self: flex-start;
+      border: 2px solid #000000;
+      padding: 5px 14px;
+      font-size: clamp(11px, 0.9vw, 13px);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+    }
+
+    .title-main {
+      font-size: clamp(36px, 5.2vw, 72px);
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1.0;
+    }
+
+    .title-tagline {
+      font-size: clamp(18px, 2vw, 28px);
+      font-weight: 400;
+      font-style: italic;
+      color: var(--ink-muted);
+    }
+
+    .title-desc {
+      font-size: clamp(14px, 1.25vw, 19px);
+      max-width: 960px;
+      color: var(--ink);
+      line-height: 1.5;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0;
+      border: 2px solid #000000;
+      margin-top: 8px;
+    }
+
+    .meta-box {
+      padding: clamp(10px, 1.2vw, 16px);
+      border-right: 1.5px solid #000000;
+      background: #ffffff;
+    }
+
+    .meta-box:last-child {
+      border-right: none;
+    }
+
+    .meta-label {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--ink-subtle);
+      margin-bottom: 4px;
+    }
+
+    .meta-val {
+      font-size: clamp(12px, 1vw, 15px);
+      font-weight: 700;
+    }
+
+    /* Flow / State Diagrams */
+    .diagram-box {
+      border: 1.5px solid #000000;
+      padding: clamp(12px, 1.4vw, 20px);
+      background: var(--surface);
+    }
+
+    .flow-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .flow-node {
+      flex: 1 1 130px;
+      border: 2px solid #000000;
+      background: #ffffff;
+      padding: 10px 12px;
+      text-align: center;
+      font-size: clamp(11px, 0.9vw, 14px);
+      font-weight: 700;
+    }
+
+    .flow-node.solid {
+      background: #000000;
+      color: #ffffff;
+    }
+
+    .flow-node small {
+      display: block;
+      font-weight: 400;
+      font-size: 0.82em;
+      margin-top: 3px;
+      opacity: 0.85;
+    }
+
+    .flow-arrow {
+      font-size: 18px;
+      font-weight: 900;
+      flex: 0 0 auto;
+    }
+
+    /* Responsive Breakpoints */
+    @media (max-width: 1024px) {
+      .grid-4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .grid-3 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .meta-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .meta-box {
+        border-bottom: 1.5px solid #000000;
+      }
+      .meta-box:nth-child(2n) {
+        border-right: none;
+      }
+      .meta-box:nth-last-child(-n+2) {
+        border-bottom: none;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .toolbar-progress {
+        display: none;
+      }
+      .toolbar button {
+        padding: 5px 8px;
+        font-size: 11px;
+      }
+      .grid-2, .grid-3, .grid-4, .meta-grid {
+        grid-template-columns: 1fr;
+      }
+      .meta-box {
+        border-right: none;
+        border-bottom: 1.5px solid #000000;
+      }
+      .meta-box:last-child {
+        border-bottom: none;
+      }
+      .slide {
+        justify-content: flex-start;
+      }
+      .slide-body {
+        justify-content: flex-start;
+      }
+      .flow-arrow {
+        display: none;
+      }
+    }
+
+    /* Print / Export to PDF */
+    @media print {
+      @page {
+        size: landscape;
+        margin: 0.35in;
+      }
+      html, body {
+        height: auto;
+        overflow: visible;
+        background: #ffffff;
+      }
+      .toolbar {
+        display: none !important;
+      }
+      .stage {
+        position: static;
+        padding: 0;
+        overflow: visible;
+      }
+      .deck {
+        display: block;
+      }
+      .slide {
+        display: flex !important;
+        height: 92vh;
+        box-shadow: none;
+        page-break-after: always;
+        break-after: page;
+        overflow: hidden;
+        margin-bottom: 0;
+      }
+      .slide:last-child {
+        page-break-after: auto;
+        break-after: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="toolbar">
+    <div class="toolbar-left">
+      <span class="toolbar-brand">CafeGO Order · System Presentation</span>
+      <span class="toolbar-progress" id="progressPct">Slide 1 of 20</span>
+    </div>
+    <div class="toolbar-controls">
+      <button type="button" id="prevBtn" title="Previous Slide (Left Arrow)">Prev</button>
+      <span class="slide-counter" id="slideCounter">01 / 20</span>
+      <button type="button" id="nextBtn" title="Next Slide (Right Arrow)">Next</button>
+      <button type="button" id="overviewBtn" title="Toggle All Slides (G)">All 20</button>
+      <button type="button" id="fullscreenBtn" title="Toggle Fullscreen (F)">Fullscreen</button>
+      <button type="button" id="printBtn" title="Print / Save as PDF">Print / PDF</button>
+    </div>
+  </header>
+
+  <main class="stage">
+    <div class="deck" id="deck">
+
+      <!-- SLIDE 01: TITLE -->
+      <section class="slide active" data-slide="1">
+        <div class="title-hero">
+          <span class="title-badge">Mobile Programming I · Final System Presentation</span>
+          <h1 class="title-main">CafeGO Order</h1>
+          <p class="title-tagline">"Your daily comfort brew"</p>
+          <p class="title-desc">
+            A unified Flutter and Firebase mobile ordering and coffeehouse operations ecosystem connecting Customers, Baristas/Staff, Administrators, and Delivery Couriers through deterministic real-time state synchronization, strict role-based security, and verified automated testing.
+          </p>
+          <div class="meta-grid">
+            <div class="meta-box">
+              <div class="meta-label">Course &amp; Section</div>
+              <div class="meta-val">Mobile Programming I · CS31A</div>
+            </div>
+            <div class="meta-box">
+              <div class="meta-label">Group &amp; Instructor</div>
+              <div class="meta-val">Group 2 · Jayrek Tabasa</div>
+            </div>
+            <div class="meta-box">
+              <div class="meta-label">Platform &amp; Backend</div>
+              <div class="meta-val">Flutter + Firebase Suite</div>
+            </div>
+            <div class="meta-box">
+              <div class="meta-label">Verification Status</div>
+              <div class="meta-val">185 Automated Tests · 0 Lint</div>
+            </div>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <span>Team: Glenn Mykhel Gulfan · Ranela Esgana · Sean · Jayshan</span>
+          <span>Use Arrow Keys / Swipe / Toolbar to Navigate · Press F for Fullscreen</span>
+        </div>
+      </section>
+
+      <!-- SLIDE 02: PROJECT OVERVIEW & PURPOSE -->
+      <section class="slide" data-slide="2">
+        <div class="slide-header">
+          <div>
+            <div class="slide-kicker">01 · Project Overview</div>
+            <h2 class="slide-title">Unified Single-Shop Ordering &amp; Operations</h2>
+          </div>
+          <span class="slide-num">02 / 20</span>
+        </div>
+        <div class="slide-body">
+          <p class="lead">
+            CafeGO Order transforms fragmented counter, SMS, and social-chat drink requests into a single synchronized operational pipeline backed by Cloud Firestore.
+          </p>
+          <div class="grid-3">
+            <div class="box">
+              <span class="tag tag-solid">Core Purpose</span>
+              <h3>Mistake-Resistant Ordering</h3>
+              <p>Replaces handwritten chits and unstructured Messenger threads with validated menu rules, live price deltas, and locked item snapshots at checkout.</p>
+            </div>
+            <div class="box">
+              <span class="tag">3 Fulfillment Modes</span>
+              <h3>Order Ahead Flexibility</h3>
+              <p>Supports <strong>Pickup</strong>, <strong>Dine-in</strong> (with table assignment validation), and <strong>Delivery</strong> (with saved PH addresses and GPS map coordinates).</p>
+            </div>
+            <div class="box">
+              <span class="tag">Real-Time Bridge</span>
+              <h3>One Source of Truth</h3>
+              <p>Connects Customer tracking steppers, Barista Kitchen Display queues, Cashier calculators, Admin inventory controls, and Driver delivery cards in real time.</p>
+            </div>
+          </div>
+          <div class="grid-4">
+            <div class="box-soft"><div class="stat-num">4</div><div class="stat-label">RBAC Workspaces</div></div>
+            <div class="box-soft"><div class="stat-num">21</div><div class="stat-label">FR Specifications</div></div>
+            <div class="box-soft"><div class="stat-num">21</div><div class="stat-label">Implemented Screens</div></div>
+            <div class="box-inv"><div class="stat-num">185</div><div class="stat-label">Passing Audit Tests</div></div>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <span>CafeGO Order Documentation · Section 1</span>
+          <span>02 / 20</span>
+        </div>
+      </section>
+
+      <!-- SLIDE 03: PROBLEM STATEMENT & OBJECTIVES -->
+      <section class="slide" data-slide="3">
+        <div class="slide-header">
+          <div>
+            <div class="slide-kicker">01 · Problem &amp; Objectives</div>
+            <h2 class="slide-title">Solving Peak-Hour Coffeehouse Bottlenecks</h2>
+          </div>
+          <span class="slide-num">03 / 20</span>
+        </div>
+        <div class="slide-body">
+          <div class="grid-2">
+            <div class="box-soft">
+              <h3>Operational Pain Points Identified</h3>
+              <ul class="clean">
+                <li><strong>Morning &amp; Afternoon Queue Congestion:</strong> Counter-only ordering creates long physical lines and slow throughput during rush windows.</li>
+                <li><strong>Customization Errors &amp; Lost Chits:</strong> Verbal instructions, illegible handwriting, and scattered Messenger/SMS orders lead to wrong milk types, missed syrups, or dropped tickets.</li>
+                <li><strong>No Streamlined Reordering:</strong> Regular patrons must re-specify their exact drink modifiers every visit.</li>
+                <li><strong>Zero Management Visibility:</strong> Owners lack live insight into daily gross revenue, payment mix, sold-out ingredients, and preparation latency.</li>
+              </ul>
+            </div>
+            <div class="box">
+              <h3>Six Engineered System Objectives</h3>
+              <ul class="clean">
+                <li><strong>1. Accurate Drink Customization:</strong> Dynamic bottom sheet for size, milk substitute, sugar level, ice preference, and add-ons with instant total pricing.</li>
+                <li><strong>2. Queue Reduction:</strong> Order-ahead Pickup, Dine-in, and Delivery flows reduce counter dwell time.</li>
+                <li><strong>3. Unified Barista KDS:</strong> Single oldest-first (FIFO) ticket queue prevents dropped orders.</li>
+                <li><strong>4. One-Tap Reordering &amp; Favorites:</strong> Repeat prior orders and save signature drinks in one tap.</li>
+                <li><strong>5. Real-Time Inventory Control:</strong> Sold-out toggles propagate to customer screens immediately.</li>
+                <li><strong>6. Strict RBAC Isolation:</strong> Firebase Auth + Firestore Security Rules isolate data by role.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <span>CafeGO Order Documentation · Section 1.1 – 1.2</span>
+          <span>03 / 20</span>
+        </div>
+      </section>
+
+      <!-- SLIDE 04: TARGET USERS & RBAC PERSONAS -->
+      <section class="slide" data-slide="4">
+        <div class="slide-header">
+          <div>
+            <div class="slide-kicker">02 · Target Users &amp; RBAC</div>
+            <h2 class="slide-title">Four Scoped Operational Personas</h2>
+          </div>
+          <span class="slide-num">04 / 20</span>
+        </div>
+        <div class="slide-body">
+          <div class="grid-2">
+            <div class="box">
+              <div><span class="tag tag-solid">Role: customer</span></div>
+              <h3>Customer Application</h3>
+              <ul class="clean">
+                <li>Browse &amp; search live beverage and pastry catalog.</li>
+                <li>Customize drinks with dynamic pricing &amp; cart special notes.</li>
+                <li>Place Pickup, Dine-in, or Delivery orders (PayMongo or Cash).</li>
+                <li>Track live 4-step preparation progress, view QR receipt, earn 8-stamp loyalty rewards, reorder history, save favorites, and submit 1–5 star ratings.</li>
+              </ul>
+            </div>
+            <div class="box">
+              <div><span class="tag tag-solid">Role: staff</span></div>
+              <h3>Barista / Staff KDS Workspace</h3>
+              <ul class="clean">
+                <li>Stream incoming active orders sorted oldest-first (FIFO).</li>
+                <li>Track live elapsed prep timers and inspect full modifier breakdowns.</li>
+                <li>Process Cash / Pay-at-Counter tenders via Cashier change calculator drawer.</li>
+                <li>Advance states (<span class="mono">received → preparing → ready → completed</span>) and toggle sold-out stock.</li>
+              </ul>
+            </div>
+            <div class="box">
+              <div><span class="tag tag-solid">Role: admin</span></div>
+              <h3>Store Administrator Console</h3>
+              <ul class="clean">
+                <li>Full catalog CRUD: create, edit, price, categorize, hide, and delete menu entries.</li>
+                <li>Upload high-resolution item photography to Firebase Storage.</li>
+                <li>Inspect daily revenue metrics, order volume, and payment breakdowns.</li>
+                <li>Manage user roles (<span class="mono">customer / staff / driver / admin</span>) with owner-only rules.</li>
+              </ul>
+            </div>
+            <div class="box">
+              <div><span class="tag tag-solid">Role: driver</span></div>
+              <h3>Driver / Courier Dispatch</h3>
+              <ul class="clean">
+                <li>Claim unassigned <span class="mono">delivery</span> orders with atomic anti-hijack protection.</li>
+                <li>Inspect verified customer address, notes, phone contact, and Leaflet GPS map coordinates.</li>
+                <li>Update simulated/live rider coordinates along the route.</li>
+                <li>Mark COD collected only after kitchen reaches <span class="mono">ready</span>; track courier earnings.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <span>CafeGO Order Documentation · Section 2.1</span>
+          <span>04 / 20</span>
+        </div>
+      </section>
+
+      <!-- SLIDE 05: PROJECT BOUNDARIES & EXPECTED BENEFITS -->
+      <section class="slide" data-slide="5">
+        <div class="slide-header">
+          <div>
+            <div class="slide-kicker">02 · Scope, Boundaries &amp; Impact</div>
+            <h2 class="slide-title">System Boundaries &amp; Operational Benefits</h2>
+          </div>
+          <span class="slide-num">05 / 20</span>
+        </div>
+        <div class="slide-body">
+          <div class="grid-2">
+            <div class="box-soft">
+              <h3>Explicit Project Boundaries</h3>
+              <ul class="clean">
+                <li><strong>Single-Branch Scope:</strong> Engineered specifically for CafeGO single-shop operations; multi-merchant or franchise routing is outside scope.</li>
+                <li><strong>Payments Supported:</strong> Supports Cash-on-Delivery, Pay-at-Counter, and PayMongo gateway (GCash, Maya, Card) plus sandbox demo controls; no physical POS card-swipe terminal hardware.</li>
+                <li><strong>Delivery Logistics:</strong> Uses structured addresses and map coordinates with internal courier dispatch; third-party fleet APIs (GrabExpress / Lalamove) are excluded.</li>
+                <li><strong>Online-First Sync:</strong> Active internet connectivity is intentionally required to prevent stale inventory and overselling out-of-stock ingredients.</li>
+                <li><strong>Target Platforms:</strong> Android API 28+ primary target alongside responsive Flutter Web deployment for grading &amp; desktop review.</li>
+              </ul>
+            </div>
+            <div class="box">
+              <h3>Expected Operational Benefits</h3>
+              <div class="box-soft">
+                <strong>Shorter Peak Queue Times</strong>
+                <p>Order-ahead scheduling and live readiness alerts shift ordering away from crowded counter bottlenecks.</p>
+              </div>
+              <div class="box-soft">
+                <strong>Zero Customization Ambiguity</strong>
+                <p>Structured modifier keys guarantee baristas always see exact size, milk, sugar, ice, and add-on parameters.</p>
+              </div>
+              <div class="box-soft">
+                <strong>Centralized Ticket Integrity</strong>
+                <p>Cloud Firestore eliminates duplicated paper chits, missed Messenger threads, and forgotten orders.</p>
+              </div>
+              <div class="box-soft">
+                <strong>Higher Patron Retention</strong>
+                <p>8-stamp loyalty rewards, Favorites, and one-tap History reordering drive repeat visits.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <span>CafeGO Order Documentation · Section 2.2 – 2.4</span>
+          <span>05 / 20</span>
+        </div>
+      </section>
+
+      <!-- SLIDE 06: FUNCTIONAL REQUIREMENTS PART 1 (FR-01 to FR-07) -->
+      <section class="slide" data-slide="6">
+        <div class="slide-header">
+          <div>
+            <div class="slide-kicker">03 · Functional Requirements (1 / 3)</div>
+            <h2 class="slide-title">Customer Discovery, Customization &amp; Checkout (FR-01 – FR-07)</h2>
+          </div>
+          <span class="slide-num">06 / 20</span>
+        </div>
+        <div class="slide-body">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 8%;">ID</th>
+                  <th style="width: 18%;">Feature</th>
+                  <th style="width: 28%;">User Action</th>
+                  <th style="width: 34%;">Expected System Response</th>
+                  <th style="width: 12%;">Tier</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>FR-01</strong></td>
+                  <td>Sign Up</td>
+                  <td>Enter full name, email, +63 phone, password</td>
+                  <td>Validates formatting, enforces uniqueness, creates Auth user &amp; Firestore profile, triggers OTP check</td>
+                  <td><span class="tag tag-solid">Core</span></td>
+                </tr>
+                <tr>
+                  <td><strong>FR-02</strong></td>
+                  <td>Log In / Log Out</td>
+                  <td>Submit credentials or Google Sign-In</td>
+                  <td>Verifies auth session and routes strictly by user role (<span class="mono">/</span>, <span class="mono">/staff</span>, <span class="mono">/admin</span>, <span class="mono">/driver</span>)</td>
+                  <td><span class="tag tag-solid">Core</span></td>
+                </tr>
+                <tr>
+                  <td><strong>FR-03</strong></td>
+                  <td>Browse Menu</td>
+                  <td>Tap category chip (Hot, Iced, Non-Coffee, Pastries, Merch)</td>
+                  <td>Streams available Firestore items with photos, descriptions, base prices, and sold-out badges</td>
+                  <td><span class="tag tag-solid">Core</span></td>
+                </tr>
+                <tr>
+                  <td><strong>FR-04</strong></td>
+                  <td>Search Menu</td>
+                  <td>Type query into catalog search input</td>
+                  <td>Filters matching catalog entries immediately in real time</td>
+                  <td><span class="tag tag-solid">Core</span></td>
+                </tr>
+                <tr>
+                  <td><strong>FR-05</strong></td>
+                  <td>Customize Drink</td>
+                  <td>Select size, milk, sugar, ice, add-ons</td>
+                  <td>Computes additive price deltas live on CTA button before adding to cart</td>
+                  <td><span class="tag tag-solid">Core</span></td>
+                </tr>
+                <tr>
+                  <td><strong>FR-06</strong></td>
+                  <td>Manage Cart</td>
+                  <td>Adjust quantity (+/-), remove, add notes</td>
+                  <td>Recalculates line/cart totals deterministically and persists cart preferences</td>
+                  <td><span class="tag tag-solid">Core</span></td>
+                </tr>
+                <tr>
+                  <td><strong>FR-07</strong></td>
+                  <td>Checkout Order</td>
+                  <td>Choose Pickup, Dine-in, or Delivery &amp; submit</td>
+                  <td>Validates required table/address, locks item prices, allocates Firestore order ID (<span class="mono">received</span>)</td>
+                  <td><span class="tag tag-solid">Core</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <span>CafeGO Order Documentation · Section 3.1 (FR-01 to FR-07)</span>
+          <span>06 / 20</span>
+        </div>
+      </section>
+
+      <!-- SLIDE 07: FUNCTIONAL REQUIREMENTS PART 2 -->
+      <section class="slide" data-slide="7">
+        <div class="slide-header">
+          <div>
+            <div class="slide-kicker">03 · Functional Requirements (2 / 3)</div>
+            <h2 class="slide-title">Order Tracking, Retention, Loyalty &amp; Ratings</h2>
+          </div>
+          <span class="slide-num">07 / 20</span>
+        </div>
+        <div class="slide-body">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 8%;">ID</th>
+                  <th style="width: 19%;">Feature</th>
+                  <th style="width: 27%;">User Action</th>
+                  <th style="width: 32%;">Expected System Response</th>
+                  <th style="width: 14%;">Tier</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>FR-08</strong></td>
+                  <td>Track Order</td>
+                  <td>Open active order tracking screen</td>
+                  <td>Streams live 4-step status stepper, countdown prep estimate, delivery rider preview, or early cancel</td>
+                  <td><span class="tag tag-solid">Core</span></td>
+                </tr>
+                <tr>
+                  <td><strong>FR-09</strong></td>
+                  <td>Order History &amp; Reorder</td>
+                  <td>Select past order and tap <em>Reorder</em></td>
+                  <td>Checks live availability of historical items and rebuilds cart in one tap</td>
+                  <td><span class="tag tag-solid">Core</span></td>
+                </tr>
+                <tr>
+                  <td><strong>FR-10</strong></td>
+                  <td>Favorites</td>
+                  <td>Tap heart icon on drink card</td>
+                  <td>Persists item IDs inside <span class="mono">users/{uid}.favorites</span> array in Firestore</td>
+                  <td><span class="tag tag-solid">Core</span></td>
+                </tr>
+                <tr>
+                  <td><strong>FR-11</strong></td>
+                  <td>Manage Profile</td>
+                  <td>Edit name, +63 phone, saved addresses</td>
+                  <td>Validates Philippine format and updates <span class="mono">users/{uid}</span> document</td>
+                  <td><span class="tag tag-solid">Core</span></td>
+                </tr>
+                <tr>
+                  <td><strong>FR-16</strong></td>
+                  <td>Loyalty Rewards</td>
+                  <td>Complete qualifying beverage orders</td>
+                  <td>Awards 1 digital stamp per completed order; unlocks free drink voucher at 8 stamps</td>
+                  <td><span class="tag">Core / Ext</span></td>
+                </tr>
+                <tr>
+                  <td><strong>FR-17</strong></td>
+                  <td>Order Notifications</td>
+                  <td>Order reaches Ready / Out for Delivery</td>
+                  <td>Fires in-app alert banner &amp; notification triggers via state listener</td>
+                  <td><span class="tag">Core / Ext</span></td>
+                </tr>
+                <tr>
+                  <td><strong>FR-21</strong></td>
+                  <td>Order Rating &amp; Feedback</td>
+                  <td>Submit 1–5 star score &amp; comment post-completion</td>
+                  <td>Writes rating document to <span class="mono">ratings/{orderId}</span> ledger</td>
+                  <td><span class="tag">Final Ext</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <span>CafeGO Order Documentation · Section 3.1 (FR-08 – FR-11, FR-16, FR-17, FR-21)</span>
+          <span>07 / 20</span>
+        </div>
+      </section>
+
+      <!-- SLIDE 08: FUNCTIONAL REQUIREMENTS PART 3 -->
+      <section class="slide" data-slide="8">
+        <div class="slide-header">
+          <div>
+            <div class="slide-kicker">03 · Functional Requirements (3 / 3)</div>
+            <h2 class="slide-title">Operations, Analytics, PayMongo &amp; Courier Dispatch</h2>
+          </div>
+          <span class="slide-num">08 / 20</span>
+        </div>
+        <div class="slide-body">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 8%;">ID</th>
+                  <th style="width: 19%;">Feature</th>
+                  <th style="width: 27%;">Actor &amp; Action</th>
+                  <th style="width: 32%;">Expected System Response</th>
+                  <th style="width: 14%;">Tier</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>FR-12</strong></td>
+                  <td>Manage Catalog</td>
+                  <td>Admin creates, edits, archives items</td>
+                  <td>Uploads photo to Firebase Storage and updates <span class="mono">menu/{itemId}</span> immediately</td>
+                  <td><span class="tag tag-solid">Core</span></td>
+                </tr>
+                <tr>
+                  <td><strong>FR-13</strong></td>
+                  <td>Availability Toggle</td>
+                  <td>Admin/Staff switches <span class="mono">isAvailable</span></td>
+                  <td>Displays Sold Out badge across all customer menus and blocks cart additions</td>
+                  <td><span class="tag tag-solid">Core</span></td>
+                </tr>
+                <tr>
+                  <td><strong>FR-14</strong></td>
+                  <td>Live KDS Queue</td>
+                  <td>Barista monitors active kitchen queue</td>
+                  <td>Streams oldest-first (FIFO) tickets with elapsed prep timer, order type &amp; modifiers</td>
+                  <td><span class="tag tag-solid">Core</span></td>
+                </tr>
+                <tr>
+                  <td><strong>FR-15</strong></td>
+                  <td>Update Order Status</td>
+                  <td>Staff advances ticket state button</td>
+                  <td>Enforces deterministic transitions and updates customer tracker in &lt;2 seconds</td>
+                  <td><span class="tag tag-solid">Core</span></td>
+                </tr>
+                <tr>
+                  <td><strong>FR-18</strong></td>
+                  <td>Sales Analytics</td>
+                  <td>Admin opens Reports dashboard tab</td>
+                  <td>Renders daily order count, gross revenue, and payment breakdown charts</td>
+                  <td><span class="tag">Core / Ext</span></td>
+                </tr>
+                <tr>
+                  <td><strong>FR-19</strong></td>
+                  <td>Payment Processing</td>
+                  <td>Select PayMongo (GCash/Maya/Card) or Cash</td>
+                  <td>Creates PayMongo session with Firestore order reference or opens Cashier change calculator + live presentation demo controls</td>
+                  <td><span class="tag">Final Ext</span></td>
+                </tr>
+                <tr>
+                  <td><strong>FR-20</strong></td>
+                  <td>Driver Delivery Dispatch</td>
+                  <td>Driver claims &amp; completes delivery</td>
+                  <td>Shows map coordinates, notes, phone link, and guards completion until kitchen marks <span class="mono">ready</span></td>
+                  <td><span class="tag">Final Ext</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <span>CafeGO Order Documentation · Section 3.1 (FR-12 – FR-15, FR-18 – FR-20)</span>
+          <span>08 / 20</span>
+        </div>
+      </section>
+
+      <!-- SLIDE 09: NON-FUNCTIONAL REQUIREMENTS -->
+      <section class="slide" data-slide="9">
+        <div class="slide-header">
+          <div>
+            <div class="slide-kicker">03 · Quality Attributes</div>
+            <h2 class="slide-title">Non-Functional Requirements (NFR-01 – NFR-07)</h2>
+          </div>
+          <span class="slide-num">09 / 20</span>
+        </div>
+        <div class="slide-body">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 10%;">NFR ID</th>
+                  <th style="width: 26%;">Quality Requirement</th>
+                  <th style="width: 64%;">Architectural &amp; Codebase Enforcement</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>NFR-01</strong></td>
+                  <td>Real-Time Sync Latency</td>
+                  <td>Order state updates propagate to customer devices within <strong>&lt; 2 seconds</strong> over 4G/Wi-Fi via reactive Firestore document snapshots.</td>
+                </tr>
+                <tr>
+                  <td><strong>NFR-02</strong></td>
+                  <td>Input Validation &amp; Errors</td>
+                  <td>Strict validation on email syntax, password &ge;6 chars, PH <span class="mono">+63 9XX XXX XXXX</span> input formatter, and dine-in table numbers before submission.</td>
+                </tr>
+                <tr>
+                  <td><strong>NFR-03</strong></td>
+                  <td>Progressive &amp; Empty States</td>
+                  <td>Async shimmer loaders on fetches; actionable empty views for empty cart, empty search, and zero orders; guarded SnackBar error surfacing.</td>
+                </tr>
+                <tr>
+                  <td><strong>NFR-04</strong></td>
+                  <td>Role-Based Data Isolation</td>
+                  <td>Customers access only owned records; menu writes, order status mutations, and user role changes enforced server-side in <span class="mono">firestore.rules</span>.</td>
+                </tr>
+                <tr>
+                  <td><strong>NFR-05</strong></td>
+                  <td>Secrets &amp; Credential Hygiene</td>
+                  <td>No plaintext OTPs stored, no hardcoded admin password fallbacks, TLS verification enforced (<span class="mono">allowInsecure: false</span>), env-injected secrets.</td>
+                </tr>
+                <tr>
+                  <td><strong>NFR-06</strong></td>
+                  <td>Responsive MD3 Theming</td>
+                  <td>Supports full Light &amp; Dark Material Design 3 palettes adapting cleanly from mobile viewports (360dp–480dp) up to web monitors.</td>
+                </tr>
+                <tr>
+                  <td><strong>NFR-07</strong></td>
+                  <td>Accessibility &amp; Contrast</td>
+                  <td>Interactive tap targets adhere to &ge;44&times;44px sizing and WCAG AA text contrast (&ge;4.5:1) across coffee &amp; espresso surfaces.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <span>CafeGO Order Documentation · Section 3.2</span>
+          <span>09 / 20</span>
+        </div>
+      </section>
+
+      <!-- SLIDE 10: LIFECYCLES & ORDER STATE MACHINE -->
+      <section class="slide" data-slide="10">
+        <div class="slide-header">
+          <div>
+            <div class="slide-kicker">03 · System Flows &amp; State Machine</div>
+            <h2 class="slide-title">End-to-End Operational Lifecycles</h2>
+          </div>
+          <span class="slide-num">10 / 20</span>
+        </div>
+        <div class="slide-body">
+          <div class="diagram-box">
+            <h3>Deterministic Order State Machine (<span class="mono">OrderStatus</span>)</h3>
+            <div class="flow-row">
+              <div class="flow-node">RECEIVED<small>Checkout placed &bull; Customer cancel allowed only here</small></div>
+              <span class="flow-arrow">&rarr;</span>
+              <div class="flow-node">PREPARING<small>Barista claims &bull; Prep countdown starts</small></div>
+              <span class="flow-arrow">&rarr;</span>
+              <div class="flow-node">READY<small>At counter or ready for Courier handoff</small></div>
+              <span class="flow-arrow">&rarr;</span>
+              <div class="flow-node solid">COMPLETED<small>Picked up / Delivered &bull; Stamps awarded</small></div>
+            </div>
+            <p style="margin-top: 10px; font-size: 13px;">
+              <strong>Customer Cancellation Branch:</strong> <span class="mono">RECEIVED &rarr; CANCELLED</span> is allowed exclusively before barista prep starts; terminal states (<span class="mono">COMPLETED</span> / <span class="mono">CANCELLED</span>) reject further transitions with <span class="mono">OrderStateFailure</span>.
+            </p>
+          </div>
+          <div class="grid-3">
+            <div class="box">
+              <h3>Customer Flow</h3>
+              <p>Sign Up / Verify OTP &rarr; Browse &amp; Search &rarr; Customize Drink Sheet &rarr; Cart Review &rarr; Checkout (Pickup / Dine-in / Delivery) &rarr; Live 4-Step Tracker &rarr; QR Receipt &rarr; Rate &amp; One-Tap Reorder.</p>
+            </div>
+            <div class="box">
+              <h3>Staff KDS Flow</h3>
+              <p>Role-guarded Login &rarr; FIFO Queue Stream &rarr; Inspect Modifiers &amp; Notes &rarr; Tap <em>Start Preparing</em> &rarr; Tender Cash via Cashier Drawer &rarr; Mark <em>Ready</em> &rarr; Mark <em>Completed</em>.</p>
+            </div>
+            <div class="box">
+              <h3>Driver Flow</h3>
+              <p>Driver Login &rarr; Delivery Queue &rarr; Claim Unassigned Delivery &rarr; Inspect Notes &amp; Map Coords &rarr; Wait for Kitchen <em>Ready</em> &rarr; Deliver &amp; Collect COD &rarr; Mark <em>Completed</em>.</p>
+            </div>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <span>CafeGO Order Documentation · Section 3.4</span>
+          <span>10 / 20</span>
+        </div>
+      </section>
+
+      <!-- SLIDE 11: FEATURE PRIORITIZATION & ACTOR MATRIX -->
+      <section class="slide" data-slide="11">
+        <div class="slide-header">
+          <div>
+            <div class="slide-kicker">03 · Scope Classification &amp; Actors</div>
+            <h2 class="slide-title">Feature Prioritization &amp; Actor Responsibility Map</h2>
+          </div>
+          <span class="slide-num">11 / 20</span>
+        </div>
+        <div class="slide-body">
+          <div class="grid-2">
+            <div class="box">
+              <h3>Feature Prioritization Matrix</h3>
+              <div class="box-soft">
+                <span class="tag tag-solid">Core (Pre-Final Baseline)</span>
+                <p style="margin-top: 4px;"><strong>FR-01 to FR-15:</strong> Auth &amp; Email OTP, Menu Catalog, Drink Customization, Cart &amp; Checkout, Live Order Tracking, History &amp; Reorder, Favorites, Profile, Admin CRUD, Sold-Out Switch, Live FIFO KDS Queue &amp; Status Advancement.</p>
+              </div>
+              <div class="box-soft">
+                <span class="tag">Completed Enhancements (Final Term)</span>
+                <p style="margin-top: 4px;"><strong>FR-16 to FR-21:</strong> 8-Stamp Loyalty Reward Card, Order Notification Alerts, Daily Sales Analytics Charts, PayMongo Gateway Integration (GCash/Maya/Card + Sandbox Demo), Driver Delivery Workspace &amp; Leaflet GPS Map, and 1–5 Star Order Ratings.</p>
+              </div>
+            </div>
+            <div class="box-soft">
+              <h3>Five System Actors &amp; Firebase Boundary</h3>
+              <ul class="clean">
+                <li><strong>Customer:</strong> Owns cart, favorites, profile addresses, orders (create &amp; initial cancel), and ratings.</li>
+                <li><strong>Barista / Staff:</strong> Consumes active KDS queue, validates cash tenders, toggles stock, and drives kitchen preparation milestones.</li>
+                <li><strong>Admin:</strong> Governs product catalog, Storage images, sales analytics, and RBAC user role assignments.</li>
+                <li><strong>Driver / Courier:</strong> Claims delivery tickets, tracks route GPS coordinates, collects COD on ready orders.</li>
+                <li><strong>Firebase System:</strong> Authenticates JWT tokens, enforces <span class="mono">firestore.rules</span>, serves real-time streams, and hosts item photography.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <span>CafeGO Order Documentation · Section 3.3 &amp; 3.5</span>
+          <span>11 / 20</span>
+        </div>
+      </section>
+
+      <!-- SLIDE 12: 21-SCREEN INVENTORY PART 1 (SCREENS 1-13) -->
+      <section class="slide" data-slide="12">
+        <div class="slide-header">
+          <div>
+            <div class="slide-kicker">04 · Screen Inventory (1 / 2)</div>
+            <h2 class="slide-title">Auth &amp; Customer Screens (Screens 01 – 13)</h2>
+          </div>
+          <span class="slide-num">12 / 20</span>
+        </div>
+        <div class="slide-body">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 5%;">#</th>
+                  <th style="width: 22%;">Screen / Component</th>
+                  <th style="width: 48%;">Key UI Elements</th>
+                  <th style="width: 25%;">Technical Implementation</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>01</td><td><strong>Login Screen</strong></td><td>Branded logo, Sign In / Sign Up tabs, role redirect</td><td>Auth state listener + Google Sign-In</td></tr>
+                <tr><td>02</td><td><strong>Sign Up Screen</strong></td><td>Full name, email, +63 formatter, password, terms</td><td>PH regex formatter &amp; Firestore profile</td></tr>
+                <tr><td>03</td><td><strong>Email Verification</strong></td><td>6-digit OTP entry &amp; resend cooldown timer</td><td>Salted SHA-256 hash verification</td></tr>
+                <tr><td>04</td><td><strong>Menu Home</strong></td><td>Search input, category chips, sold-out coffee cards</td><td>Real-time Firestore menu snapshot</td></tr>
+                <tr><td>05</td><td><strong>Drink Customization</strong></td><td>Size (S/M/L), milk, sugar slider, ice, add-ons</td><td>Draggable modal sheet, live price calc</td></tr>
+                <tr><td>06</td><td><strong>Cart Screen</strong></td><td>Line modifiers, +/- steppers, order note, CTA</td><td>Riverpod <span class="mono">cartProvider</span> state</td></tr>
+                <tr><td>07</td><td><strong>Checkout Screen</strong></td><td>Pickup / Dine-in / Delivery tabs &amp; Payment selector</td><td>PayMongo session + COD / Counter</td></tr>
+                <tr><td>08</td><td><strong>Order Tracking</strong></td><td>4-step status stepper, countdown, rider map preview</td><td>Live <span class="mono">watchOrder</span> snapshot + Demo Pay</td></tr>
+                <tr><td>09</td><td><strong>Order Receipt</strong></td><td>Unique ID, timestamp, itemized lines, order QR</td><td><span class="mono">qr_flutter</span> verification code</td></tr>
+                <tr><td>10</td><td><strong>Order History</strong></td><td>Past orders list, status pills, Track &amp; Reorder CTAs</td><td>Availability check on 1-tap Reorder</td></tr>
+                <tr><td>11</td><td><strong>Favorites Screen</strong></td><td>Saved drinks grid with quick Add-to-Cart trigger</td><td>Synced to user <span class="mono">favorites</span> array</td></tr>
+                <tr><td>12</td><td><strong>Customer Profile</strong></td><td>Avatar, contact info, saved addresses, stamps summary</td><td>Address CRUD + profile persistence</td></tr>
+                <tr><td>13</td><td><strong>Loyalty Rewards</strong></td><td>8-stamp punch card visualizer &amp; voucher code</td><td>Calculated on completed orders</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <span>CafeGO Order Documentation · Section 4.1 (Screens 01 to 13)</span>
+          <span>12 / 20</span>
+        </div>
+      </section>
+
+      <!-- SLIDE 13: 21-SCREEN INVENTORY PART 2 (SCREENS 14-21) & ERGONOMICS -->
+      <section class="slide" data-slide="13">
+        <div class="slide-header">
+          <div>
+            <div class="slide-kicker">04 · Screen Inventory (2 / 2) &amp; Ergonomics</div>
+            <h2 class="slide-title">Operations Workspaces (Screens 14 – 21) &amp; UI Rationale</h2>
+          </div>
+          <span class="slide-num">13 / 20</span>
+        </div>
+        <div class="slide-body">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 6%;">#</th>
+                  <th style="width: 24%;">Screen / Component</th>
+                  <th style="width: 70%;">Operational UI Elements &amp; Technical Behavior</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>14</td><td><strong>Admin Dashboard</strong></td><td>Unified store oversight hub linking catalog CRUD, stock controls, user roles, and daily reports.</td></tr>
+                <tr><td>15</td><td><strong>Menu Management</strong></td><td>Searchable catalog management list displaying thumbnails, base prices, categories, edit &amp; archive actions.</td></tr>
+                <tr><td>16</td><td><strong>Item Form &amp; Upload</strong></td><td>Validated add/edit dialog/form for category, pricing deltas, image picker, and Firebase Storage upload.</td></tr>
+                <tr><td>17</td><td><strong>Sold-Out Switch</strong></td><td>Instant per-item <span class="mono">isAvailable</span> toggle disabling ordering without deleting catalog entries.</td></tr>
+                <tr><td>18</td><td><strong>Daily Sales Summary</strong></td><td>Real-time order volume, gross revenue KPI, and payment method breakdown visualizations.</td></tr>
+                <tr><td>19</td><td><strong>Staff KDS Queue</strong></td><td>Live FIFO ticket board with elapsed timers, table numbers, Cashier change drawer, and 1-tap advancement.</td></tr>
+                <tr><td>20</td><td><strong>Driver Delivery Queue</strong></td><td>Available &amp; claimed <span class="mono">delivery</span> orders displaying address summaries and distance metadata.</td></tr>
+                <tr><td>21</td><td><strong>Driver Delivery Detail</strong></td><td>Interactive Leaflet (<span class="mono">flutter_map</span>) coordinates viewer, phone contact, notes, and completion confirmation.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="box-soft">
+            <h3>Ergonomic UI &amp; Speed Rationale</h3>
+            <p>High-frequency triggers (<strong>Add to Cart</strong>, <strong>Checkout</strong>, <strong>Advance Order</strong>) sit in thumb-friendly sticky bottom bars. Using a draggable bottom sheet for Drink Customization preserves the customer's exact catalog scroll context.</p>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <span>CafeGO Order Documentation · Section 4.1 (Screens 14 to 21) &amp; Section 4.5</span>
+          <span>13 / 20</span>
+        </div>
+      </section>
+
+      <!-- SLIDE 14: NAVIGATION ARCHITECTURE & ROUTE GUARDS -->
+      <section class="slide" data-slide="14">
+        <div class="slide-header">
+          <div>
+            <div class="slide-kicker">04 · Routing &amp; Access Control</div>
+            <h2 class="slide-title">Declarative GoRouter &amp; Role-Based Redirect Guards</h2>
+          </div>
+          <span class="slide-num">14 / 20</span>
+        </div>
+        <div class="slide-body">
+          <div class="diagram-box">
+            <h3>Reactive Route Guard Pipeline</h3>
+            <div class="flow-row">
+              <div class="flow-node">Riverpod <span class="mono">authProvider</span><small>Auth token + <span class="mono">users/{uid}.role</span></small></div>
+              <span class="flow-arrow">&rarr;</span>
+              <div class="flow-node"><span class="mono">RouterNotifier</span><small>Triggers GoRouter refresh</small></div>
+              <span class="flow-arrow">&rarr;</span>
+              <div class="flow-node solid">Declarative Guard<small>Evaluates allowed route prefix</small></div>
+              <span class="flow-arrow">&rarr;</span>
+              <div class="flow-node">Target Workspace<small>Scoped shell rendered</small></div>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="box">
+              <h3>Strict Role Redirection Rules</h3>
+              <ul class="clean">
+                <li><strong>Unauthenticated Users:</strong> Blocked from private routes and redirected to <span class="mono">/login</span>.</li>
+                <li><strong>Pending Verification:</strong> Unverified email/password signups are directed to <span class="mono">/verify-email</span>.</li>
+                <li><strong>Customers:</strong> Strictly prevented from accessing <span class="mono">/staff</span>, <span class="mono">/admin</span>, or <span class="mono">/driver</span> namespaces.</li>
+                <li><strong>Staff / Admin / Driver:</strong> Automatically landed in their dedicated workspaces (<span class="mono">/staff</span>, <span class="mono">/admin</span>, <span class="mono">/driver</span>).</li>
+              </ul>
+            </div>
+            <div class="box-soft">
+              <h3>Multi-Channel Deep Link Support</h3>
+              <ul class="clean">
+                <li><strong>Tracking Routes:</strong> <span class="mono">/tracking/:id</span> and <span class="mono">/receipt/:id</span> resolve directly from checkout or notification taps.</li>
+                <li><strong>PayMongo Return Path:</strong> Preserves order ID alignment after sandbox/live external browser redirects.</li>
+                <li><strong>Zero Context Coupling:</strong> Auth redirects run purely from reactive router state with no imperative navigation hacks inside repositories.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <span>CafeGO Order Documentation · Section 4.2</span>
+          <span>14 / 20</span>
+        </div>
+      </section>
+
+      <!-- SLIDE 15: VISUAL DESIGN SYSTEM & TYPOGRAPHY -->
+      <section class="slide" data-slide="15">
+        <div class="slide-header">
+          <div>
+            <div class="slide-kicker">04 · App Design System (Documented Tokens)</div>
+            <h2 class="slide-title">Warm Coffee &amp; Latte Tokens &amp; Typography</h2>
+          </div>
+          <span class="slide-num">15 / 20</span>
+        </div>
+        <div class="slide-body">
+          <div class="grid-2">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Token Name</th>
+                    <th>Light / Dark Hex</th>
+                    <th>Application Role</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>Brand Primary</td><td class="mono">#5A3825 / #D4A373</td><td>Primary CTAs, headings, espresso brand accents</td></tr>
+                  <tr><td>Secondary (Crema)</td><td class="mono">#D49755</td><td>Active status pills, highlights, crema borders</td></tr>
+                  <tr><td>Canvas Background</td><td class="mono">#F9F6F0 / #231F20</td><td>Creamy latte / warm espresso dark scaffold</td></tr>
+                  <tr><td>Surface (Cards)</td><td class="mono">#FFFFFF / #2E2728</td><td>Crisp cards &amp; elevated dark mocha panels</td></tr>
+                  <tr><td>Text (Ink)</td><td class="mono">#231714 / #F7F2EE</td><td>High-contrast WCAG AA typography</td></tr>
+                  <tr><td>Success / Prep / Error</td><td class="mono">#2E7D32 / #D97706 / #D6336C</td><td>Semantic readiness, prep warnings, cancellations</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="box">
+              <h3>Typography System (<span class="mono">google_fonts</span>)</h3>
+              <div class="box-soft">
+                <strong>Headings &amp; Price Badges</strong>
+                <p><span class="mono">Bricolage Grotesque</span> (semi-bold &amp; extra-bold) paired with <span class="mono">Playfair Display</span> accents for an artisanal coffeehouse identity.</p>
+              </div>
+              <div class="box-soft">
+                <strong>Body Text &amp; Input Controls</strong>
+                <p><span class="mono">Figtree</span> (regular, medium, semi-bold) chosen for crisp legibility at compact mobile screen densities (360dp–480dp).</p>
+              </div>
+              <p style="font-size: 12px; color: var(--ink-muted);">Note: This slide deck intentionally renders in strict black-and-white monochrome per presentation guidelines while documenting the app's full Material Design 3 theme specification.</p>
+            </div>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <span>CafeGO Order Documentation · Section 4.3 – 4.4</span>
+          <span>15 / 20</span>
+        </div>
+      </section>
+
+      <!-- SLIDE 16: TECH STACK & LAYERED ARCHITECTURE -->
+      <section class="slide" data-slide="16">
+        <div class="slide-header">
+          <div>
+            <div class="slide-kicker">05 · Technical Architecture</div>
+            <h2 class="slide-title">Technology Stack &amp; Strict Layered Separation</h2>
+          </div>
+          <span class="slide-num">16 / 20</span>
+        </div>
+        <div class="slide-body">
+          <div class="grid-2">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Domain</th>
+                    <th>Selected Technology</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>Language &amp; UI</td><td>Dart 3.5+ / Flutter (Material Design 3)</td></tr>
+                  <tr><td>State Management</td><td><span class="mono">flutter_riverpod ^2.5.1</span></td></tr>
+                  <tr><td>Navigation</td><td><span class="mono">go_router ^14.3.0</span></td></tr>
+                  <tr><td>Backend Suite</td><td>Firebase Auth, Firestore, Storage, FCM</td></tr>
+                  <tr><td>Local Cache</td><td><span class="mono">shared_preferences ^2.3.2</span></td></tr>
+                  <tr><td>Mapping &amp; QR</td><td><span class="mono">flutter_map</span>, <span class="mono">latlong2</span>, <span class="mono">qr_flutter</span></td></tr>
+                  <tr><td>Email &amp; Crypto</td><td><span class="mono">mailer</span> (SMTP TLS), <span class="mono">crypto</span> (SHA-256/HMAC)</td></tr>
+                  <tr><td>Testing &amp; CI</td><td><span class="mono">fake_cloud_firestore</span>, <span class="mono">firebase_auth_mocks</span>, <span class="mono">mocktail</span>, GitHub Actions</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="box">
+              <h3>Enforced Codebase Layering</h3>
+              <ul class="clean">
+                <li><span class="mono">lib/backend/models</span> — Immutable entities (<span class="mono">UserProfile</span>, <span class="mono">MenuItem</span>, <span class="mono">CartLine</span>, <span class="mono">Order</span>, <span class="mono">SalesSummary</span>).</li>
+                <li><span class="mono">lib/backend/repositories</span> — All Firebase data &amp; auth persistence (<span class="mono">AuthRepository</span>, <span class="mono">MenuRepository</span>, <span class="mono">OrderRepository</span>, <span class="mono">UserRepository</span>, <span class="mono">LoyaltyRepository</span>, <span class="mono">RatingRepository</span>, <span class="mono">ReportsRepository</span>).</li>
+                <li><span class="mono">lib/backend/services</span> — External gateways (<span class="mono">PayMongoService</span>, <span class="mono">SmtpService</span>, <span class="mono">security.dart</span>).</li>
+                <li><span class="mono">lib/core</span> — Failures, deterministic validators, PH phone &amp; currency formatters.</li>
+                <li><span class="mono">lib/frontend/features</span> — Domain UI modules cleanly separated from backend logic.</li>
+                <li><span class="mono">lib/frontend/navigation &amp; theme</span> — <span class="mono">GoRouter</span> config &amp; design tokens.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <span>CafeGO Order Documentation · Section 5.1 &amp; 5.4</span>
+          <span>16 / 20</span>
+        </div>
+      </section>
+
+      <!-- SLIDE 17: FIREBASE SERVICES & FIRESTORE SCHEMA -->
+      <section class="slide" data-slide="17">
+        <div class="slide-header">
+          <div>
+            <div class="slide-kicker">05 · Cloud Infrastructure &amp; Data Design</div>
+            <h2 class="slide-title">Firebase Services &amp; Cloud Firestore Schema</h2>
+          </div>
+          <span class="slide-num">17 / 20</span>
+        </div>
+        <div class="slide-body">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 24%;">Collection Path</th>
+                  <th style="width: 46%;">Key Document Fields</th>
+                  <th style="width: 30%;">Access &amp; Design Rationale</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="mono">users/{uid}</td>
+                  <td><span class="mono">name, email, phone, role, favorites[], stamps, addresses[], createdAt</span></td>
+                  <td>Owner reads/updates profile; role mutations locked to <span class="mono">admin</span>.</td>
+                </tr>
+                <tr>
+                  <td class="mono">menu/{itemId}</td>
+                  <td><span class="mono">name, category, description, basePrice, imageUrl, isAvailable, isHidden, options</span></td>
+                  <td>Public catalog reads; writes restricted to <span class="mono">staff</span> and <span class="mono">admin</span>.</td>
+                </tr>
+                <tr>
+                  <td class="mono">orders/{orderId}</td>
+                  <td><span class="mono">userId, userName, items[], subtotal, deliveryFee, total, type, tableNo, address, payment, paymentStatus, status, driverId, createdAt</span></td>
+                  <td>Denormalized lines freeze price at checkout; strict state, payment &amp; driver ownership rules.</td>
+                </tr>
+                <tr>
+                  <td class="mono">sales/{yyyy-MM-dd}</td>
+                  <td><span class="mono">date, orderCount, totalRevenue, paymentBreakdown</span></td>
+                  <td>Daily financial rollups; read-only for <span class="mono">staff</span>/<span class="mono">admin</span>.</td>
+                </tr>
+                <tr>
+                  <td class="mono">ratings/{orderId}</td>
+                  <td><span class="mono">orderId, userId, rating (1-5), feedback, createdAt</span></td>
+                  <td>Post-completion customer feedback linked by order ID.</td>
+                </tr>
+                <tr>
+                  <td class="mono">email_verifications/{email}<br/>mail/{mailId}</td>
+                  <td><span class="mono">codeHash (64-char SHA-256), verified, attempts</span> / <span class="mono">to[], message{}</span></td>
+                  <td>No plaintext OTPs stored; strict schema validation prevents spam &amp; spoofing.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <span>CafeGO Order Documentation · Section 5.2 – 5.3 &amp; Hardened Security Schema</span>
+          <span>17 / 20</span>
+        </div>
+      </section>
+
+      <!-- SLIDE 18: PENTEST & SECURITY HARDENING AUDIT -->
+      <section class="slide" data-slide="18">
+        <div class="slide-header">
+          <div>
+            <div class="slide-kicker">Final Touch · Penetration Testing Audit</div>
+            <h2 class="slide-title">Security Vulnerabilities Identified &amp; Remediated</h2>
+          </div>
+          <span class="slide-num">18 / 20</span>
+        </div>
+        <div class="slide-body">
+          <div class="grid-2">
+            <div class="box">
+              <h3>Authentication &amp; Credential Hardening</h3>
+              <ul class="clean">
+                <li><strong>Hashed OTP Verification:</strong> Replaced plaintext <span class="mono">code</span> writes in <span class="mono">email_verifications</span> with salted 64-character SHA-256 <span class="mono">codeHash</span>; enforced in <span class="mono">firestore.rules</span>.</li>
+                <li><strong>Removed Auto-Admin Backdoor:</strong> Deleted silent startup <span class="mono">ensureAdminAccountExists()</span> from <span class="mono">main.dart</span> and removed hardcoded admin password literal from <span class="mono">AuthRepository</span> (reads <span class="mono">ADMIN_PASSWORD</span> env only).</li>
+                <li><strong>Strict Domain &amp; Release Guards:</strong> <span class="mono">AdminConfig.isAdminEmail</span> rejects lookalike domains; Google Sign-In dev popup guarded with <span class="mono">!kReleaseMode</span>.</li>
+                <li><strong>SMTP TLS Enforcement:</strong> Changed custom SMTP settings from <span class="mono">allowInsecure: true</span> to <span class="mono">allowInsecure: false</span>.</li>
+              </ul>
+            </div>
+            <div class="box">
+              <h3>Firestore Rules &amp; Payment Integrity</h3>
+              <ul class="clean">
+                <li><strong>PayMongo Reference Alignment:</strong> Pre-allocated Firestore doc ID (<span class="mono">allocateOrderId()</span>) prior to creating PayMongo checkout sessions so gateway <span class="mono">referenceNumber</span> matches the Firestore order ID.</li>
+                <li><strong>Order Rule Tamper Guards:</strong> <span class="mono">/orders</span> <span class="mono">create</span> forces <span class="mono">paymentStatus in ['unpaid','pending']</span>, non-empty items, and <span class="mono">subtotal &gt;= 0</span>; customer cancel updates allow only <span class="mono">['status','updatedAt']</span>.</li>
+                <li><strong>Driver Anti-Hijack Rules:</strong> Delivery updates forbid overwriting an existing <span class="mono">driverId</span> and allow driver <span class="mono">paymentStatus</span> updates only on <span class="mono">cash</span> orders.</li>
+                <li><strong>Demo Readiness Preserved:</strong> Retained PayMongo sandbox presentation demo controls (<em>Authorize Payment Now</em> / <em>PAY</em>) for live defense walkthroughs.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <span>Verified by Automated Penetration Tests · test/features/final_audit_test.dart</span>
+          <span>18 / 20</span>
+        </div>
+      </section>
+
+      <!-- SLIDE 19: QA & AUTOMATED TDD VERIFICATION -->
+      <section class="slide" data-slide="19">
+        <div class="slide-header">
+          <div>
+            <div class="slide-kicker">Final Touch · Quality Assurance Verification</div>
+            <h2 class="slide-title">QA Functional Fixes, TDD Coverage &amp; CI Stability</h2>
+          </div>
+          <span class="slide-num">19 / 20</span>
+        </div>
+        <div class="slide-body">
+          <div class="grid-4">
+            <div class="box-inv"><div class="stat-num">185</div><div class="stat-label">Total Passing Tests</div></div>
+            <div class="box"><div class="stat-num">0</div><div class="stat-label">Static Analyzer Issues</div></div>
+            <div class="box"><div class="stat-num">8</div><div class="stat-label">New Audit TDD Tests</div></div>
+            <div class="box"><div class="stat-num">100%</div><div class="stat-label">Deterministic Pass Rate</div></div>
+          </div>
+          <div class="grid-2">
+            <div class="box">
+              <h3>Functional &amp; Lifecycle Bug Fixes</h3>
+              <ul class="clean">
+                <li><strong>Cart Validation:</strong> <span class="mono">CartNotifier.addLine()</span> now rejects <span class="mono">qty &lt;= 0</span> inputs before mutating state.</li>
+                <li><strong>Driver Readiness Guard:</strong> Delivery completion button stays disabled (<span class="mono">Waiting for Kitchen to mark Ready</span>) while kitchen status is <span class="mono">preparing</span>.</li>
+                <li><strong>Async Error Boundaries:</strong> Added <span class="mono">try/catch</span> with <span class="mono">mounted</span> SnackBar error feedback across <span class="mono">StaffScreen</span>, <span class="mono">DriverScreen</span>, <span class="mono">OrderTrackingScreen</span>, and <span class="mono">AdminScreen</span>.</li>
+                <li><strong>Controller Disposal:</strong> Fixed dialog/bottom-sheet <span class="mono">TextEditingController</span> lifecycle disposal using <span class="mono">.whenComplete(...)</span> in Cashier &amp; Rating sheets.</li>
+              </ul>
+            </div>
+            <div class="box-soft">
+              <h3>CI/CD &amp; Presentation Preservation</h3>
+              <ul class="clean">
+                <li><strong>Automated CI Gate:</strong> GitHub Actions executes <span class="mono">flutter analyze</span> and <span class="mono">flutter test</span> before building Flutter Web.</li>
+                <li><strong>Docs Preservation:</strong> Updated <span class="mono">.github/workflows/deploy.yml</span> so deploying <span class="mono">/docs</span> web builds preserves both <span class="mono">docs/presentation.html</span> and <span class="mono">docs/CafeGO_Order_PreFinal_Documentation.docx</span>.</li>
+                <li><strong>Test Doubles:</strong> Isolated unit &amp; widget runs via <span class="mono">fake_cloud_firestore</span>, <span class="mono">firebase_auth_mocks</span>, and <span class="mono">mocktail</span> with deterministic assertions.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <span>Verified Post-Edit via flutter analyze &amp; flutter test</span>
+          <span>19 / 20</span>
+        </div>
+      </section>
+
+      <!-- SLIDE 20: TEAM, TIMELINE & FINAL CHECKLIST -->
+      <section class="slide" data-slide="20">
+        <div class="slide-header">
+          <div>
+            <div class="slide-kicker">06 · Team Organization &amp; Submission Readiness</div>
+            <h2 class="slide-title">Team Ownership, Schedule &amp; Academic Checklist</h2>
+          </div>
+          <span class="slide-num">20 / 20</span>
+        </div>
+        <div class="slide-body">
+          <div class="grid-2">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Member</th>
+                    <th>Role &amp; Primary Ownership</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Glenn Mykhel Gulfan</strong></td>
+                    <td>Project Lead &amp; Backend Engineer — Architecture, Firebase Rules, State Machine, PayMongo, KDS/Admin/CI</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Ranela Esgana</strong></td>
+                    <td>Auth, Security &amp; Profile Lead — Sign-Up, OTP, Profiles, Saved Addresses, Favorites, User Testing</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Sean</strong></td>
+                    <td>Customer UI/UX Specialist — Catalog, Customization Sheet, Cart, Checkout UX, Tracking, Brand Theme</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Jayshan</strong></td>
+                    <td>Admin, Staff KDS &amp; QA Lead — KDS Queue, Catalog CRUD, Toggles, Sales Analytics, Test Suite &amp; Docs</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Academic Requirement</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>Weeks 1–4: Proposal, Theme &amp; Prototype</td><td><span class="tag tag-solid">PASSED</span></td></tr>
+                  <tr><td>Weeks 5–7: 4 RBAC Workspaces &amp; PayMongo</td><td><span class="tag tag-solid">PASSED</span></td></tr>
+                  <tr><td>21 Implemented Screens + MD3 Design System</td><td><span class="tag tag-solid">PASSED</span></td></tr>
+                  <tr><td>Live Firebase Auth, Firestore &amp; Storage Sync</td><td><span class="tag tag-solid">PASSED</span></td></tr>
+                  <tr><td>Week 8+: Pentest Audit, QA Fixes &amp; 185 TDD Tests</td><td><span class="tag tag-solid">PASSED</span></td></tr>
+                  <tr><td>Final Documentation (.docx) &amp; Presentation</td><td><span class="tag tag-solid">READY</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <span>CafeGO Order — Ready for Final Presentation &amp; Live Defense</span>
+          <span>20 / 20</span>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      const slides = Array.from(document.querySelectorAll('.slide'));
+      const counter = document.getElementById('slideCounter');
+      const progressPct = document.getElementById('progressPct');
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      const overviewBtn = document.getElementById('overviewBtn');
+      const fullscreenBtn = document.getElementById('fullscreenBtn');
+      const printBtn = document.getElementById('printBtn');
+      let current = 0;
+
+      function pad(n) {
+        return n < 10 ? '0' + n : String(n);
+      }
+
+      function render() {
+        slides.forEach((s, i) => {
+          s.classList.toggle('active', i === current);
+        });
+        counter.textContent = pad(current + 1) + ' / ' + pad(slides.length);
+        progressPct.textContent = 'Slide ' + (current + 1) + ' of ' + slides.length;
+        prevBtn.disabled = current === 0;
+        nextBtn.disabled = current === slides.length - 1;
+        if (!document.body.classList.contains('overview-mode')) {
+          slides[current].scrollTop = 0;
+        }
+      }
+
+      function goTo(index) {
+        if (index < 0 || index >= slides.length) return;
+        current = index;
+        render();
+      }
+
+      function toggleOverview(force) {
+        const nextState = typeof force === 'boolean'
+          ? force
+          : !document.body.classList.contains('overview-mode');
+        document.body.classList.toggle('overview-mode', nextState);
+        overviewBtn.classList.toggle('active-btn', nextState);
+      }
+
+      function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+          if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen();
+          }
+        } else if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+
+      prevBtn.addEventListener('click', () => goTo(current - 1));
+      nextBtn.addEventListener('click', () => goTo(current + 1));
+      overviewBtn.addEventListener('click', () => toggleOverview());
+      fullscreenBtn.addEventListener('click', toggleFullscreen);
+      printBtn.addEventListener('click', () => {
+        toggleOverview(false);
+        window.print();
+      });
+
+      slides.forEach((slide, idx) => {
+        slide.addEventListener('click', () => {
+          if (document.body.classList.contains('overview-mode')) {
+            toggleOverview(false);
+            goTo(idx);
+          }
+        });
+      });
+
+      document.addEventListener('fullscreenchange', () => {
+        fullscreenBtn.classList.toggle('active-btn', Boolean(document.fullscreenElement));
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+          if (!document.body.classList.contains('overview-mode')) {
+            e.preventDefault();
+            goTo(current + 1);
+          }
+        } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+          if (!document.body.classList.contains('overview-mode')) {
+            e.preventDefault();
+            goTo(current - 1);
+          }
+        } else if (e.key === 'Home') {
+          goTo(0);
+        } else if (e.key === 'End') {
+          goTo(slides.length - 1);
+        } else if (e.key === 'g' || e.key === 'G') {
+          toggleOverview();
+        } else if (e.key === 'f' || e.key === 'F') {
+          toggleFullscreen();
+        } else if (e.key === 'Escape' && document.body.classList.contains('overview-mode')) {
+          toggleOverview(false);
+        }
+      });
+
+      let touchStartX = 0;
+      document.addEventListener('touchstart', (e) => {
+        if (e.changedTouches && e.changedTouches.length) {
+          touchStartX = e.changedTouches[0].screenX;
+        }
+      }, { passive: true });
+
+      document.addEventListener('touchend', (e) => {
+        if (document.body.classList.contains('overview-mode')) return;
+        if (!e.changedTouches || !e.changedTouches.length) return;
+        const delta = e.changedTouches[0].screenX - touchStartX;
+        if (Math.abs(delta) > 60) {
+          if (delta < 0) goTo(current + 1);
+          else goTo(current - 1);
+        }
+      }, { passive: true });
+
+      render();
+    })();
+  </script>
+</body>
+</html>

@@ -27,6 +27,8 @@ class _EmailVerificationScreenState
       List.generate(_codeLength, (_) => TextEditingController());
   final List<FocusNode> _focusNodes =
       List.generate(_codeLength, (_) => FocusNode());
+  final List<FocusNode> _listenerFocusNodes =
+      List.generate(_codeLength, (_) => FocusNode(skipTraversal: true));
 
   Timer? _timer;
   int _secondsRemaining = _cooldownSeconds;
@@ -57,6 +59,9 @@ class _EmailVerificationScreenState
       c.dispose();
     }
     for (final f in _focusNodes) {
+      f.dispose();
+    }
+    for (final f in _listenerFocusNodes) {
       f.dispose();
     }
     super.dispose();
@@ -155,8 +160,8 @@ class _EmailVerificationScreenState
     }
   }
 
-  void _onKeyDown(int index, RawKeyEvent event) {
-    if (event is RawKeyDownEvent &&
+  void _onKeyDown(int index, KeyEvent event) {
+    if (event is KeyDownEvent &&
         event.logicalKey == LogicalKeyboardKey.backspace) {
       if (_controllers[index].text.isEmpty && index > 0) {
         _controllers[index - 1].clear();
@@ -300,9 +305,9 @@ class _EmailVerificationScreenState
                       return SizedBox(
                         width: 46,
                         height: 56,
-                        child: RawKeyboardListener(
-                          focusNode: FocusNode(),
-                          onKey: (event) => _onKeyDown(index, event),
+                        child: KeyboardListener(
+                          focusNode: _listenerFocusNodes[index],
+                          onKeyEvent: (event) => _onKeyDown(index, event),
                           child: TextFormField(
                             key: Key('otp_box_$index'),
                             controller: _controllers[index],

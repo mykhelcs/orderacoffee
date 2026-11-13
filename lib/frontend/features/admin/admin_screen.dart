@@ -306,11 +306,19 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
             style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
             onPressed: () async {
               Navigator.pop(ctx);
-              await ref.read(adminProvider).deleteMenuItem(item.id);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Deleted "${item.name}"')),
-                );
+              try {
+                await ref.read(adminProvider).deleteMenuItem(item.id);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Deleted "${item.name}"')),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to delete "${item.name}": $e')),
+                  );
+                }
               }
             },
             child: const Text('Delete'),
@@ -331,7 +339,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
               title: Text('Edit Role for ${user.name}'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: ['customer', 'staff', 'admin'].map((role) {
+                children: ['customer', 'staff', 'driver', 'admin'].map((role) {
                   final isSelected = currentRole == role;
                   return ListTile(
                     title: Text(role.toUpperCase()),
@@ -354,10 +362,16 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                   label: 'Update Role',
                   onPressed: () async {
                     Navigator.pop(ctx);
-                    await ref.read(adminProvider).updateUserRole(user.uid, currentRole);
-                    if (mounted) {
+                    try {
+                      await ref.read(adminProvider).updateUserRole(user.uid, currentRole);
+                      if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('Updated ${user.name} to $currentRole')),
+                      );
+                    } catch (e) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to update role: $e')),
                       );
                     }
                   },

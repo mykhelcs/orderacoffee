@@ -62,9 +62,8 @@ void main() {
       expect(userDoc.exists, isTrue);
       expect(userDoc.data()?['role'], 'customer');
       expect(userDoc.data()?['name'], 'Coffee Lover');
-      expect(userDoc.data()?['passwordHash'], isNotNull);
-      expect(userDoc.data()?['passwordHash'], isNot('password123')); // Hashed, not plaintext!
-      expect((userDoc.data()?['passwordHash'] as String).length, 64);
+      expect(userDoc.data()?.containsKey('passwordHash'), isFalse);
+      expect(userDoc.data()?.containsKey('password'), isFalse);
     });
 
     test('A2 & A5: logIn authenticates user and triggers authStateChanges', () async {
@@ -158,7 +157,9 @@ void main() {
 
       final doc = await fakeFirestore.collection('email_verifications').doc('verify@coffee.com').get();
       expect(doc.exists, isTrue);
-      expect(doc.data()?['code'], code);
+      expect(doc.data()?.containsKey('code'), isFalse);
+      expect(doc.data()?['codeHash'], isA<String>());
+      expect((doc.data()?['codeHash'] as String).length, 64);
       expect(doc.data()?['verified'], isFalse);
     });
 
@@ -179,16 +180,19 @@ void main() {
       );
     });
 
-    test('SmtpConfig isConfigured is true by default with non-empty cleanPassword', () {
-      expect(SmtpConfig.isConfigured, isTrue);
-      expect(SmtpConfig.cleanPassword, isNotEmpty);
-      expect(SmtpConfig.cleanPassword.contains(' '), isFalse);
+    test('SmtpConfig does not embed hardcoded credentials by default', () {
+      expect(SmtpConfig.username, isEmpty);
+      expect(SmtpConfig.password, isEmpty);
+      expect(SmtpConfig.cleanPassword, isEmpty);
+      expect(SmtpConfig.isConfigured, isFalse);
     });
 
     test('SmtpService retries fallback port 465 SSL when primary SMTP attempt fails', () async {
       int attempts = 0;
       final List<int> portsTried = [];
       final service = SmtpService(
+        username: 'test@gmail.com',
+        password: 'test-app-password',
         sendFunction: (Message msg, SmtpServer server) async {
           attempts++;
           portsTried.add(server.port);

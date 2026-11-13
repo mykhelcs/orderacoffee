@@ -190,7 +190,6 @@ class AdminCategoryDistributionChart extends StatelessWidget {
     final cardBg = isDark ? AppColors.cardDark : AppColors.cardLight;
     final lineCol = isDark ? AppColors.lineDark : AppColors.lineLight;
     final inkCol = isDark ? AppColors.inkDark : AppColors.inkLight;
-    final muteCol = isDark ? AppColors.muteDark : AppColors.muteLight;
 
     final categoryTotals = <String, double>{
       'Hot Coffee': 0.0,

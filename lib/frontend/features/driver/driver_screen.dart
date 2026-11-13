@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:orderacoffee/backend/models/order.dart';
-import 'package:orderacoffee/backend/repositories/order_repository.dart';
 import 'package:orderacoffee/core/utils.dart';
 import 'package:orderacoffee/frontend/features/admin/admin_provider.dart';
 import 'package:orderacoffee/frontend/features/auth/auth_provider.dart';
@@ -42,6 +41,17 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
     final driverProfile = authState.profile;
     final driverUid = driverProfile?.uid ?? 'driver_demo';
     final driverName = driverProfile?.name ?? 'Delivery Partner';
+    final rawVehicleType = driverProfile?.vehicleType?.trim();
+    final vehicleTypeLabel = (rawVehicleType != null && rawVehicleType.isNotEmpty)
+        ? '${rawVehicleType[0].toUpperCase()}${rawVehicleType.substring(1)}'
+        : 'Motorcycle';
+    final vehiclePlateLabel =
+        (driverProfile?.vehicleNumber?.trim().isNotEmpty ?? false)
+            ? driverProfile!.vehicleNumber!.trim()
+            : 'No plate';
+    final ratingLabel = driverProfile?.averageRating != null
+        ? driverProfile!.averageRating!.toStringAsFixed(1)
+        : 'New';
 
     final allOrders = ref.watch(allOrdersStreamProvider).valueOrNull ?? [];
 
@@ -152,7 +162,7 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
                             ),
                           ),
                           Text(
-                            'Motorcycle • ABC-1234 • ⭐ 4.9',
+                            '$vehicleTypeLabel • $vehiclePlateLabel • ⭐ $ratingLabel',
                             style: GoogleFonts.figtree(fontSize: 12, color: muteCol),
                           ),
                         ],
@@ -239,7 +249,18 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
             Expanded(
               child: activeOrder != null
                   ? _buildActiveDeliveryView(context, activeOrder, cardBg, lineCol, inkCol, muteCol, brandCol)
-                  : _buildAvailableDeliveriesPool(context, availableOrders, cardBg, lineCol, inkCol, muteCol, brandCol, driverUid, driverName),
+                  : _buildAvailableDeliveriesPool(
+                      context,
+                      availableOrders,
+                      cardBg,
+                      lineCol,
+                      inkCol,
+                      muteCol,
+                      brandCol,
+                      driverUid,
+                      driverName,
+                      driverProfile?.phone,
+                    ),
             ),
           ],
         ),
@@ -344,11 +365,19 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
                       label: 'Advance GPS',
                       icon: Icons.gps_fixed_rounded,
                       onPressed: () async {
-                        await ref.read(adminProvider).advanceRiderGps(order);
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Live GPS location updated on map!')),
-                          );
+                        try {
+                          await ref.read(adminProvider).advanceRiderGps(order);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Live GPS location updated on map!')),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Failed to update GPS: $e')),
+                            );
+                          }
                         }
                       },
                     ),
@@ -356,21 +385,38 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
                 ],
               ),
               const SizedBox(height: 10),
-              BrandButton(
-                label: isCOD ? 'Complete & Collect ${peso(order.total)}' : 'Complete Delivery',
-                onPressed: () async {
-                  await ref.read(orderRepositoryProvider).advanceStatus(order.id, OrderStatus.completed);
-                  setState(() => _activeOrderId = null);
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Delivery completed! Earnings added to your wallet 🎉'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-                },
-              ),
+              if (order.status == OrderStatus.ready)
+                BrandButton(
+                  label: isCOD ? 'Complete & Collect ${peso(order.total)}' : 'Complete Delivery',
+                  onPressed: () async {
+                    try {
+                      await ref
+                          .read(orderRepositoryProvider)
+                          .advanceStatus(order.id, OrderStatus.completed);
+                      if (!mounted) return;
+                      setState(() => _activeOrderId = null);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Delivery completed! Earnings added to your wallet 🎉'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Unable to complete delivery: $e')),
+                        );
+                      }
+                    }
+                  },
+                )
+              else
+                const BrandButton(
+                  label: 'Waiting for Kitchen to mark Ready',
+                  onPressed: null,
+                ),
             ],
           ),
         ),
@@ -388,6 +434,7 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
     Color brandCol,
     String driverUid,
     String driverName,
+    String? driverPhone,
   ) {
     if (!_isOnline) {
       return Center(
@@ -478,17 +525,28 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
                     BrandButton(
                       label: 'Accept Delivery',
                       onPressed: () async {
-                        await ref.read(adminProvider).assignDriver(
-                              o.id,
-                              driverId: driverUid,
-                              driverName: driverName,
-                              driverPhone: '+63 917 123 4567',
+                        try {
+                          await ref.read(adminProvider).assignDriver(
+                                o.id,
+                                driverId: driverUid,
+                                driverName: driverName,
+                                driverPhone: (driverPhone != null && driverPhone.trim().isNotEmpty)
+                                    ? driverPhone.trim()
+                                    : null,
+                              );
+                          if (!mounted) return;
+                          setState(() => _activeOrderId = o.id);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Accepted delivery for ${o.userName}! Pick up at cafe.')),
                             );
-                        setState(() => _activeOrderId = o.id);
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Accepted delivery for ${o.userName}! Pick up at cafe.')),
-                          );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Unable to accept delivery: $e')),
+                            );
+                          }
                         }
                       },
                     ),

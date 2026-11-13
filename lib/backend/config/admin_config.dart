@@ -29,8 +29,6 @@ class AdminConfig {
     if (normalized.isEmpty) return false;
     return normalized == email.trim().toLowerCase() ||
         normalized == 'admin@cafego.ph' ||
-        normalized == 'admin@coughfee.ph' ||
-        normalized == 'admin' ||
-        normalized.startsWith('admin@');
+        normalized == 'admin@coughfee.ph';
   }
 }

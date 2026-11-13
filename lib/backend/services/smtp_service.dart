@@ -8,39 +8,44 @@ import 'smtp_config.dart';
 class SmtpService {
   SmtpService({
     Future<SendReport> Function(Message message, SmtpServer server)? sendFunction,
-  }) : _sendFunction = sendFunction ?? send;
+    String? username,
+    String? password,
+    String? senderEmail,
+  })  : _sendFunction = sendFunction ?? send,
+        _username = (username ?? SmtpConfig.username).trim(),
+        _password = (password ?? SmtpConfig.cleanPassword).replaceAll(' ', '').trim(),
+        _senderEmail = (senderEmail ?? SmtpConfig.senderEmail).trim();
 
   final Future<SendReport> Function(Message message, SmtpServer server) _sendFunction;
+  final String _username;
+  final String _password;
+  final String _senderEmail;
+
+  bool get _isConfigured => _username.isNotEmpty && _password.isNotEmpty;
 
   SmtpServer _resolvePrimarySmtpServer() {
-    final cleanUser = SmtpConfig.username.trim();
-    final cleanPass = SmtpConfig.cleanPassword;
-
-    if (SmtpConfig.host.contains('gmail') && cleanUser.isNotEmpty) {
-      return gmail(cleanUser, cleanPass);
+    if (SmtpConfig.host.contains('gmail') && _username.isNotEmpty) {
+      return gmail(_username, _password);
     }
 
     return SmtpServer(
       SmtpConfig.host,
       port: SmtpConfig.port,
       ssl: SmtpConfig.ssl,
-      username: cleanUser.isNotEmpty ? cleanUser : null,
-      password: cleanPass.isNotEmpty ? cleanPass : null,
-      allowInsecure: true,
+      username: _username.isNotEmpty ? _username : null,
+      password: _password.isNotEmpty ? _password : null,
+      allowInsecure: false,
     );
   }
 
   SmtpServer _resolveFallbackSslServer() {
-    final cleanUser = SmtpConfig.username.trim();
-    final cleanPass = SmtpConfig.cleanPassword;
-
     return SmtpServer(
       SmtpConfig.host,
       port: 465,
       ssl: true,
-      username: cleanUser.isNotEmpty ? cleanUser : null,
-      password: cleanPass.isNotEmpty ? cleanPass : null,
-      allowInsecure: true,
+      username: _username.isNotEmpty ? _username : null,
+      password: _password.isNotEmpty ? _password : null,
+      allowInsecure: false,
     );
   }
 
@@ -67,7 +72,7 @@ class SmtpService {
       return true;
     }
 
-    if (!SmtpConfig.isConfigured) {
+    if (!_isConfigured) {
       debugPrint(
         '[SMTP Note] SMTP credentials not configured (check your .env file or --dart-define-from-file=.env). '
         'Email to $cleanRecipient will not be dispatched over network until credentials are provided.',
@@ -78,9 +83,9 @@ class SmtpService {
     // When sending through Gmail, the 'From' address must be the authenticated
     // Gmail address to ensure SPF and DKIM alignment; otherwise destination
     // mail servers (Gmail, Yahoo, Outlook) mark the email as spam or discard it.
-    final fromAddress = (SmtpConfig.host.contains('gmail') && SmtpConfig.username.isNotEmpty)
-        ? SmtpConfig.username.trim()
-        : (SmtpConfig.senderEmail.isNotEmpty ? SmtpConfig.senderEmail.trim() : SmtpConfig.username.trim());
+    final fromAddress = (SmtpConfig.host.contains('gmail') && _username.isNotEmpty)
+        ? _username
+        : (_senderEmail.isNotEmpty ? _senderEmail : _username);
 
     final message = Message()
       ..from = Address(fromAddress, SmtpConfig.senderName)

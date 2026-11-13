@@ -123,12 +123,11 @@ class OrdersNotifier extends StateNotifier<OrdersState> {
     try {
       PayMongoCheckoutSession? session;
       OrderDraft effectiveDraft = draft;
+      final allocatedOrderId = _repo.allocateOrderId();
 
       if (draft.payment.isPayMongo) {
-        final provisionalOrderId =
-            'ORD-${DateTime.now().millisecondsSinceEpoch}';
         session = await _paymongo.createCheckoutSession(
-          orderId: provisionalOrderId,
+          orderId: allocatedOrderId,
           draft: draft,
         );
         effectiveDraft = OrderDraft(
@@ -157,7 +156,7 @@ class OrdersNotifier extends StateNotifier<OrdersState> {
         );
       }
 
-      final id = await _repo.placeOrder(effectiveDraft);
+      final id = await _repo.placeOrder(effectiveDraft, orderId: allocatedOrderId);
 
       if (session != null) {
         await _repo.updatePaymentStatus(

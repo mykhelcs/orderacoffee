@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui' show lerpDouble;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -292,9 +293,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               _passwordController.text,
             );
         if (mounted) {
-          final isStaff = ref.read(authProvider).isAdmin ||
-              ref.read(authProvider).profile?.role == 'staff';
-          context.go(isStaff ? '/admin' : '/');
+          final role = ref.read(authProvider).profile?.role;
+          if (role == 'admin') {
+            context.go('/admin');
+          } else if (role == 'staff') {
+            context.go('/staff');
+          } else if (role == 'driver') {
+            context.go('/driver');
+          } else {
+            context.go('/');
+          }
         }
       }
     } catch (e) {
@@ -316,19 +324,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   Future<void> _handleGoogleSignIn() async {
     setState(() => _errorMessage = null);
 
-    // Open the persistent Gmail login connection dialog directly so it stays open
-    // and always displays the Gmail email input without closing prematurely.
-    final selectedAccount = await _showGmailLoginPopup();
-    if (selectedAccount == null || !mounted) return;
+    Map<String, String>? selectedAccount;
+    if (!kReleaseMode) {
+      // Debug/test helper popup for local/web emulator demos without SHA-1 OAuth setup.
+      selectedAccount = await _showGmailLoginPopup();
+      if (selectedAccount == null || !mounted) return;
+    }
 
     setState(() => _isLoading = true);
     try {
       await ref.read(authProvider.notifier).signInWithGoogle(
-            fallbackEmail: selectedAccount['email'],
-            fallbackName: selectedAccount['name'],
+            fallbackEmail: selectedAccount?['email'],
+            fallbackName: selectedAccount?['name'],
           );
       if (mounted) {
-        context.go('/');
+        final role = ref.read(authProvider).profile?.role;
+        if (role == 'admin') {
+          context.go('/admin');
+        } else if (role == 'staff') {
+          context.go('/staff');
+        } else if (role == 'driver') {
+          context.go('/driver');
+        } else {
+          context.go('/');
+        }
       }
     } catch (err) {
       if (mounted) {

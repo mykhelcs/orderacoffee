@@ -19,16 +19,16 @@ class SmtpConfig {
     defaultValue: true,
   );
 
-  /// Your SMTP username / email address.
+  /// Your SMTP username / email address (injected via --dart-define-from-file=.env).
   static const String username = String.fromEnvironment(
     'SMTP_USERNAME',
-    defaultValue: 'cafego.mobile@gmail.com',
+    defaultValue: '',
   );
 
-  /// Your SMTP password or Google App Password (loaded from .env or default fallback).
+  /// Your SMTP password or Google App Password (injected via --dart-define-from-file=.env).
   static const String password = String.fromEnvironment(
     'SMTP_PASSWORD',
-    defaultValue: 'prallewkuojzshkn',
+    defaultValue: '',
   );
 
   /// Sanitized password with any spaces removed (Google App Passwords are 16 chars).
@@ -37,7 +37,7 @@ class SmtpConfig {
   /// The from email shown in the recipient's inbox.
   static const String senderEmail = String.fromEnvironment(
     'SMTP_SENDER_EMAIL',
-    defaultValue: 'cafego.mobile@gmail.com',
+    defaultValue: '',
   );
 
   /// The reply-to address if customers click 'Reply'.
