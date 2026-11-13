@@ -6,17 +6,34 @@ import 'package:orderacoffee/backend/models/menu_item.dart';
 import 'package:orderacoffee/backend/models/order.dart';
 import 'package:orderacoffee/backend/models/user_profile.dart';
 import 'package:orderacoffee/backend/repositories/auth_repository.dart';
+import 'package:orderacoffee/backend/repositories/order_repository.dart';
 import 'package:orderacoffee/frontend/features/admin/admin_provider.dart';
 import 'package:orderacoffee/frontend/features/admin/admin_screen.dart';
-import 'package:orderacoffee/frontend/features/auth/auth_provider.dart';
+import 'package:orderacoffee/frontend/features/admin/widgets/order_details_modal.dart';
 import 'package:orderacoffee/frontend/features/menu/menu_provider.dart';
 import 'package:orderacoffee/frontend/features/orders/orders_provider.dart';
 
+class _FakeOrderRepository extends OrderRepository {
+  String? assignedOrderId;
+  String? assignedDriverId;
+
+  @override
+  Future<void> assignDriver(
+    String orderId, {
+    required String driverId,
+    required String driverName,
+    String? driverPhone,
+  }) async {
+    assignedOrderId = orderId;
+    assignedDriverId = driverId;
+  }
+}
+
 void main() {
   group('Admin Authentication & Provisioning Tests', () {
-    test('Default admin credentials constants are defined and standard', () {
+    test('Default admin email and UID constants are defined without hardcoded password', () {
       expect(AuthRepository.defaultAdminEmail, equals('admin@cafego.ph'));
-      expect(AuthRepository.defaultAdminPassword, equals('Admin@CafeGo2024!'));
+      expect(AuthRepository.defaultAdminPassword, isEmpty);
       expect(AuthRepository.defaultAdminUid, equals('admin-master'));
     });
 
@@ -190,8 +207,31 @@ void main() {
       expect(find.text('Fulfillment Status Distribution'), findsOneWidget);
     });
 
-    testWidgets('Switching to Staff/Users tab renders directory header', (tester) async {
-      await tester.pumpWidget(createAdminTestWidget());
+    testWidgets('Switching to Staff/Users tab renders directory header and role dialog includes DRIVER', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            menuStreamProvider.overrideWith((ref) => Stream.value(testMenuItems)),
+            allMenuStreamProvider.overrideWith((ref) => Stream.value(testMenuItems)),
+            liveQueueStreamProvider.overrideWith((ref) => Stream.value(testOrders)),
+            allOrdersStreamProvider.overrideWith((ref) => Stream.value(testOrders)),
+            allUsersStreamProvider.overrideWith((ref) => Stream.value(const [
+                  UserProfile(
+                    uid: 'user-1',
+                    name: 'Juan Dela Cruz',
+                    email: 'juan@cafego.ph',
+                    phone: '+63 917 111 2222',
+                    role: 'customer',
+                  ),
+                ])),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: AdminScreen(),
+            ),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       // Tap "Staff/Users" tab
@@ -199,6 +239,75 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Accounts & Staff Directory'), findsOneWidget);
+      expect(find.text('Juan Dela Cruz'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Change role'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('CUSTOMER'), findsWidgets);
+      expect(find.text('STAFF'), findsOneWidget);
+      expect(find.text('DRIVER'), findsOneWidget);
+      expect(find.text('ADMIN'), findsOneWidget);
+    });
+
+    testWidgets('OrderDetailsModal driver assignment shows phone fallback and SnackBar', (tester) async {
+      final fakeOrderRepo = _FakeOrderRepository();
+      final deliveryOrder = Order(
+        id: 'ORD-DEL-1',
+        userId: 'customer_1',
+        userName: 'Maria Santos',
+        items: const [
+          OrderItem(
+            itemId: 'item_spanish_latte',
+            name: 'Spanish Latte',
+            unitPrice: 170.0,
+            qty: 1,
+          ),
+        ],
+        subtotal: 170.0,
+        deliveryFee: 50.0,
+        total: 220.0,
+        type: OrderType.delivery,
+        status: OrderStatus.preparing,
+        payment: PaymentMethod.cash,
+        paymentStatus: PaymentStatus.pending,
+        createdAt: DateTime.now(),
+      );
+      const driverWithoutPhone = UserProfile(
+        uid: 'driver-1',
+        name: 'Driver One',
+        email: 'driver1@cafego.ph',
+        phone: '',
+        role: 'driver',
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            orderRepositoryProvider.overrideWithValue(fakeOrderRepo),
+            allUsersStreamProvider.overrideWith((ref) => Stream.value([driverWithoutPhone])),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: OrderDetailsModal(order: deliveryOrder),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Assign'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Driver One'), findsOneWidget);
+      expect(find.text('No phone • Motorcycle'), findsOneWidget);
+
+      await tester.tap(find.text('Driver One'));
+      await tester.pumpAndSettle();
+
+      expect(fakeOrderRepo.assignedOrderId, 'ORD-DEL-1');
+      expect(fakeOrderRepo.assignedDriverId, 'driver-1');
+      expect(find.text('Assigned delivery to Driver One'), findsOneWidget);
     });
   });
 }

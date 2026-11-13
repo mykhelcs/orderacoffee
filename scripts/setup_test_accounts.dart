@@ -1,21 +1,21 @@
-/// Firebase Test Account Setup Script
-/// Run with: dart scripts/setup_test_accounts.dart
-/// 
-/// This script sets up test accounts for RBAC testing:
-/// - Admin: admin@cafego.ph
-/// - Staff: staff@cafego.ph  
-/// - Driver: driver@cafego.ph
-/// - Customer: customer@cafego.ph
+// Firebase Test Account Setup Script
+// Run with: dart scripts/setup_test_accounts.dart
+//
+// This script sets up test accounts for RBAC testing:
+// - Admin: admin@cafego.ph
+// - Staff: staff@cafego.ph
+// - Driver: driver@cafego.ph
+// - Customer: customer@cafego.ph
 
 import 'dart:io';
 
 void main(List<String> arguments) {
-  print('========================================');
-  print('CafeGO Firebase Test Account Setup');
-  print('========================================\n');
+  stdout.writeln('========================================');
+  stdout.writeln('CafeGO Firebase Test Account Setup');
+  stdout.writeln('========================================\n');
 
-  print('To set up test accounts, you need to use the Firebase Console or call Firebase Auth API.');
-  print('\nHere are the credentials to create:\n');
+  stdout.writeln('To set up test accounts, you need to use the Firebase Console or call Firebase Auth API.');
+  stdout.writeln('\nHere are the credentials to create:\n');
 
   // Test Account Credentials
   final testAccounts = [
@@ -52,59 +52,59 @@ void main(List<String> arguments) {
   ];
 
   for (final account in testAccounts) {
-    print('📋 ${account['role'].toString().toUpperCase()} Account');
-    print('   Email: ${account['email']}');
-    print('   Password: ${account['password']}');
-    print('   Name: ${account['name']}');
-    print('   Phone: ${account['phone']}');
+    stdout.writeln('📋 ${account['role'].toString().toUpperCase()} Account');
+    stdout.writeln('   Email: ${account['email']}');
+    stdout.writeln('   Password: ${account['password']}');
+    stdout.writeln('   Name: ${account['name']}');
+    stdout.writeln('   Phone: ${account['phone']}');
     if (account['role'] == 'driver') {
-      print('   Vehicle Type: ${account['vehicleType']}');
-      print('   Vehicle Number: ${account['vehicleNumber']}');
+      stdout.writeln('   Vehicle Type: ${account['vehicleType']}');
+      stdout.writeln('   Vehicle Number: ${account['vehicleNumber']}');
     }
-    print('');
+    stdout.writeln('');
   }
 
-  print('========================================');
-  print('SETUP INSTRUCTIONS:');
-  print('========================================\n');
+  stdout.writeln('========================================');
+  stdout.writeln('SETUP INSTRUCTIONS:');
+  stdout.writeln('========================================\n');
 
-  print('Option 1: Use Firebase Console');
-  print('1. Go to Firebase Console > Authentication');
-  print('2. Create each user with the credentials above');
-  print('3. Set their role in the users Firestore collection\n');
+  stdout.writeln('Option 1: Use Firebase Console');
+  stdout.writeln('1. Go to Firebase Console > Authentication');
+  stdout.writeln('2. Create each user with the credentials above');
+  stdout.writeln('3. Set their role in the users Firestore collection\n');
 
-  print('Option 2: Use Firebase CLI (Recommended)');
-  print('1. Export existing users:');
-  print('   firebase auth:export --project coughfee-app users.json\n');
+  stdout.writeln('Option 2: Use Firebase CLI (Recommended)');
+  stdout.writeln('1. Export existing users:');
+  stdout.writeln('   firebase auth:export --project coughfee-app users.json\n');
 
-  print('2. Import test users:');
-  print('   firebase auth:import users.json --project coughfee-app\n');
+  stdout.writeln('2. Import test users:');
+  stdout.writeln('   firebase auth:import users.json --project coughfee-app\n');
 
-  print('Option 3: Use App Registration Flow');
-  print('1. Open the app at: https://mykhelcs.github.io/orderacoffee/');
-  print('2. Click "Sign Up"');
-  print('3. Create each account with the credentials above');
-  print('4. Manually update role in Firebase Console\n');
+  stdout.writeln('Option 3: Use App Registration Flow');
+  stdout.writeln('1. Open the app at: https://mykhelcs.github.io/orderacoffee/');
+  stdout.writeln('2. Click "Sign Up"');
+  stdout.writeln('3. Create each account with the credentials above');
+  stdout.writeln('4. Manually update role in Firebase Console\n');
 
-  print('========================================');
-  print('\nAfter creating accounts, the following Firestore users collection should exist:\n');
+  stdout.writeln('========================================');
+  stdout.writeln('\nAfter creating accounts, the following Firestore users collection should exist:\n');
 
   for (final account in testAccounts) {
-    print('📁 /users/{uid}');
-    print('   name: "${account['name']}"');
-    print('   email: "${account['email']}"');
-    print('   phone: "${account['phone']}"');
-    print('   role: "${account['role']}"');
-    print('   isEmailVerified: true');
+    stdout.writeln('📁 /users/{uid}');
+    stdout.writeln('   name: "${account['name']}"');
+    stdout.writeln('   email: "${account['email']}"');
+    stdout.writeln('   phone: "${account['phone']}"');
+    stdout.writeln('   role: "${account['role']}"');
+    stdout.writeln('   isEmailVerified: true');
     if (account['role'] == 'driver') {
-      print('   vehicleType: "${account['vehicleType']}"');
-      print('   vehicleNumber: "${account['vehicleNumber']}"');
-      print('   isAvailable: false');
-      print('   totalDeliveries: 0');
+      stdout.writeln('   vehicleType: "${account['vehicleType']}"');
+      stdout.writeln('   vehicleNumber: "${account['vehicleNumber']}"');
+      stdout.writeln('   isAvailable: false');
+      stdout.writeln('   totalDeliveries: 0');
     }
-    print('   createdAt: timestamp');
-    print('');
+    stdout.writeln('   createdAt: timestamp');
+    stdout.writeln('');
   }
 
-  print('========================================');
+  stdout.writeln('========================================');
 }

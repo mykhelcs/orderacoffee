@@ -93,8 +93,18 @@ class OrderRepository {
     return fs.collection('orders');
   }
 
+  /// Pre-allocates a deterministic Firestore document ID (or local order ID fallback)
+  /// so external payment sessions reference the exact persisted order ID.
+  String allocateOrderId() {
+    final col = _ordersCol;
+    if (col != null) {
+      return col.doc().id;
+    }
+    return 'ORD-${DateTime.now().millisecondsSinceEpoch % 100000}';
+  }
+
   /// O1: Place order with automatic local fallback
-  Future<String> placeOrder(OrderDraft draft) async {
+  Future<String> placeOrder(OrderDraft draft, {String? orderId}) async {
     draft.validate();
 
     final fn = functions;
@@ -102,9 +112,9 @@ class OrderRepository {
       try {
         final callable = fn.httpsCallable('placeOrder');
         final res = await callable.call<Map<String, dynamic>>(draft.toMap());
-        final orderId = res.data['orderId'] as String?;
-        if (orderId != null && orderId.isNotEmpty) {
-          return orderId;
+        final fnOrderId = res.data['orderId'] as String?;
+        if (fnOrderId != null && fnOrderId.isNotEmpty) {
+          return fnOrderId;
         }
       } catch (_) {
         // Fall through to direct Firestore
@@ -122,7 +132,9 @@ class OrderRepository {
     final col = _ordersCol;
     if (col != null) {
       try {
-        final docRef = await col.add({
+        final docRef =
+            (orderId != null && orderId.isNotEmpty) ? col.doc(orderId) : col.doc();
+        await docRef.set({
           ...draft.toMap(),
           'branchId': draft.branchId ?? defaultBranch.id,
           'branchName': draft.branchName ?? defaultBranch.name,
@@ -146,7 +158,9 @@ class OrderRepository {
     }
 
     // Fallback: create resilient local order so checkout and tracking always succeed
-    final fallbackId = 'ORD-${DateTime.now().millisecondsSinceEpoch % 100000}';
+    final fallbackId = (orderId != null && orderId.isNotEmpty)
+        ? orderId
+        : 'ORD-${DateTime.now().millisecondsSinceEpoch % 100000}';
     final now = DateTime.now();
     final localOrder = Order(
       id: fallbackId,

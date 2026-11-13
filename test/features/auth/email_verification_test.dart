@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:orderacoffee/core/errors/failures.dart';
@@ -207,6 +208,52 @@ void main() {
 
       // State should now be authenticated
       expect(container.read(authProvider).isAuthenticated, isTrue);
+    });
+
+    testWidgets('EmailVerificationScreen backspace on empty OTP box clears and focuses previous box', (tester) async {
+      tester.view.physicalSize = const Size(1080, 1920);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final notifier = container.read(authProvider.notifier);
+      await notifier.initiateSignUp(
+        name: 'Maria Clara',
+        email: 'maria@coughfee.ph',
+        phone: '+63 917 123 4567',
+        password: 'password123',
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: EmailVerificationScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byKey(const Key('otp_box_0')), '6');
+      await tester.pump();
+
+      await tester.tap(find.byKey(const Key('otp_box_1')));
+      await tester.pump();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+      await tester.pump();
+
+      final box0Field = tester.widget<TextFormField>(find.byKey(const Key('otp_box_0')));
+      final box0Editable = tester.widget<EditableText>(
+        find.descendant(
+          of: find.byKey(const Key('otp_box_0')),
+          matching: find.byType(EditableText),
+        ),
+      );
+      expect(box0Field.controller?.text, isEmpty);
+      expect(box0Editable.focusNode.hasFocus, isTrue);
     });
   });
 }

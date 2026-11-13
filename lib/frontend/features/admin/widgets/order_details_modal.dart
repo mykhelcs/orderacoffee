@@ -73,7 +73,7 @@ class _OrderDetailsModalState extends ConsumerState<OrderDetailsModal> {
                     shrinkWrap: true,
                     itemCount: drivers.length,
                     separatorBuilder: (_, __) => const Divider(),
-                    itemBuilder: (context, i) {
+                    itemBuilder: (_, i) {
                       final driver = drivers[i];
                       final isCurrent = _currentOrder.driverId == driver.uid;
                       return ListTile(
@@ -86,7 +86,7 @@ class _OrderDetailsModalState extends ConsumerState<OrderDetailsModal> {
                           style: GoogleFonts.figtree(fontWeight: FontWeight.w700),
                         ),
                         subtitle: Text(
-                          '${driver.phone ?? 'No phone'} • ${driver.vehicleType ?? 'Motorcycle'}',
+                          '${driver.phone.isNotEmpty ? driver.phone : 'No phone'} • ${driver.vehicleType ?? 'Motorcycle'}',
                           style: GoogleFonts.figtree(fontSize: 12),
                         ),
                         trailing: isCurrent
@@ -100,6 +100,7 @@ class _OrderDetailsModalState extends ConsumerState<OrderDetailsModal> {
                                 driverName: driver.name,
                                 driverPhone: driver.phone,
                               );
+                          if (!mounted) return;
                           setState(() {
                             _currentOrder = _currentOrder.copyWith(
                               driverId: driver.uid,
@@ -108,11 +109,9 @@ class _OrderDetailsModalState extends ConsumerState<OrderDetailsModal> {
                               driverStatus: 'assigned',
                             );
                           });
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Assigned delivery to ${driver.name}')),
-                            );
-                          }
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Assigned delivery to ${driver.name}')),
+                          );
                         },
                       );
                     },

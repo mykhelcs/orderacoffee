@@ -195,7 +195,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
           },
         );
       },
-    );
+    ).whenComplete(commentController.dispose);
   }
 
   @override
@@ -539,15 +539,25 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                             alignment: Alignment.centerRight,
                             child: OutlinedButton.icon(
                               onPressed: () async {
-                                await ref
-                                    .read(ordersProvider.notifier)
-                                    .cancelOrder(order.id);
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Order cancelled.'),
-                                    ),
-                                  );
+                                try {
+                                  await ref
+                                      .read(ordersProvider.notifier)
+                                      .cancelOrder(order.id);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Order cancelled.'),
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Unable to cancel order: $e'),
+                                      ),
+                                    );
+                                  }
                                 }
                               },
                               icon: const Icon(

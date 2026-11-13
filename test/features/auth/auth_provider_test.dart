@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:orderacoffee/backend/config/admin_config.dart';
 import 'package:orderacoffee/core/errors/failures.dart';
 import 'package:orderacoffee/backend/models/user_profile.dart';
 import 'package:orderacoffee/backend/repositories/auth_repository.dart';
@@ -147,6 +148,31 @@ void main() {
         () => notifier.signIn('juan@coughfee.ph', 'wrong-pass'),
         throwsA(isA<AuthFailure>()),
       );
+    });
+
+    test('signIn with wrong password for admin email throws AuthFailure and does NOT bypass auth', () async {
+      final notifier = container.read(authProvider.notifier);
+      await expectLater(
+        () => notifier.signIn('admin@cafego.ph', 'wrong-pass'),
+        throwsA(isA<AuthFailure>()),
+      );
+      expect(container.read(authProvider).isAuthenticated, isFalse);
+      expect(container.read(authProvider).isAdmin, isFalse);
+
+      await expectLater(
+        () => notifier.signIn('admin@coughfee.ph', 'wrong-pass'),
+        throwsA(isA<AuthFailure>()),
+      );
+      expect(container.read(authProvider).isAuthenticated, isFalse);
+      expect(container.read(authProvider).isAdmin, isFalse);
+    });
+
+    test('AdminConfig.isAdminEmail rejects arbitrary admin@ domains and bare admin', () {
+      expect(AdminConfig.isAdminEmail('admin@cafego.ph'), isTrue);
+      expect(AdminConfig.isAdminEmail('admin@coughfee.ph'), isTrue);
+      expect(AdminConfig.isAdminEmail('admin@evil.com'), isFalse);
+      expect(AdminConfig.isAdminEmail('admin'), isFalse);
+      expect(AdminConfig.isAdminEmail('customer@cafego.ph'), isFalse);
     });
 
     test('signUp creates new account and sets state', () async {

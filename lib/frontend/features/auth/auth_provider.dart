@@ -209,8 +209,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           final isBypassUser = state.lastLoginMethod == 'google' ||
               currentUid.startsWith('preview-') ||
               currentUid.startsWith('google-') ||
-              currentUid.startsWith('admin-') ||
-              (state.profile?.isAdmin ?? false);
+              currentUid.startsWith('admin-');
           if (state.profile == null || !isBypassUser) {
             state = AuthState(lastLoginMethod: state.lastLoginMethod);
           }
@@ -266,55 +265,44 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (e) {
       final errStr = e.toString();
 
-      // If logging in as admin, ensure guaranteed access even if Firebase Auth credentials differ or offline
-      if (isAdm) {
-        await _saveLastLoginMethod('email');
-        final adminProfile = UserProfile(
-          uid: 'preview-admin',
-          name: AdminConfig.displayName,
-          email: email.trim(),
-          phone: AdminConfig.phone,
-          role: 'admin',
-          isEmailVerified: true,
-        );
-        state = AuthState(profile: adminProfile, lastLoginMethod: 'email');
-        return;
-      }
-
-      if (errStr.contains('not initialized') ||
+      // Allow offline/preview fallback ONLY when Firebase is uninitialized (e.g. unit tests
+      // or local preview without Firebase setup), never on invalid credentials.
+      final isFirebaseUnavailable = errStr.contains('not initialized') ||
           errStr.contains('no-app') ||
-          errStr.contains('FirebaseException') ||
-          errStr.contains('network-request-failed')) {
+          (kDebugMode && !isAdm && errStr.contains('network-request-failed'));
+
+      if (isFirebaseUnavailable) {
         await _saveLastLoginMethod('email');
-        final isAdm = AdminConfig.isAdminEmail(email);
         final previewProfile = UserProfile(
           uid: isAdm ? 'preview-admin' : 'preview-customer',
           name: isAdm ? AdminConfig.displayName : 'Juan dela Cruz',
           email: email.trim(),
           phone: isAdm ? AdminConfig.phone : '+63 912 345 6789',
           role: isAdm ? 'admin' : 'customer',
-          favorites: const ['spanish-latte'],
-          stamps: 3,
-          addresses: const [
-            UserAddress(
-              id: 'addr-home',
-              label: 'Home',
-              line1: 'Unit 12B One Serendra, 11th Ave',
-              city: 'Taguig City',
-              notes: 'Lobby concierge drop-off',
-              lat: 14.5489,
-              lng: 121.0548,
-            ),
-            UserAddress(
-              id: 'addr-office',
-              label: 'Office',
-              line1: 'Ayala Tower One, Ayala Ave',
-              city: 'Makati City',
-              notes: 'Call upon arrival at reception',
-              lat: 14.5547,
-              lng: 121.0244,
-            ),
-          ],
+          favorites: isAdm ? const [] : const ['spanish-latte'],
+          stamps: isAdm ? 0 : 3,
+          addresses: isAdm
+              ? const []
+              : const [
+                  UserAddress(
+                    id: 'addr-home',
+                    label: 'Home',
+                    line1: 'Unit 12B One Serendra, 11th Ave',
+                    city: 'Taguig City',
+                    notes: 'Lobby concierge drop-off',
+                    lat: 14.5489,
+                    lng: 121.0548,
+                  ),
+                  UserAddress(
+                    id: 'addr-office',
+                    label: 'Office',
+                    line1: 'Ayala Tower One, Ayala Ave',
+                    city: 'Makati City',
+                    notes: 'Call upon arrival at reception',
+                    lat: 14.5547,
+                    lng: 121.0244,
+                  ),
+                ],
           isEmailVerified: true,
         );
         state = AuthState(profile: previewProfile, lastLoginMethod: 'email');

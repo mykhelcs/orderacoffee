@@ -18,17 +18,21 @@ service cloud.firestore {
       );
     }
 
-    // Menu collections: publicly readable; writable by staff/admin or during initial catalog seed
+    function isDriver() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'driver';
+    }
+
+    // Menu collections: publicly readable; writable strictly by staff/admin
     match /menu/{itemId} {
       allow read: if true;
-      allow create: if isSignedIn() || !exists(/databases/$(database)/documents/menu/$(itemId));
-      allow update, delete: if isStaffOrAdmin();
+      allow create, update, delete: if isStaffOrAdmin();
     }
 
     match /menu_items/{itemId} {
       allow read: if true;
-      allow create: if isSignedIn() || !exists(/databases/$(database)/documents/menu_items/$(itemId));
-      allow update, delete: if isStaffOrAdmin();
+      allow create, update, delete: if isStaffOrAdmin();
     }
 
     match /categories/{categoryId} {
@@ -39,7 +43,7 @@ service cloud.firestore {
     // Customer profiles: scoped to the authenticated owner or staff/admin
     match /users/{userId} {
       allow read: if isOwner(userId) || isStaffOrAdmin();
-      // Only allow customer role on self-registration; admin/staff roles must be provisioned
+      // Only allow customer role on self-registration; admin/staff/driver roles must be provisioned
       allow create: if isOwner(userId) && (!('role' in request.resource.data) || request.resource.data.role == 'customer');
       // Prevent non-admin users from changing their role
       allow update: if isStaffOrAdmin() || (
@@ -48,34 +52,86 @@ service cloud.firestore {
       allow delete: if isOwner(userId) || isStaffOrAdmin();
     }
 
-    // Email OTP verification records (used during pre-auth signup flow)
+    // Email OTP verification records (used during pre-auth signup flow; disallow collection listing)
     match /email_verifications/{email} {
-      allow read, create, update: if true;
-      allow delete: if isStaffOrAdmin();
+      allow get: if true;
+      allow create: if request.resource.data.keys().hasAll(['email', 'codeHash', 'expiresAt', 'verified']) &&
+        !('code' in request.resource.data) &&
+        request.resource.data.email == email &&
+        request.resource.data.codeHash is string &&
+        request.resource.data.codeHash.size() == 64 &&
+        request.resource.data.verified == false;
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verified', 'codeHash', 'expiresAt', 'createdAt']) &&
+        !('code' in request.resource.data);
+      allow list, delete: if isStaffOrAdmin();
     }
 
     // Outbound email queue for Firebase Trigger Email extension
     match /mail/{mailId} {
-      allow create: if true;
+      allow create: if request.resource.data.keys().hasOnly(['to', 'message']) &&
+        request.resource.data.to is list &&
+        request.resource.data.to.size() == 1 &&
+        request.resource.data.to[0] is string &&
+        exists(/databases/$(database)/documents/email_verifications/$(request.resource.data.to[0])) &&
+        request.resource.data.message is map &&
+        request.resource.data.message.keys().hasOnly(['subject', 'text', 'html']);
       allow read, update, delete: if isStaffOrAdmin();
     }
 
-    // Orders: customers can create and read their own orders (and cancel while 'received');
-    // staff/admin and PayMongo webhook services can read and update order/payment status
+    // Orders: customers create pending 'received' orders and read their own;
+    // staff/admin manage all orders; drivers read/update delivery orders.
     match /orders/{orderId} {
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaffOrAdmin());
+      allow create: if isSignedIn() &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.status == 'received' &&
+        request.resource.data.paymentStatus in ['unpaid', 'pending'] &&
+        request.resource.data.type in ['pickup', 'dine-in', 'delivery'] &&
+        request.resource.data.items is list &&
+        request.resource.data.items.size() > 0 &&
+        request.resource.data.subtotal >= 0 &&
+        request.resource.data.total >= 0;
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        isStaffOrAdmin() ||
+        (isDriver() && resource.data.type == 'delivery')
+      );
       allow update: if isStaffOrAdmin() || (
+        isDriver() &&
+        resource.data.type == 'delivery' &&
+        (!('driverId' in resource.data) || resource.data.driverId == null || resource.data.driverId == request.auth.uid) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'driverId', 'driverName', 'driverPhone', 'driverStatus',
+          'riderLat', 'riderLng', 'status', 'paymentStatus', 'updatedAt'
+        ]) &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['paymentStatus']) || resource.data.payment == 'cash')
+      ) || (
         isSignedIn() &&
         resource.data.userId == request.auth.uid &&
         (
-          // Customer cancelling an order while still 'received'
-          (resource.data.status == 'received' && request.resource.data.status == 'cancelled') ||
+          // Customer cancelling an order while still 'received' (strictly status + updatedAt only)
+          (resource.data.status == 'received' &&
+           request.resource.data.status == 'cancelled' &&
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])) ||
           // Customer completing payment status update from checkout session
           (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['paymentStatus', 'paymongoCheckoutId', 'paymongoCheckoutUrl', 'paymongoPaymentId', 'updatedAt']))
         )
       );
       allow delete: if isStaffOrAdmin();
+
+      // Order ratings subcollection: order owner submits 1-5 star rating; staff/admin can read
+      match /ratings/{ratingId} {
+        allow read: if isSignedIn() && (
+          get(/databases/$(database)/documents/orders/$(orderId)).data.userId == request.auth.uid ||
+          isStaffOrAdmin()
+        );
+        allow create, update: if isSignedIn() &&
+          ratingId == request.auth.uid &&
+          get(/databases/$(database)/documents/orders/$(orderId)).data.userId == request.auth.uid &&
+          request.resource.data.userId == request.auth.uid &&
+          request.resource.data.rating >= 1 &&
+          request.resource.data.rating <= 5;
+        allow delete: if isStaffOrAdmin();
+      }
     }
 
     // Daily sales summaries

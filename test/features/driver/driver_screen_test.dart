@@ -25,6 +25,7 @@ void main() {
       role: 'driver',
       vehicleType: 'motorcycle',
       vehicleNumber: 'XYZ-7890',
+      averageRating: 4.8,
     );
 
     final readyOrders = [
@@ -70,7 +71,7 @@ void main() {
       // Header verification
       expect(find.text('DRIVER WORKSPACE'), findsOneWidget);
       expect(find.text('Rider Juan'), findsOneWidget);
-      expect(find.textContaining('Motorcycle • ABC-1234'), findsOneWidget);
+      expect(find.textContaining('Motorcycle • XYZ-7890 • ⭐ 4.8'), findsOneWidget);
       expect(find.text('Online'), findsOneWidget);
 
       // Available Orders Pool

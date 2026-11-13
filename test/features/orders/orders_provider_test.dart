@@ -12,9 +12,12 @@ class _FakeOrderRepository extends OrderRepository {
   int _seq = 1000;
 
   @override
-  Future<String> placeOrder(OrderDraft draft) async {
+  String allocateOrderId() => '#${++_seq}';
+
+  @override
+  Future<String> placeOrder(OrderDraft draft, {String? orderId}) async {
     draft.validate();
-    final id = '#${++_seq}';
+    final id = orderId ?? '#${++_seq}';
     final order = Order(
       id: id,
       userId: draft.userId,

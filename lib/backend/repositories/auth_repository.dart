@@ -71,10 +71,11 @@ class AuthRepository {
     return a.authStateChanges();
   }
 
-  /// Sends a 6-digit email authentication code via SMTP and records it.
+  /// Sends a 6-digit email authentication code via SMTP and stores its salted SHA-256 hash.
   Future<String> sendEmailVerificationCode(String email) async {
     final cleanEmail = email.trim().toLowerCase();
     final code = (100000 + Random().nextInt(900000)).toString();
+    final codeHash = hashPassword(code, salt: cleanEmail);
     final expiresAt = DateTime.now().add(const Duration(minutes: 10));
 
     final col = _emailVerificationsCol;
@@ -83,7 +84,7 @@ class AuthRepository {
       try {
         await col.doc(cleanEmail).set({
           'email': cleanEmail,
-          'code': code,
+          'codeHash': codeHash,
           'expiresAt': Timestamp.fromDate(expiresAt),
           'createdAt': FieldValue.serverTimestamp(),
           'verified': false,
@@ -143,7 +144,8 @@ class AuthRepository {
         final doc = await col.doc(cleanEmail).get();
         if (doc.exists) {
           final data = doc.data()!;
-          final storedCode = data['code'] as String? ?? '';
+          final storedHash = data['codeHash'] as String? ?? '';
+          final legacyStoredCode = data['code'] as String? ?? '';
           final expiresAtTimestamp = data['expiresAt'] as Timestamp?;
           final expiresAt = expiresAtTimestamp?.toDate();
 
@@ -151,7 +153,11 @@ class AuthRepository {
             throw const ValidationFailure('Verification code has expired. Please request a new code.');
           }
 
-          if (storedCode != cleanCode) {
+          final expectedHash = hashPassword(cleanCode, salt: cleanEmail);
+          final isMatch = storedHash.isNotEmpty
+              ? storedHash == expectedHash
+              : legacyStoredCode == cleanCode;
+          if (!isMatch) {
             throw const ValidationFailure('Invalid 6-digit code. Please check your email and try again.');
           }
 
@@ -174,8 +180,8 @@ class AuthRepository {
       return true;
     }
 
-    // Default testing code fallback only in debug/preview or when Firestore is unavailable
-    if ((kDebugMode || firestore == null) && cleanCode == '123456') {
+    // Default testing code fallback strictly in debug mode
+    if (kDebugMode && cleanCode == '123456') {
       return true;
     }
 
@@ -232,9 +238,6 @@ class AuthRepository {
       await user.updateDisplayName(name.trim());
     } catch (_) {}
 
-    // Hash password using salted SHA-256 before saving to Firestore
-    final passwordHash = hashPassword(password, salt: user.uid);
-
     final profile = UserProfile(
       uid: user.uid,
       name: name.trim(),
@@ -251,7 +254,6 @@ class AuthRepository {
     try {
       await col.doc(user.uid).set({
         ...profile.toMap(),
-        'passwordHash': passwordHash,
         'createdAt': FieldValue.serverTimestamp(),
       });
       return profile;
@@ -372,7 +374,13 @@ class AuthRepository {
         throw const AuthFailure('Google Sign-In requires Gmail account selection', 'popup-required');
       }
     } else if (a != null) {
-      // Fallback email provided (e.g. from Gmail account picker modal or test)
+      if (kReleaseMode) {
+        throw const AuthFailure(
+          'Unverified email bypass is disabled in release builds.',
+          'unverified-google-auth',
+        );
+      }
+      // Fallback email provided (debug/test Gmail picker modal)
       try {
         final credential = GoogleAuthProvider.credential(
           idToken: 'mock-id-token-$resolvedEmail',
@@ -381,6 +389,13 @@ class AuthRepository {
         final userCred = await a.signInWithCredential(credential);
         firebaseUser = userCred.user;
       } catch (_) {}
+    }
+
+    if (kReleaseMode && a != null && firebaseUser == null) {
+      throw const AuthFailure(
+        'Google Sign-In verification failed.',
+        'unverified-google-auth',
+      );
     }
 
     final finalEmail = (firebaseUser?.email?.isNotEmpty == true)
@@ -392,19 +407,8 @@ class AuthRepository {
             ? resolvedName!
             : finalEmail.split('@').first);
 
-    // Map known Firebase project accounts so existing profiles resolve cleanly
-    const knownUidsByEmail = <String, String>{
-      'glennmykhel@gmail.com': 'P6AxF5eDHHXW2JPhfV4WLppcbyU2',
-      'gglennmykhel@gmail.com': 'cxTbfA8luVcrZePTnfUjMqOkjJQ2',
-      'rane111605@gmail.com': 'Oj4r7Ht2mDVWXgvqeiBqugNIXxd2',
-      'ranelaesgana@gmail.com': 'trfXMEr3aLhHGHWvwWP4RIhl5Xk1',
-      'rane111606@gmail.com': 'GvlOMts6JhNYTC1cOlzD7rCRuR13',
-      'ranellayuke123@gmail.com': 'Nue3sJ1MU6SUXTHjY5gpFmKvkOI2',
-    };
-
     final finalUid = firebaseUser?.uid ??
         resolvedUid ??
-        knownUidsByEmail[finalEmail.toLowerCase()] ??
         'google-${finalEmail.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}';
 
     if (col != null) {
@@ -528,11 +532,14 @@ class AuthRepository {
   // ─── Admin Account Seeding & Defaults ─────────────────────────────────────
 
   static const defaultAdminEmail = 'admin@cafego.ph';
-  static const defaultAdminPassword = 'Admin@CafeGo2024!';
+  static const defaultAdminPassword = String.fromEnvironment(
+    'ADMIN_PASSWORD',
+    defaultValue: '',
+  );
   static const defaultAdminUid = 'admin-master';
 
   /// Ensures a dedicated administrative account is provisioned in Firebase Auth
-  /// and Cloud Firestore with role: 'admin'.
+  /// and Cloud Firestore with role: 'admin' when ADMIN_PASSWORD is supplied via env.
   Future<void> ensureAdminAccountExists({
     String email = defaultAdminEmail,
     String password = defaultAdminPassword,
@@ -540,7 +547,7 @@ class AuthRepository {
   }) async {
     final a = auth;
     final col = _usersCol;
-    if (a == null || col == null) return;
+    if (a == null || col == null || password.trim().isEmpty) return;
 
     try {
       User? adminUser;
