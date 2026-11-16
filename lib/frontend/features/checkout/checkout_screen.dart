@@ -136,6 +136,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   Future<void> _handlePlaceOrder() async {
+    if (ref.read(ordersProvider).isPlacingOrder) return;
+
     if (!_isFormValid()) {
       setState(() {
         _validationError = 'Enter a delivery address to continue.';
@@ -160,6 +162,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     final paymentMethod = _effectivePayment;
 
     String? rewardCode = authState.activeRewardCode;
+    bool redeemedInThisAttempt = false;
 
     final orderItems = cart.lines.map((line) {
       return OrderItem(
@@ -172,44 +175,45 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       );
     }).toList();
 
-    final draft = OrderDraft(
-      userId: userId,
-      userName: userName,
-      userEmail: userEmail,
-      items: orderItems,
-      type: _selectedType,
-      tableNo:
-          _selectedType == OrderType.dineIn ? 'Dine-in (Open Seating)' : null,
-      address: _selectedType == OrderType.delivery
-          ? _addressController.text.trim()
-          : null,
-      payment: paymentMethod,
-      note: _orderNote,
-      subtotal: subtotal,
-      deliveryFee: deliveryFee,
-      discount: discount,
-      rewardCode: discount > 0 ? (rewardCode ?? 'CAFEGO-8STAMPS') : null,
-      branchId: _selectedBranch.id,
-      branchName: _selectedBranch.name,
-      branchLat: _selectedBranch.coordinates.latitude,
-      branchLng: _selectedBranch.coordinates.longitude,
-      deliveryLat: _selectedType == OrderType.delivery
-          ? _deliveryCoords.latitude
-          : null,
-      deliveryLng: _selectedType == OrderType.delivery
-          ? _deliveryCoords.longitude
-          : null,
-    );
-
     try {
-      if (discount > 0) {
-        if (authState.activeRewardCode == null && (user?.stamps ?? 0) >= 8) {
-          await ref.read(authProvider.notifier).redeemStamps();
-        }
-        ref.read(authProvider.notifier).clearActiveRewardCode();
+      if (discount > 0 && rewardCode == null && (user?.stamps ?? 0) >= 8) {
+        rewardCode = await ref.read(authProvider.notifier).redeemStamps();
+        redeemedInThisAttempt = true;
       }
 
+      final draft = OrderDraft(
+        userId: userId,
+        userName: userName,
+        userEmail: userEmail,
+        items: orderItems,
+        type: _selectedType,
+        tableNo:
+            _selectedType == OrderType.dineIn ? 'Dine-in (Open Seating)' : null,
+        address: _selectedType == OrderType.delivery
+            ? _addressController.text.trim()
+            : null,
+        payment: paymentMethod,
+        note: _orderNote,
+        subtotal: subtotal,
+        deliveryFee: deliveryFee,
+        discount: discount,
+        rewardCode: discount > 0 ? (rewardCode ?? 'CAFEGO-8STAMPS') : null,
+        branchId: _selectedBranch.id,
+        branchName: _selectedBranch.name,
+        branchLat: _selectedBranch.coordinates.latitude,
+        branchLng: _selectedBranch.coordinates.longitude,
+        deliveryLat: _selectedType == OrderType.delivery
+            ? _deliveryCoords.latitude
+            : null,
+        deliveryLng: _selectedType == OrderType.delivery
+            ? _deliveryCoords.longitude
+            : null,
+      );
+
       final orderId = await ref.read(ordersProvider.notifier).placeOrder(draft);
+      if (discount > 0) {
+        ref.read(authProvider.notifier).clearActiveRewardCode();
+      }
       await ref.read(authProvider.notifier).earnStamp();
       ref.read(cartProvider.notifier).clear();
 
@@ -240,6 +244,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         context.go('/order/$orderId');
       }
     } catch (e) {
+      if (redeemedInThisAttempt) {
+        await ref.read(authProvider.notifier).refundRedeemedStamps();
+      }
       if (mounted) {
         final message = e.toString().contains('permission-denied') ||
                 e.toString().contains('PERMISSION_DENIED')

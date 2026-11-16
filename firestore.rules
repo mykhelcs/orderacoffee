@@ -62,7 +62,8 @@ service cloud.firestore {
         request.resource.data.codeHash.size() == 64 &&
         request.resource.data.verified == false;
       allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verified', 'codeHash', 'expiresAt', 'createdAt']) &&
-        !('code' in request.resource.data);
+        !('code' in request.resource.data) &&
+        resource.data.verified == false;
       allow list, delete: if isStaffOrAdmin();
     }
 
@@ -88,8 +89,12 @@ service cloud.firestore {
         request.resource.data.type in ['pickup', 'dine-in', 'delivery'] &&
         request.resource.data.items is list &&
         request.resource.data.items.size() > 0 &&
+        request.resource.data.items.size() <= 50 &&
         request.resource.data.subtotal >= 0 &&
-        request.resource.data.total >= 0;
+        request.resource.data.deliveryFee >= 0 &&
+        request.resource.data.discount >= 0 &&
+        request.resource.data.total >= 0 &&
+        request.resource.data.total <= request.resource.data.subtotal + request.resource.data.deliveryFee;
       allow read: if isSignedIn() && (
         resource.data.userId == request.auth.uid ||
         isStaffOrAdmin() ||
@@ -103,7 +108,10 @@ service cloud.firestore {
           'driverId', 'driverName', 'driverPhone', 'driverStatus',
           'riderLat', 'riderLng', 'status', 'paymentStatus', 'updatedAt'
         ]) &&
-        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['paymentStatus']) || resource.data.payment == 'cash')
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['status']) ||
+          (resource.data.status == 'ready' && request.resource.data.status == 'completed')) &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['paymentStatus']) ||
+          (resource.data.payment == 'cash' && request.resource.data.status == 'completed' && request.resource.data.paymentStatus == 'paid'))
       ) || (
         isSignedIn() &&
         resource.data.userId == request.auth.uid &&
@@ -112,8 +120,10 @@ service cloud.firestore {
           (resource.data.status == 'received' &&
            request.resource.data.status == 'cancelled' &&
            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])) ||
-          // Customer completing payment status update from checkout session
-          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['paymentStatus', 'paymongoCheckoutId', 'paymongoCheckoutUrl', 'paymongoPaymentId', 'updatedAt']))
+          // Customer updating PayMongo online payment session/status (blocked for cash/counter)
+          (resource.data.payment in ['gcash', 'maya', 'card'] &&
+           resource.data.paymentStatus in ['unpaid', 'pending'] &&
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['paymentStatus', 'paymongoCheckoutId', 'paymongoCheckoutUrl', 'paymongoPaymentId', 'updatedAt']))
         )
       );
       allow delete: if isStaffOrAdmin();

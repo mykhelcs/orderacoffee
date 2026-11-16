@@ -30,9 +30,11 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Get dependencies & build Flutter web
+      - name: Get dependencies, analyze, test & build Flutter web
         run: |
           flutter pub get
+          flutter analyze
+          flutter test
           flutter build web --release --base-href "/orderacoffee/"
           cp build/web/index.html build/web/404.html
           touch build/web/.nojekyll

@@ -42,6 +42,11 @@ final liveQueueStreamProvider = StreamProvider<List<Order>>((ref) {
   return ref.watch(orderRepositoryProvider).liveQueue();
 });
 
+/// Stream of all orders across all statuses (active, completed, cancelled).
+final allOrdersStreamProvider = StreamProvider<List<Order>>((ref) {
+  return ref.watch(orderRepositoryProvider).watchAllOrders();
+});
+
 // ─── Orders State & Notifier ──────────────────────────────────────────────────
 
 @immutable

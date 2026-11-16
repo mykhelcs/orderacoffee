@@ -757,7 +757,40 @@ class OrderRepository {
     }
   }
 
-  /// O11: Assign driver to order (for live delivery synchronization)
+  /// O10: Stream all orders across every status (received, preparing, ready, completed, cancelled)
+  Stream<List<Order>> watchAllOrders() {
+    List<Order> sortNewestFirst(Iterable<Order> orders) {
+      final list = orders.toList();
+      list.sort(
+        (a, b) => (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)),
+      );
+      return list;
+    }
+
+    final col = _ordersCol;
+    if (col == null) {
+      return Stream<List<Order>>.multi((controller) {
+        void emit() => controller.add(sortNewestFirst(_fallbackOrders.values));
+        emit();
+        final sub = _fallbackOrdersController.stream.listen((_) => emit());
+        controller.onCancel = () => sub.cancel();
+      });
+    }
+
+    return col
+        .snapshots()
+        .map((s) {
+          final list = s.docs.map(Order.fromFirestore).toList();
+          final map = <String, Order>{};
+          for (final o in [...list, ..._fallbackOrders.values]) {
+            map[o.id] = o;
+          }
+          return sortNewestFirst(map.values);
+        })
+        .handleError((_) => sortNewestFirst(_fallbackOrders.values));
+  }
+
+  /// O11: Assign driver to order atomically (prevents two drivers claiming the same order)
   Future<void> assignDriver(
     String orderId, {
     required String driverId,
@@ -766,6 +799,13 @@ class OrderRepository {
   }) async {
     final local = _fallbackOrders[orderId];
     if (local != null) {
+      if (local.driverId != null &&
+          local.driverId!.isNotEmpty &&
+          local.driverId != driverId) {
+        throw const OrderStateFailure(
+          'Order is already assigned to another driver.',
+        );
+      }
       _fallbackOrders[orderId] = local.copyWith(
         driverId: driverId,
         driverName: driverName,
@@ -776,18 +816,40 @@ class OrderRepository {
       _notifyFallback();
     }
 
+    final fs = firestore;
     final col = _ordersCol;
-    if (col != null) {
+    if (fs != null && col != null) {
       try {
-        await col.doc(orderId).update({
-          'driverId': driverId,
-          'driverName': driverName,
-          if (driverPhone != null) 'driverPhone': driverPhone,
-          'driverStatus': 'assigned',
-          'updatedAt': FieldValue.serverTimestamp(),
+        await fs.runTransaction((transaction) async {
+          final docRef = col.doc(orderId);
+          final snapshot = await transaction.get(docRef);
+          if (!snapshot.exists) {
+            throw NotFoundFailure('Order not found: $orderId');
+          }
+          final existingDriverId = snapshot.data()?['driverId'] as String?;
+          if (existingDriverId != null &&
+              existingDriverId.isNotEmpty &&
+              existingDriverId != driverId) {
+            throw const OrderStateFailure(
+              'Order is already assigned to another driver.',
+            );
+          }
+
+          transaction.update(docRef, {
+            'driverId': driverId,
+            'driverName': driverName,
+            if (driverPhone != null) 'driverPhone': driverPhone,
+            'driverStatus': 'assigned',
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
         });
+      } on AppException {
+        rethrow;
       } catch (e) {
-        debugPrint('[Driver Sync] Failed to update Firestore with assigned driver: $e');
+        if (local == null) {
+          debugPrint('[Driver Sync] Failed to update Firestore with assigned driver: $e');
+          rethrow;
+        }
       }
     }
   }
