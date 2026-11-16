@@ -9,15 +9,13 @@ import '../auth/auth_provider.dart';
 import '../menu/menu_provider.dart';
 import '../orders/orders_provider.dart';
 
+export '../orders/orders_provider.dart' show allOrdersStreamProvider;
+
 final reportsRepositoryProvider = Provider<ReportsRepository>((ref) {
   return ReportsRepository();
 });
 
 final storeStatusProvider = StateProvider<bool>((ref) => true);
-
-final allOrdersStreamProvider = StreamProvider<List<Order>>((ref) {
-  return ref.watch(orderRepositoryProvider).liveQueue();
-});
 
 final allUsersStreamProvider = StreamProvider<List<UserProfile>>((ref) {
   return ref.watch(userRepositoryProvider).watchAllUsers();

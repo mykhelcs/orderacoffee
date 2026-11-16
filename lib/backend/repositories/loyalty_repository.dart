@@ -26,6 +26,18 @@ class LoyaltyRepository {
     }
   }
 
+  /// Refunds previously deducted stamps if checkout fails after redemption.
+  Future<void> refundStamps(String uid, {int count = 8}) async {
+    if (count <= 0) return;
+    try {
+      await _usersCol.doc(uid).update({
+        'stamps': FieldValue.increment(count),
+      });
+    } catch (e) {
+      throw ValidationFailure('Failed to refund stamps: $e');
+    }
+  }
+
   /// L2: Redeem stamps for free drink (atomic: requires >= 8 stamps, deducts 8, returns reward code)
   Future<String> redeemStamps(String uid) async {
     final userRef = _usersCol.doc(uid);

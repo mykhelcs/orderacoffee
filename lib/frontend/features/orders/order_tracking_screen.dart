@@ -44,6 +44,20 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     return 'Order #BB$suffix';
   }
 
+  void _maybeScheduleRatingSheet(Order? order) {
+    if (order == null ||
+        order.status != OrderStatus.completed ||
+        _ratingShown) {
+      return;
+    }
+    _ratingShown = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _checkAndShowRatingSheet(order);
+      }
+    });
+  }
+
   Future<void> _checkAndShowRatingSheet(Order order) async {
     final user = ref.read(authProvider).profile;
     if (user == null) return;
@@ -216,18 +230,11 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
 
     ref.listen<AsyncValue<Order?>>(
         singleOrderStreamProvider(widget.orderId), (prev, next) {
-      final order = next.valueOrNull;
-      if (order != null &&
-          order.status == OrderStatus.completed &&
-          !_ratingShown) {
-        _ratingShown = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _checkAndShowRatingSheet(order);
-        });
-      }
+      _maybeScheduleRatingSheet(next.valueOrNull);
     });
 
     final orderAsync = ref.watch(singleOrderStreamProvider(widget.orderId));
+    _maybeScheduleRatingSheet(orderAsync.valueOrNull);
     final menuItems = ref.watch(menuStreamProvider).valueOrNull ?? [];
 
     return Scaffold(

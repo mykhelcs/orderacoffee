@@ -5,7 +5,6 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'package:orderacoffee/backend/models/order.dart';
 import 'package:orderacoffee/core/utils.dart';
-import 'package:orderacoffee/frontend/features/admin/admin_provider.dart';
 import 'package:orderacoffee/frontend/features/auth/auth_provider.dart';
 import 'package:orderacoffee/frontend/features/orders/orders_provider.dart';
 import 'package:orderacoffee/frontend/theme/theme.dart';
@@ -13,6 +12,7 @@ import 'package:orderacoffee/frontend/widgets/app_logo.dart';
 import 'package:orderacoffee/frontend/widgets/brand_button.dart';
 import 'package:orderacoffee/frontend/widgets/ghost_button.dart';
 import 'package:orderacoffee/frontend/widgets/status_badge.dart';
+import 'driver_provider.dart';
 
 class DriverScreen extends ConsumerStatefulWidget {
   const DriverScreen({super.key});
@@ -23,6 +23,7 @@ class DriverScreen extends ConsumerStatefulWidget {
 
 class _DriverScreenState extends ConsumerState<DriverScreen> {
   bool _isOnline = true;
+  bool _isSubmitting = false;
   String? _activeOrderId;
 
   @override
@@ -174,7 +175,22 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
                         Switch.adaptive(
                           value: _isOnline,
                           activeTrackColor: Colors.green,
-                          onChanged: (val) => setState(() => _isOnline = val),
+                          onChanged: (val) async {
+                            setState(() => _isOnline = val);
+                            try {
+                              await ref
+                                  .read(driverProvider)
+                                  .setAvailability(driverUid, val);
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Could not update status: $e'),
+                                  ),
+                                );
+                              }
+                            }
+                          },
                         ),
                         Text(
                           _isOnline ? 'Online' : 'Offline',
@@ -366,7 +382,7 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
                       icon: Icons.gps_fixed_rounded,
                       onPressed: () async {
                         try {
-                          await ref.read(adminProvider).advanceRiderGps(order);
+                          await ref.read(driverProvider).advanceRiderGps(order);
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Live GPS location updated on map!')),
@@ -388,29 +404,37 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
               if (order.status == OrderStatus.ready)
                 BrandButton(
                   label: isCOD ? 'Complete & Collect ${peso(order.total)}' : 'Complete Delivery',
-                  onPressed: () async {
-                    try {
-                      await ref
-                          .read(orderRepositoryProvider)
-                          .advanceStatus(order.id, OrderStatus.completed);
-                      if (!mounted) return;
-                      setState(() => _activeOrderId = null);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Delivery completed! Earnings added to your wallet 🎉'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Unable to complete delivery: $e')),
-                        );
-                      }
-                    }
-                  },
+                  isLoading: _isSubmitting,
+                  onPressed: _isSubmitting
+                      ? null
+                      : () async {
+                          setState(() => _isSubmitting = true);
+                          try {
+                            await ref
+                                .read(driverProvider)
+                                .completeDelivery(order.id);
+                            if (!mounted) return;
+                            setState(() => _activeOrderId = null);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Delivery completed! Earnings added to your wallet 🎉'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Unable to complete delivery: $e')),
+                              );
+                            }
+                          } finally {
+                            if (mounted) {
+                              setState(() => _isSubmitting = false);
+                            }
+                          }
+                        },
                 )
               else
                 const BrandButton(
@@ -524,31 +548,46 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
                     const SizedBox(height: 10),
                     BrandButton(
                       label: 'Accept Delivery',
-                      onPressed: () async {
-                        try {
-                          await ref.read(adminProvider).assignDriver(
-                                o.id,
-                                driverId: driverUid,
-                                driverName: driverName,
-                                driverPhone: (driverPhone != null && driverPhone.trim().isNotEmpty)
-                                    ? driverPhone.trim()
-                                    : null,
-                              );
-                          if (!mounted) return;
-                          setState(() => _activeOrderId = o.id);
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Accepted delivery for ${o.userName}! Pick up at cafe.')),
-                            );
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Unable to accept delivery: $e')),
-                            );
-                          }
-                        }
-                      },
+                      isLoading: _isSubmitting,
+                      onPressed: _isSubmitting
+                          ? null
+                          : () async {
+                              setState(() => _isSubmitting = true);
+                              try {
+                                await ref.read(driverProvider).acceptDelivery(
+                                      o.id,
+                                      driverId: driverUid,
+                                      driverName: driverName,
+                                      driverPhone: (driverPhone != null &&
+                                              driverPhone.trim().isNotEmpty)
+                                          ? driverPhone.trim()
+                                          : null,
+                                    );
+                                if (!mounted) return;
+                                setState(() => _activeOrderId = o.id);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Accepted delivery for ${o.userName}! Pick up at cafe.',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Unable to accept delivery: $e'),
+                                    ),
+                                  );
+                                }
+                              } finally {
+                                if (mounted) {
+                                  setState(() => _isSubmitting = false);
+                                }
+                              }
+                            },
                     ),
                   ],
                 ),

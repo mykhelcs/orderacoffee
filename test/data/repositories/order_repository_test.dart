@@ -252,5 +252,74 @@ void main() {
       expect(order.userName, 'Alice Smith');
       expect(order.userEmail, 'alice@example.com');
     });
+
+    test('O11: watchAllOrders includes received, completed, and cancelled orders', () async {
+      final activeId = await repository.placeOrder(const OrderDraft(
+        userId: 'u1',
+        userName: 'Active User',
+        items: [OrderItem(itemId: '1', name: 'Latte', qty: 1, unitPrice: 140.0)],
+        type: OrderType.delivery,
+        address: 'BGC High Street',
+      ));
+      final completedId = await repository.placeOrder(const OrderDraft(
+        userId: 'u2',
+        userName: 'Done User',
+        items: [OrderItem(itemId: '1', name: 'Mocha', qty: 1, unitPrice: 150.0)],
+        type: OrderType.delivery,
+        address: 'Ayala Ave',
+      ));
+      final cancelledId = await repository.placeOrder(const OrderDraft(
+        userId: 'u3',
+        userName: 'Cancel User',
+        items: [OrderItem(itemId: '1', name: 'Tea', qty: 1, unitPrice: 100.0)],
+        type: OrderType.pickup,
+      ));
+
+      await repository.advanceStatus(completedId, OrderStatus.preparing);
+      await repository.advanceStatus(completedId, OrderStatus.ready);
+      await repository.advanceStatus(completedId, OrderStatus.completed);
+      await repository.cancelOrder(cancelledId);
+
+      final all = await repository.watchAllOrders().first;
+      final ids = all.map((o) => o.id).toSet();
+      expect(ids, containsAll([activeId, completedId, cancelledId]));
+    });
+
+    test('O12: assignDriver prevents another driver from hijacking an already-assigned order', () async {
+      final orderId = await repository.placeOrder(const OrderDraft(
+        userId: 'u1',
+        userName: 'Delivery User',
+        items: [OrderItem(itemId: '1', name: 'Latte', qty: 1, unitPrice: 140.0)],
+        type: OrderType.delivery,
+        address: 'BGC',
+      ));
+
+      await repository.assignDriver(
+        orderId,
+        driverId: 'driver-1',
+        driverName: 'Driver One',
+        driverPhone: '+63 917 111 1111',
+      );
+
+      // Same driver re-assigning succeeds idempotently
+      await repository.assignDriver(
+        orderId,
+        driverId: 'driver-1',
+        driverName: 'Driver One',
+      );
+
+      // Different driver trying to claim throws OrderStateFailure
+      await expectLater(
+        () => repository.assignDriver(
+          orderId,
+          driverId: 'driver-2',
+          driverName: 'Driver Two',
+        ),
+        throwsA(isA<OrderStateFailure>()),
+      );
+
+      final order = await repository.getOrder(orderId);
+      expect(order.driverId, 'driver-1');
+    });
   });
 }

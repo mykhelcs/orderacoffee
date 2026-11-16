@@ -1,12 +1,17 @@
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
+import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:orderacoffee/backend/models/order.dart';
 import 'package:orderacoffee/backend/models/user_profile.dart';
-import 'package:orderacoffee/frontend/features/admin/admin_provider.dart';
+import 'package:orderacoffee/backend/repositories/auth_repository.dart';
+import 'package:orderacoffee/backend/repositories/order_repository.dart';
+import 'package:orderacoffee/backend/repositories/user_repository.dart';
 import 'package:orderacoffee/frontend/features/auth/auth_provider.dart';
 import 'package:orderacoffee/frontend/features/driver/driver_screen.dart';
+import 'package:orderacoffee/frontend/features/orders/orders_provider.dart';
 
 class FakeAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier {
   FakeAuthNotifier(UserProfile profile) : super(AuthState(profile: profile));
@@ -95,6 +100,76 @@ void main() {
       expect(find.text('Call Customer'), findsOneWidget);
       expect(find.text('Advance GPS'), findsOneWidget);
       expect(find.textContaining('Complete & Collect'), findsOneWidget);
+    });
+
+    testWidgets('Real OrderRepository stream includes completed deliveries for Today Earnings and persists online toggle', (tester) async {
+      final fakeFs = FakeFirebaseFirestore();
+      final orderRepo = OrderRepository(firestore: fakeFs);
+      final userRepo = UserRepository(firestore: fakeFs);
+      final authRepo = AuthRepository(
+        auth: MockFirebaseAuth(),
+        firestore: fakeFs,
+      );
+
+      await userRepo.createProfile(testDriver);
+
+      final orderId = await orderRepo.placeOrder(const OrderDraft(
+        userId: 'cust-1',
+        userName: 'Maria Clara',
+        items: [
+          OrderItem(
+            itemId: 'latte',
+            name: 'Latte',
+            qty: 1,
+            unitPrice: 150.0,
+          ),
+        ],
+        type: OrderType.delivery,
+        address: 'Ayala Ave',
+        payment: PaymentMethod.cash,
+        subtotal: 150.0,
+        deliveryFee: 45.0,
+      ));
+      await orderRepo.advanceStatus(orderId, OrderStatus.preparing);
+      await orderRepo.advanceStatus(orderId, OrderStatus.ready);
+      await orderRepo.assignDriver(
+        orderId,
+        driverId: testDriver.uid,
+        driverName: testDriver.name,
+      );
+      await orderRepo.advanceStatus(orderId, OrderStatus.completed);
+
+      final container = ProviderContainer(
+        overrides: [
+          orderRepositoryProvider.overrideWithValue(orderRepo),
+          userRepositoryProvider.overrideWithValue(userRepo),
+          authRepositoryProvider.overrideWithValue(authRepo),
+          authProvider.overrideWith((ref) => FakeAuthNotifier(testDriver)),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: DriverScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Completed order must appear in Driver earnings & trip count
+      expect(find.text('1 trips'), findsOneWidget);
+      expect(find.text('₱ 45'), findsOneWidget);
+
+      // Toggle online switch off -> persists isAvailable = false in Firestore
+      await tester.tap(find.byType(Switch));
+      await tester.pumpAndSettle();
+
+      final driverDoc = await fakeFs.collection('users').doc(testDriver.uid).get();
+      expect(driverDoc.data()?['isAvailable'], isFalse);
+      expect(find.text('Offline'), findsOneWidget);
     });
   });
 }

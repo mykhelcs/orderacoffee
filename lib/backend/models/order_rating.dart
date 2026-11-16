@@ -18,14 +18,14 @@ class OrderRating {
   });
 
   factory OrderRating.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final data = (doc.data() as Map<String, dynamic>?) ?? {};
     return OrderRating(
       id: doc.id,
-      orderId: data['orderId'] as String,
-      userId: data['userId'] as String,
-      rating: (data['rating'] as num).toDouble(),
+      orderId: data['orderId'] as String? ?? '',
+      userId: data['userId'] as String? ?? '',
+      rating: (data['rating'] as num?)?.toDouble() ?? 0.0,
       review: data['review'] as String?,
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 

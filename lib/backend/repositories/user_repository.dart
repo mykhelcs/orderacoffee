@@ -185,6 +185,17 @@ class UserRepository {
     }
   }
 
+  /// Persists a driver's online/offline availability flag.
+  Future<void> setDriverAvailability(String uid, bool isAvailable) async {
+    final col = _usersCol;
+    if (col == null || uid.isEmpty) return;
+    try {
+      await col.doc(uid).update({'isAvailable': isAvailable});
+    } catch (e) {
+      throw ValidationFailure('Failed to update driver availability: $e');
+    }
+  }
+
   static final List<UserProfile> _fallbackSampleUsers = [
     const UserProfile(
       uid: 'admin-master',

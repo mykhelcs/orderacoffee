@@ -709,6 +709,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       try {
         final repo = _loyaltyRepo ?? LoyaltyRepository();
         rewardCode = await repo.redeemStamps(currentProfile.uid);
+      } on AppException {
+        rethrow;
       } catch (_) {}
     }
 
@@ -717,6 +719,28 @@ class AuthNotifier extends StateNotifier<AuthState> {
       activeRewardCode: rewardCode,
     );
     return rewardCode;
+  }
+
+  /// Restores stamps deducted during a failed checkout attempt.
+  Future<void> refundRedeemedStamps({
+    int count = 8,
+    String? restoreRewardCode,
+  }) async {
+    final currentProfile = state.profile;
+    if (currentProfile == null) return;
+
+    if (!currentProfile.uid.startsWith('preview-')) {
+      try {
+        final repo = _loyaltyRepo ?? LoyaltyRepository();
+        await repo.refundStamps(currentProfile.uid, count: count);
+      } catch (_) {}
+    }
+
+    state = state.copyWith(
+      profile: currentProfile.copyWith(stamps: currentProfile.stamps + count),
+      activeRewardCode: restoreRewardCode,
+      clearRewardCode: restoreRewardCode == null,
+    );
   }
 
   void clearActiveRewardCode() {
