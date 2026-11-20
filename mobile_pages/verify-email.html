@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CafeGO — Email Verification</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .otp-circle { width: 84px; height: 84px; border-radius: 50%; background: rgba(212,163,115,0.16); border: 1px solid rgba(212,163,115,0.35); display: flex; align-items: center; justify-content: center; color: var(--brand); margin: 22px auto 18px; }
+    .inbox-banner { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--mute); margin: 18px 0 22px; }
+    .otp-grid { display: flex; justify-content: center; gap: 8px; margin-bottom: 26px; }
+    .otp-box { width: 46px; height: 56px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--card); text-align: center; font-family: var(--font-sans); font-size: 21px; font-weight: 800; color: var(--ink); outline: none; }
+    .otp-box:focus { border-color: var(--brand); }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <div class="phone-screen" id="phoneScreen">
+      <div class="status-bar">
+        <span>9:41</span>
+        <div class="dynamic-island"></div>
+        <div class="status-icons"><span>5G</span><span>■■</span></div>
+      </div>
+
+      <div class="screen-scroll page-pad" style="padding-top:14px;">
+        <div class="row-between">
+          <div class="app-logo">
+            <div class="app-logo-emblem">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18 8h1a4 4 0 0 1 0 8h-1v1a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V8h16zm0 6h1a2 2 0 0 0 0-4h-1v4z"/>
+              </svg>
+            </div>
+            <div>
+              <div class="app-logo-wordmark">Cafe<span class="go">GO</span></div>
+              <span class="app-logo-sub">Your daily comfort brew</span>
+            </div>
+          </div>
+
+          <button type="button" class="theme-pill-btn" onclick="toggleAppTheme()">
+            <span id="themeToggleIcon">🌙</span>
+            <span id="themeToggleLabel">Espresso</span>
+          </button>
+        </div>
+
+        <div class="otp-circle">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h8"/>
+            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+            <path d="m16 19 2 2 4-4"/>
+          </svg>
+        </div>
+
+        <div style="text-align:center;">
+          <h1 class="page-title" style="font-size:24px;">Verify your email</h1>
+          <p class="muted-text" style="margin-top:8px; line-height:1.45;">
+            We sent a 6-digit authentication code to<br/>
+            <strong id="otpEmail" style="color:var(--ink);">customer@cafego.ph</strong>
+          </p>
+        </div>
+
+        <div class="inbox-banner">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; color:var(--brand);">
+            <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
+          </svg>
+          <span>Please check your email inbox or spam folder for your 6-digit code.</span>
+        </div>
+
+        <div class="otp-grid" id="otpGrid">
+          <input class="otp-box" type="text" maxlength="1" value="8" />
+          <input class="otp-box" type="text" maxlength="1" value="4" />
+          <input class="otp-box" type="text" maxlength="1" value="2" />
+          <input class="otp-box" type="text" maxlength="1" value="9" />
+          <input class="otp-box" type="text" maxlength="1" value="1" />
+          <input class="otp-box" type="text" maxlength="1" value="6" />
+        </div>
+
+        <a href="menu.html" class="brand-btn">Verify and Continue</a>
+
+        <div style="text-align:center; margin-top:20px; font-size:13px; color:var(--mute);">
+          Didn't receive the code? <button type="button" id="resendBtn" onclick="resendOtp()" style="border:none; background:none; color:var(--brand); font-weight:700; cursor:pointer;">Resend code</button>
+        </div>
+
+        <div style="text-align:center; margin-top:16px;">
+          <a href="login.html" style="color:var(--ink); font-size:13px; font-weight:600; text-decoration:underline;">
+            Change email address
+          </a>
+        </div>
+      </div>
+
+      <div class="home-bar-wrap"><div class="home-bar"></div></div>
+    </div>
+  </div>
+  <script src="demo-store.js"></script>
+  <script src="shared.js"></script>
+  <script>
+    CafeDemo.onUpdate(s => {
+      document.getElementById('otpEmail').textContent = s.user.email;
+    });
+    const boxes = Array.from(document.querySelectorAll('#otpGrid .otp-box'));
+    boxes.forEach((b, i) => {
+      b.addEventListener('input', () => { if (b.value && boxes[i + 1]) boxes[i + 1].focus(); });
+      b.addEventListener('keydown', (e) => { if (e.key === 'Backspace' && !b.value && boxes[i - 1]) boxes[i - 1].focus(); });
+    });
+    function resendOtp() {
+      let t = 30;
+      const btn = document.getElementById('resendBtn');
+      btn.disabled = true;
+      btn.textContent = `Resend in ${t}s`;
+      const id = setInterval(() => {
+        t--;
+        if (t <= 0) { clearInterval(id); btn.disabled = false; btn.textContent = 'Resend code'; }
+        else { btn.textContent = `Resend in ${t}s`; }
+      }, 1000);
+    }
+  </script>
+</body>
+</html>

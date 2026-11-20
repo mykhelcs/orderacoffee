@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CafeGO — Admin Analytics</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0 16px; }
+    .kpi-val { font-family: var(--font-serif); font-size: 19px; font-weight: 800; margin: 3px 0; }
+    .bar-chart { height: 120px; display: flex; align-items: flex-end; gap: 6px; margin-top: 14px; }
+    .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+    .bar-fill { width: 100%; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, var(--brand) 0%, rgba(90,56,37,0.65) 100%); }
+    .dark-mode .bar-fill { background: linear-gradient(180deg, #D4A373 0%, rgba(212,163,115,0.65) 100%); }
+    .cat-prog-track { height: 7px; border-radius: 99px; background: var(--surface-tint); overflow: hidden; margin-top: 4px; }
+    .status-dist-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
+    .dist-pill { padding: 8px 4px; border-radius: 10px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <div class="phone-screen" id="phoneScreen">
+      <div class="status-bar">
+        <span>9:41</span><div class="dynamic-island"></div><div class="status-icons"><span>5G</span><span>■■</span></div>
+      </div>
+
+      <header class="admin-top-bar">
+        <div class="app-logo">
+          <div class="app-logo-emblem sm"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h1a4 4 0 0 1 0 8h-1v1a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V8h16zm0 6h1a2 2 0 0 0 0-4h-1v4z"/></svg></div>
+          <div class="app-logo-wordmark" style="font-size:15.5px;">Cafe<span class="go">GO</span></div>
+        </div>
+        <span class="admin-badge">🛡️ ADMIN</span>
+        <button type="button" class="icon-btn-sm" onclick="toggleAppTheme()">◐</button>
+        <div style="flex:1;"></div>
+        <a href="menu.html" class="icon-btn-sm">🏪</a>
+        <a href="login.html" class="icon-btn-sm">⎋</a>
+      </header>
+
+      <main class="screen-scroll page-pad">
+        <h1 class="section-title" style="font-size:20px;">Financial Overview</h1>
+
+        <div class="kpi-grid">
+          <div class="card-box"><div class="muted-text" style="font-size:11.5px; font-weight:600;">Today's Revenue</div><div id="anRev" class="kpi-val">₱ 0.00</div><div id="anCompSub" class="muted-text" style="font-size:11px;">0 completed</div></div>
+          <div class="card-box"><div class="muted-text" style="font-size:11.5px; font-weight:600;">Average Order Value</div><div id="anAov" class="kpi-val">₱ 0.00</div><div class="muted-text" style="font-size:11px;">AOV per ticket</div></div>
+          <div class="card-box"><div class="muted-text" style="font-size:11.5px; font-weight:600;">Active in Queue</div><div id="anQueue" class="kpi-val">0</div><div class="muted-text" style="font-size:11px;">Pending fulfillment</div></div>
+          <div class="card-box"><div class="muted-text" style="font-size:11.5px; font-weight:600;">Completed Orders</div><div id="anComp" class="kpi-val">0</div><div class="muted-text" style="font-size:11px;">Dispatched today</div></div>
+        </div>
+
+        <div class="card-box" style="margin-bottom:12px;">
+          <div class="row-between">
+            <strong style="font-family:var(--font-serif); font-size:15.5px;">Hourly Revenue &amp; Demand</strong>
+            <span style="font-size:10.5px; font-weight:700; color:var(--brand); background:rgba(90,56,37,0.1); padding:3px 8px; border-radius:8px;">Today</span>
+          </div>
+          <div class="bar-chart" id="hourlyBars"></div>
+        </div>
+
+        <div class="card-box" style="margin-bottom:12px;">
+          <strong style="font-family:var(--font-serif); font-size:15.5px;">Sales by Menu Category</strong>
+          <div id="catDistWrap" style="margin-top:8px;"></div>
+        </div>
+
+        <div class="card-box" style="margin-bottom:16px;">
+          <strong style="font-family:var(--font-serif); font-size:15.5px;">Fulfillment Status Distribution</strong>
+          <div class="status-dist-grid">
+            <div class="dist-pill" style="background:rgba(212,163,115,0.14); border:1px solid rgba(212,163,115,0.35); color:#B87D44;"><strong id="dRec" style="font-size:15px;">0</strong><div style="font-size:9.5px; font-weight:700;">Received</div></div>
+            <div class="dist-pill" style="background:rgba(226,149,120,0.14); border:1px solid rgba(226,149,120,0.35); color:#C86D4A;"><strong id="dPrep" style="font-size:15px;">0</strong><div style="font-size:9.5px; font-weight:700;">Preparing</div></div>
+            <div class="dist-pill" style="background:rgba(42,157,143,0.14); border:1px solid rgba(42,157,143,0.35); color:#2A9D8F;"><strong id="dReady" style="font-size:15px;">0</strong><div style="font-size:9.5px; font-weight:700;">Ready</div></div>
+            <div class="dist-pill" style="background:rgba(69,123,157,0.14); border:1px solid rgba(69,123,157,0.35); color:#457B9D;"><strong id="dComp" style="font-size:15px;">0</strong><div style="font-size:9.5px; font-weight:700;">Completed</div></div>
+          </div>
+        </div>
+
+        <h2 class="section-title" style="margin-bottom:10px;">Top Selling Items</h2>
+        <div id="topSellingWrap" class="card-box" style="padding:0 14px;"></div>
+      </main>
+
+      <nav class="admin-bottom-bar">
+        <a href="admin-orders.html" class="admin-tab-pill"><span>🧾</span><span>Orders</span></a>
+        <a href="admin-catalog.html" class="admin-tab-pill"><span>☕</span><span>Catalog</span></a>
+        <a href="admin-analytics.html" class="admin-tab-pill active"><span>📊</span><span>Analytics</span></a>
+        <a href="admin-users.html" class="admin-tab-pill"><span>👥</span><span>Staff/Users</span></a>
+      </nav>
+
+      <div class="home-bar-wrap" style="background:var(--card);"><div class="home-bar"></div></div>
+    </div>
+  </div>
+
+  <script src="demo-store.js"></script>
+  <script src="shared.js"></script>
+  <script>
+    CafeDemo.onUpdate(state => {
+      const orders = (state.orders || []).filter(o => o.status !== 'cancelled');
+      const completed = orders.filter(o => o.status === 'completed');
+      const queue = orders.filter(o => o.status !== 'completed');
+
+      const rev = completed.reduce((s, o) => s + o.total, 0);
+      const aov = completed.length ? rev / completed.length : 0;
+
+      document.getElementById('anRev').textContent = CafeDemo.peso(rev);
+      document.getElementById('anCompSub').textContent = `${completed.length} completed`;
+      document.getElementById('anAov').textContent = CafeDemo.peso(aov);
+      document.getElementById('anQueue').textContent = queue.length;
+      document.getElementById('anComp').textContent = completed.length;
+
+      document.getElementById('dRec').textContent = orders.filter(o => o.status === 'received').length;
+      document.getElementById('dPrep').textContent = orders.filter(o => o.status === 'preparing').length;
+      document.getElementById('dReady').textContent = orders.filter(o => o.status === 'ready').length;
+      document.getElementById('dComp').textContent = completed.length;
+
+      const curHour = new Date().getHours();
+      const buckets = [
+        ['8-10A', 120], ['10-12P', 310], ['12-2P', 180], ['2-4P', 140], ['4-6P', 90], ['6-8P', 60]
+      ];
+      const bIdx = curHour < 10 ? 0 : curHour < 12 ? 1 : curHour < 14 ? 2 : curHour < 16 ? 3 : curHour < 18 ? 4 : 5;
+      buckets[bIdx][1] += orders.reduce((s, o) => s + o.total, 0);
+      const maxB = Math.max(...buckets.map(b => b[1]), 100);
+      document.getElementById('hourlyBars').innerHTML = buckets.map(([lbl, v]) => `
+        <div class="bar-col">
+          <span style="font-size:9px; font-weight:700; color:var(--brand); margin-bottom:2px;">₱${Math.round(v)}</span>
+          <div class="bar-fill" style="height:${Math.max(12, Math.round((v / maxB) * 85))}%;"></div>
+          <span class="muted-text" style="font-size:9px; margin-top:5px;">${lbl}</span>
+        </div>
+      `).join('');
+
+      const cats = { 'Hot Coffee': 0, 'Iced Coffee': 0, 'Non-Coffee': 0, 'Pastries': 0, 'Merch': 0 };
+      const colors = { 'Hot Coffee': '#8B5A2B', 'Iced Coffee': '#D4A373', 'Non-Coffee': '#4E8752', 'Pastries': '#E29578', 'Merch': '#6C757D' };
+      let catGrand = 0;
+      const itemSales = {};
+
+      orders.forEach(o => {
+        (o.items || []).forEach(it => {
+          const m = (state.menu || []).find(x => x.id === it.itemId);
+          const c = (m && m.category) || (it.name.toLowerCase().includes('croissant') ? 'Pastries' : 'Hot Coffee');
+          cats[c] = (cats[c] || 0) + it.total;
+          catGrand += it.total;
+
+          if (!itemSales[it.name]) itemSales[it.name] = { name: it.name, qty: 0, rev: 0 };
+          itemSales[it.name].qty += it.qty;
+          itemSales[it.name].rev += it.total;
+        });
+      });
+
+      document.getElementById('catDistWrap').innerHTML = Object.entries(cats).map(([c, amt]) => {
+        const pct = catGrand > 0 ? Math.round((amt / catGrand) * 100) : 0;
+        const col = colors[c];
+        return `
+          <div style="margin-top:8px;">
+            <div class="row-between" style="font-size:12px;"><span>${c}</span><strong style="color:${col};">${CafeDemo.peso(amt)} (${pct}%)</strong></div>
+            <div class="cat-prog-track"><div style="width:${Math.max(2, pct)}%; height:100%; background:${col};"></div></div>
+          </div>
+        `;
+      }).join('');
+
+      const topList = Object.values(itemSales).sort((a, b) => b.qty - a.qty).slice(0, 4);
+      document.getElementById('topSellingWrap').innerHTML = topList.map((it, idx) => `
+        <div class="row-between" style="padding:11px 0; ${idx < topList.length - 1 ? 'border-bottom:1px solid var(--line);' : ''}">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="width:26px; height:26px; border-radius:50%; background:${idx === 0 ? '#D4A373' : 'var(--surface-tint)'}; color:${idx === 0 ? '#fff' : 'var(--ink)'}; font-size:11.5px; font-weight:800; display:flex; align-items:center; justify-content:center;">#${idx + 1}</span>
+            <div><div style="font-size:13.5px; font-weight:600;">${it.name}</div><div class="muted-text" style="font-size:11.5px;">${it.qty} sold</div></div>
+          </div>
+          <strong style="font-family:var(--font-serif);">${CafeDemo.peso(it.rev)}</strong>
+        </div>
+      `).join('');
+    });
+  </script>
+</body>
+</html>

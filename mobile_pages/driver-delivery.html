@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CafeGO — Active Delivery</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .earnings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0 16px; }
+    .active-green-banner { background: rgba(46,125,50,0.14); border: 1px solid rgba(46,125,50,0.35); color: var(--ok); border-radius: 12px; padding: 10px 12px; font-size: 12px; font-weight: 800; letter-spacing: 0.4px; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .cod-alert { background: rgba(217,119,6,0.14); border: 1px solid rgba(217,119,6,0.4); color: var(--warn); border-radius: 12px; padding: 10px 12px; font-size: 12.5px; font-weight: 800; margin: 12px 0; }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <div class="phone-screen" id="phoneScreen">
+      <div class="status-bar">
+        <span>9:41</span><div class="dynamic-island"></div><div class="status-icons"><span>5G</span><span>■■</span></div>
+      </div>
+
+      <header class="admin-top-bar">
+        <div class="app-logo">
+          <div class="app-logo-emblem sm"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h1a4 4 0 0 1 0 8h-1v1a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V8h16zm0 6h1a2 2 0 0 0 0-4h-1v4z"/></svg></div>
+          <div class="app-logo-wordmark" style="font-size:16px;">Cafe<span class="go">GO</span></div>
+        </div>
+        <span class="admin-badge" style="color:#2E7D32; border-color:rgba(46,125,50,0.45); background:rgba(46,125,50,0.14);">🛵 DRIVER WORKSPACE</span>
+        <div style="flex:1;"></div>
+        <button type="button" class="icon-btn-sm" onclick="toggleAppTheme()">◐</button>
+        <a href="login.html" class="icon-btn-sm">⎋</a>
+      </header>
+
+      <main class="screen-scroll page-pad">
+        <div class="card-box row-between" style="gap:10px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:42px; height:42px; border-radius:50%; background:rgba(46,125,50,0.14); color:var(--ok); display:flex; align-items:center; justify-content:center; font-size:20px;">🛵</div>
+            <div><strong style="font-size:14.5px;">Driver User</strong><div class="muted-text" style="font-size:11.5px;">Motorcycle • ABC-1234 • ⭐ 4.9</div></div>
+          </div>
+          <span style="font-size:11px; font-weight:700; color:var(--ok);">● Online</span>
+        </div>
+
+        <div class="earnings-grid">
+          <div class="card-box"><div class="muted-text" style="font-size:11.5px; font-weight:600;">Today Earnings</div><div id="actEarn" style="font-family:var(--font-serif); font-size:20px; font-weight:800; color:var(--brand); margin-top:4px;">₱ 450.00</div></div>
+          <div class="card-box"><div class="muted-text" style="font-size:11.5px; font-weight:600;">Completed</div><div id="actTrips" style="font-family:var(--font-serif); font-size:20px; font-weight:800; margin-top:4px;">10 trips</div></div>
+        </div>
+
+        <div class="active-green-banner"><span>●</span><span>ACTIVE DELIVERY IN PROGRESS</span></div>
+
+        <div class="card-box">
+          <div class="row-between">
+            <strong id="actCust" style="font-family:var(--font-serif); font-size:18px;">Maria Clara Santos</strong>
+            <span id="actStatus" class="status-badge">Ready for pickup</span>
+          </div>
+          <div class="divider"></div>
+          <div class="muted-text" style="font-size:11.5px; font-weight:700;">Delivery Destination</div>
+          <div id="actAddr" style="font-size:14px; font-weight:600; margin-top:2px;">Unit 1204, High Street South, BGC, Taguig</div>
+          <div id="actItemsLbl" class="muted-text" style="margin-top:8px;">2 items • Total ₱ 310.00</div>
+
+          <div id="payBox"></div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
+            <button type="button" class="ghost-btn">📞 Call Customer</button>
+            <button type="button" class="ghost-btn" onclick="advanceGps()">🛵 Advance GPS</button>
+          </div>
+
+          <button type="button" id="completeBtn" class="brand-btn" style="background:#2E7D32; color:#FFFFFF;" onclick="completeDelivery()">
+            Complete Delivery
+          </button>
+        </div>
+      </main>
+
+      <div class="home-bar-wrap"><div class="home-bar"></div></div>
+    </div>
+  </div>
+  <script src="demo-store.js"></script>
+  <script src="shared.js"></script>
+  <script>
+    let activeOrd = null;
+
+    function advanceGps() {
+      if (!activeOrd) return;
+      CafeDemo.setState(s => {
+        const o = s.orders.find(x => x.id === activeOrd.id);
+        if (o) {
+          o.riderProgress = Math.min(0.95, Number(((o.riderProgress || 0.2) + 0.3).toFixed(2)));
+          o.driverStatus = 'en_route';
+        }
+        return s;
+      });
+    }
+
+    function completeDelivery() {
+      if (!activeOrd || activeOrd.status !== 'ready') return;
+      CafeDemo.setState(s => {
+        const o = s.orders.find(x => x.id === activeOrd.id);
+        if (o) {
+          o.status = 'completed';
+          o.paymentStatus = 'paid';
+          o.driverStatus = 'delivered';
+          o.riderProgress = 1.0;
+        }
+        s.driver.todayEarnings = (s.driver.todayEarnings || 0) + 45;
+        s.driver.completedTrips = (s.driver.completedTrips || 0) + 1;
+        s.driver.activeOrderId = null;
+        s.user.loyaltyStamps = Math.min(8, (s.user.loyaltyStamps || 0) + 1);
+        return s;
+      });
+      window.location.href = 'driver-workspace.html';
+    }
+
+    CafeDemo.onUpdate(state => {
+      document.getElementById('actEarn').textContent = CafeDemo.peso(state.driver.todayEarnings);
+      document.getElementById('actTrips').textContent = `${state.driver.completedTrips} trips`;
+
+      const o = state.orders.find(x => x.id === state.driver.activeOrderId)
+        || state.orders.find(x => x.type === 'delivery' && x.status !== 'completed' && x.status !== 'cancelled');
+      if (!o || o.status === 'completed' || o.status === 'cancelled') {
+        window.location.href = 'driver-workspace.html';
+        return;
+      }
+      activeOrd = o;
+      document.getElementById('actCust').textContent = o.userName;
+      document.getElementById('actStatus').textContent = CafeDemo.statusLabel(o.status);
+      document.getElementById('actAddr').textContent = o.address || 'Metro Manila';
+      document.getElementById('actItemsLbl').textContent = `#${o.id} • ${o.items.length} item(s) • Total ${CafeDemo.peso(o.total)}`;
+
+      const isCodPending = o.paymentStatus === 'pending' && o.payment.toLowerCase().includes('cash');
+      document.getElementById('payBox').innerHTML = isCodPending
+        ? `<div class="cod-alert">💵 COLLECT CASH ON DELIVERY: ${CafeDemo.peso(o.total)}</div>`
+        : `<div class="cod-alert" style="background:rgba(46,125,50,0.12); border-color:rgba(46,125,50,0.35); color:var(--ok);">✓ PAID ONLINE (${o.payment})</div>`;
+
+      const btn = document.getElementById('completeBtn');
+      if (o.status !== 'ready') {
+        btn.classList.add('disabled');
+        btn.style.background = '#786960';
+        btn.textContent = 'Waiting for Kitchen to mark Ready';
+      } else {
+        btn.classList.remove('disabled');
+        btn.style.background = '#2E7D32';
+        btn.textContent = isCodPending ? `Complete & Collect ${CafeDemo.peso(o.total)}` : 'Complete Delivery';
+      }
+    });
+  </script>
+</body>
+</html>

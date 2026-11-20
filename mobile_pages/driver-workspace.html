@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CafeGO — Driver Workspace</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .earnings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0 18px; }
+    .pool-card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; margin-bottom: 12px; }
+    .fee-pill { background: rgba(46,125,50,0.14); color: var(--ok); font-size: 11.5px; font-weight: 800; padding: 3px 9px; border-radius: 99px; }
+    .switch-pill { width: 44px; height: 24px; border-radius: 99px; background: #2E7D32; position: relative; cursor: pointer; }
+    .switch-knob { position: absolute; top: 3px; left: 23px; width: 18px; height: 18px; border-radius: 50%; background: #FFFFFF; transition: left 0.2s; }
+    .switch-pill.off { background: var(--line); }
+    .switch-pill.off .switch-knob { left: 3px; }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <div class="phone-screen" id="phoneScreen">
+      <div class="status-bar">
+        <span>9:41</span><div class="dynamic-island"></div><div class="status-icons"><span>5G</span><span>■■</span></div>
+      </div>
+
+      <header class="admin-top-bar">
+        <div class="app-logo">
+          <div class="app-logo-emblem sm"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h1a4 4 0 0 1 0 8h-1v1a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V8h16zm0 6h1a2 2 0 0 0 0-4h-1v4z"/></svg></div>
+          <div class="app-logo-wordmark" style="font-size:16px;">Cafe<span class="go">GO</span></div>
+        </div>
+        <span class="admin-badge" style="color:#2E7D32; border-color:rgba(46,125,50,0.45); background:rgba(46,125,50,0.14);">🛵 DRIVER WORKSPACE</span>
+        <div style="flex:1;"></div>
+        <button type="button" class="icon-btn-sm" onclick="toggleAppTheme()">◐</button>
+        <a href="login.html" class="icon-btn-sm">⎋</a>
+      </header>
+
+      <main class="screen-scroll page-pad">
+        <div class="card-box row-between" style="gap:10px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:42px; height:42px; border-radius:50%; background:rgba(46,125,50,0.14); color:var(--ok); display:flex; align-items:center; justify-content:center; font-size:20px;">🛵</div>
+            <div>
+              <strong id="drvName" style="font-size:14.5px;">Driver User</strong>
+              <div id="drvMeta" class="muted-text" style="font-size:11.5px;">Motorcycle • ABC-1234 • ⭐ 4.9</div>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+            <div class="switch-pill" id="onlineSwitch" onclick="toggleOnline()"><div class="switch-knob"></div></div>
+            <span id="onlineStateLbl" style="font-size:10.5px; font-weight:700; color:var(--ok);">Online</span>
+          </div>
+        </div>
+
+        <div class="earnings-grid">
+          <div class="card-box"><div class="muted-text" style="font-size:11.5px; font-weight:600;">Today Earnings</div><div id="drvEarnings" style="font-family:var(--font-serif); font-size:20px; font-weight:800; color:var(--brand); margin-top:4px;">₱ 450.00</div></div>
+          <div class="card-box"><div class="muted-text" style="font-size:11.5px; font-weight:600;">Completed</div><div id="drvTrips" style="font-family:var(--font-serif); font-size:20px; font-weight:800; margin-top:4px;">10 trips</div></div>
+        </div>
+
+        <h2 class="section-title" id="poolHeader" style="margin-bottom:10px;">Available Orders Pool (0)</h2>
+        <div id="poolWrap"></div>
+      </main>
+
+      <div class="home-bar-wrap"><div class="home-bar"></div></div>
+    </div>
+  </div>
+  <script src="demo-store.js"></script>
+  <script src="shared.js"></script>
+  <script>
+    function toggleOnline() {
+      CafeDemo.setState(s => { s.driver.online = !s.driver.online; return s; });
+    }
+    function acceptOrder(id) {
+      CafeDemo.setState(s => {
+        const o = s.orders.find(x => x.id === id);
+        if (o) {
+          o.driverId = s.driver.uid;
+          o.driverName = s.driver.name;
+          o.driverStatus = 'assigned';
+          s.driver.activeOrderId = id;
+        }
+        return s;
+      });
+      window.location.href = 'driver-delivery.html';
+    }
+
+    CafeDemo.onUpdate(state => {
+      const d = state.driver || {};
+      document.getElementById('drvName').textContent = d.name || 'Driver User';
+      document.getElementById('drvMeta').textContent = `${d.vehicle} • ${d.plate} • ⭐ ${d.rating}`;
+      document.getElementById('drvEarnings').textContent = CafeDemo.peso(d.todayEarnings);
+      document.getElementById('drvTrips').textContent = `${d.completedTrips} trips`;
+
+      const sw = document.getElementById('onlineSwitch');
+      const lbl = document.getElementById('onlineStateLbl');
+      sw.classList.toggle('off', !d.online);
+      lbl.textContent = d.online ? 'Online' : 'Offline';
+      lbl.style.color = d.online ? 'var(--ok)' : 'var(--mute)';
+
+      if (d.activeOrderId && state.orders.some(o => o.id === d.activeOrderId && o.status !== 'completed' && o.status !== 'cancelled')) {
+        window.location.href = 'driver-delivery.html';
+        return;
+      }
+
+      const pool = (state.orders || []).filter(o => o.type === 'delivery' && o.status !== 'completed' && o.status !== 'cancelled' && !o.driverId);
+      document.getElementById('poolHeader').textContent = `Available Orders Pool (${pool.length})`;
+      const wrap = document.getElementById('poolWrap');
+      if (!d.online) {
+        wrap.innerHTML = `<div class="card-box muted-text" style="text-align:center;">Go Online to receive delivery dispatches.</div>`;
+        return;
+      }
+      if (!pool.length) {
+        wrap.innerHTML = `<div class="card-box muted-text" style="text-align:center;">Waiting for new delivery orders...</div>`;
+        return;
+      }
+
+      wrap.innerHTML = pool.map(o => `
+        <div class="pool-card">
+          <div class="row-between">
+            <strong style="font-family:var(--font-serif); font-size:16.5px;">${o.userName}</strong>
+            <span class="fee-pill">+₱45 Fee</span>
+          </div>
+          <div style="font-size:13px; margin-top:8px; font-weight:600;">📍 ${o.address || 'BGC, Taguig'}</div>
+          <div class="muted-text" style="margin:6px 0 12px;">#${o.id} • ${o.items.length} item(s) • ${o.payment} (${o.paymentStatus.toUpperCase()})</div>
+          <button type="button" class="brand-btn" style="height:44px; font-size:14px;" onclick="acceptOrder('${o.id}')">Accept Delivery</button>
+        </div>
+      `).join('');
+    });
+  </script>
+</body>
+</html>

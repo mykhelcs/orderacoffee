@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CafeGO — Landing</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .splash-wrap {
+      flex: 1;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: #1A1513;
+      color: #FFFFFF;
+      overflow: hidden;
+      text-decoration: none;
+    }
+    .splash-bg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.48;
+      transform: scale(1.04);
+    }
+    .splash-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(26,21,19,0.52) 0%, rgba(26,21,19,0.72) 100%);
+    }
+    .splash-center {
+      position: relative;
+      z-index: 2;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 0 28px;
+    }
+    .splash-title {
+      font-family: var(--font-serif);
+      font-size: 52px;
+      font-weight: 800;
+      color: #FFFFFF;
+      letter-spacing: -1px;
+      line-height: 1.05;
+      text-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+    }
+    .splash-sub {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 22px;
+      color: #F7F1EB;
+      margin-top: 8px;
+      opacity: 0.94;
+    }
+    .splash-footer {
+      position: relative;
+      z-index: 2;
+      padding: 0 36px 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .splash-track {
+      width: 210px;
+      height: 4px;
+      border-radius: 99px;
+      background: rgba(255, 255, 255, 0.2);
+      overflow: hidden;
+    }
+    .splash-fill {
+      width: 10%;
+      height: 100%;
+      background: #D4A373;
+      border-radius: 99px;
+      animation: splashFill 2.2s ease-out forwards;
+    }
+    @keyframes splashFill {
+      from { width: 10%; }
+      to { width: 100%; }
+    }
+    .splash-hint {
+      font-size: 12.5px;
+      color: rgba(247, 241, 235, 0.8);
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <div class="phone-screen splash-theme" id="phoneScreen" data-force-theme="splash" style="background:#1A1513;">
+      <div class="status-bar light-text">
+        <span>9:41</span>
+        <div class="dynamic-island"></div>
+        <div class="status-icons"><span>5G</span><span>■■</span></div>
+      </div>
+
+      <a href="login.html" class="splash-wrap">
+        <img src="../assets/images/coffee_splash.jpg" alt="CafeGO Coffee" class="splash-bg" />
+        <div class="splash-overlay"></div>
+
+        <div class="splash-center">
+          <div class="splash-title">CafeGO</div>
+          <div class="splash-sub">Your daily comfort brew</div>
+        </div>
+
+        <div class="splash-footer">
+          <div class="splash-track"><div class="splash-fill"></div></div>
+          <div class="splash-hint">Brewing your daily comfort...</div>
+        </div>
+      </a>
+
+      <div class="home-bar-wrap" style="background:#1A1513;">
+        <div class="home-bar"></div>
+      </div>
+    </div>
+  </div>
+  <script src="demo-store.js"></script>
+  <script src="shared.js"></script>
+  <script>
+    setTimeout(() => { window.location.href = 'login.html'; }, 2400);
+  </script>
+</body>
+</html>

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CafeGO — Admin Catalog</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .cat-search-bar { flex: 1; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 8px 12px; display: flex; align-items: center; gap: 6px; }
+    .cat-search-bar input { border: none; background: transparent; outline: none; width: 100%; font-family: var(--font-sans); font-size: 13px; color: var(--ink); }
+    .add-item-btn { background: var(--brand); color: var(--on-brand); border: none; border-radius: 14px; padding: 9px 12px; font-family: var(--font-sans); font-size: 12.5px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+    .catalog-card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px; display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .cat-thumb { width: 50px; height: 50px; border-radius: 12px; object-fit: cover; background: var(--surface-tint); flex-shrink: 0; }
+    .stock-circle-btn { width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--line); background: transparent; color: var(--ink); font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+    .low-badge { background: rgba(214,51,108,0.14); color: #D6336C; font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 4px; }
+    .avail-switch { width: 36px; height: 20px; border-radius: 99px; background: #2E7D32; position: relative; cursor: pointer; }
+    .avail-switch::after { content: ''; position: absolute; top: 2px; left: 18px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left 0.2s; }
+    .avail-switch.off { background: var(--line); }
+    .avail-switch.off::after { left: 2px; }
+    .editor-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.56); display: none; align-items: center; justify-content: center; padding: 18px; z-index: 40; }
+    .editor-backdrop.open { display: flex; }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <div class="phone-screen" id="phoneScreen">
+      <div class="status-bar">
+        <span>9:41</span><div class="dynamic-island"></div><div class="status-icons"><span>5G</span><span>■■</span></div>
+      </div>
+
+      <header class="admin-top-bar">
+        <div class="app-logo">
+          <div class="app-logo-emblem sm"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h1a4 4 0 0 1 0 8h-1v1a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V8h16zm0 6h1a2 2 0 0 0 0-4h-1v4z"/></svg></div>
+          <div class="app-logo-wordmark" style="font-size:15.5px;">Cafe<span class="go">GO</span></div>
+        </div>
+        <span class="admin-badge">🛡️ ADMIN</span>
+        <button type="button" class="icon-btn-sm" onclick="toggleAppTheme()">◐</button>
+        <div style="flex:1;"></div>
+        <a href="menu.html" class="icon-btn-sm">🏪</a>
+        <a href="login.html" class="icon-btn-sm">⎋</a>
+      </header>
+
+      <main class="screen-scroll page-pad" style="padding-top:12px;">
+        <div style="display:flex; gap:8px; align-items:center;">
+          <div class="cat-search-bar">
+            <span style="color:var(--mute);">🔍</span>
+            <input type="text" id="catSearch" placeholder="Search products..." oninput="renderCatalog(CafeDemo.getState())" />
+          </div>
+          <button type="button" class="add-item-btn" onclick="openEditor(null)">+ Add Item</button>
+        </div>
+
+        <div class="chips-row" style="margin-bottom:10px;">
+          <button type="button" class="cat-chip active" onclick="pickCat('All', this)">All</button>
+          <button type="button" class="cat-chip" onclick="pickCat('Hot Coffee', this)">Hot Coffee</button>
+          <button type="button" class="cat-chip" onclick="pickCat('Iced Coffee', this)">Iced Coffee</button>
+          <button type="button" class="cat-chip" onclick="pickCat('Non-Coffee', this)">Non-Coffee</button>
+          <button type="button" class="cat-chip" onclick="pickCat('Pastries', this)">Pastries</button>
+          <button type="button" class="cat-chip" onclick="pickCat('Merch', this)">Merch</button>
+        </div>
+
+        <div id="catalogList"></div>
+      </main>
+
+      <div class="editor-backdrop" id="editorModal">
+        <div class="card-box" style="width:100%; border-radius:20px; padding:18px;">
+          <h2 id="edTitle" style="font-family:var(--font-serif); font-size:19px; font-weight:700; margin-bottom:10px;">Add New Product</h2>
+          <input id="edName" type="text" placeholder="Product Name" style="width:100%; padding:9px 12px; border-radius:10px; border:1px solid var(--line); background:var(--bg); color:var(--ink); margin-bottom:8px;" />
+          <select id="edCat" style="width:100%; padding:9px 12px; border-radius:10px; border:1px solid var(--line); background:var(--bg); color:var(--ink); margin-bottom:8px;">
+            <option>Hot Coffee</option><option>Iced Coffee</option><option>Non-Coffee</option><option>Pastries</option><option>Merch</option>
+          </select>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+            <input id="edPrice" type="number" placeholder="Base Price (₱)" style="padding:9px 12px; border-radius:10px; border:1px solid var(--line); background:var(--bg); color:var(--ink);" />
+            <input id="edStock" type="number" placeholder="Stock Units" style="padding:9px 12px; border-radius:10px; border:1px solid var(--line); background:var(--bg); color:var(--ink);" />
+          </div>
+          <input id="edDesc" type="text" placeholder="Description" style="width:100%; padding:9px 12px; border-radius:10px; border:1px solid var(--line); background:var(--bg); color:var(--ink); margin-bottom:14px;" />
+          <div style="display:flex; justify-content:flex-end; gap:8px;">
+            <button type="button" class="ghost-btn" onclick="document.getElementById('editorModal').classList.remove('open')">Cancel</button>
+            <button type="button" id="edSaveBtn" class="add-item-btn" onclick="saveProduct()">Create</button>
+          </div>
+        </div>
+      </div>
+
+      <nav class="admin-bottom-bar">
+        <a href="admin-orders.html" class="admin-tab-pill"><span>🧾</span><span>Orders</span></a>
+        <a href="admin-catalog.html" class="admin-tab-pill active"><span>☕</span><span>Catalog</span></a>
+        <a href="admin-analytics.html" class="admin-tab-pill"><span>📊</span><span>Analytics</span></a>
+        <a href="admin-users.html" class="admin-tab-pill"><span>👥</span><span>Staff/Users</span></a>
+      </nav>
+
+      <div class="home-bar-wrap" style="background:var(--card);"><div class="home-bar"></div></div>
+    </div>
+  </div>
+
+  <script src="demo-store.js"></script>
+  <script src="shared.js"></script>
+  <script>
+    let catFilter = 'All';
+    let editingId = null;
+
+    function pickCat(c, btn) {
+      catFilter = c;
+      btn.parentElement.querySelectorAll('.cat-chip').forEach(x => x.classList.remove('active'));
+      btn.classList.add('active');
+      renderCatalog(CafeDemo.getState());
+    }
+
+    function adjStock(id, delta) {
+      CafeDemo.setState(s => {
+        const it = s.menu.find(m => m.id === id);
+        if (it) it.stock = Math.max(0, (it.stock || 0) + delta);
+        return s;
+      });
+    }
+
+    function toggleAvail(id) {
+      CafeDemo.setState(s => {
+        const it = s.menu.find(m => m.id === id);
+        if (it) it.isAvailable = !it.isAvailable;
+        return s;
+      });
+    }
+
+    function delItem(id) {
+      CafeDemo.setState(s => { s.menu = s.menu.filter(m => m.id !== id); return s; });
+    }
+
+    function openEditor(id) {
+      editingId = id;
+      const state = CafeDemo.getState();
+      const existing = id ? state.menu.find(m => m.id === id) : null;
+      document.getElementById('edTitle').textContent = existing ? 'Edit Product' : 'Add New Product';
+      document.getElementById('edSaveBtn').textContent = existing ? 'Save' : 'Create';
+      document.getElementById('edName').value = existing ? existing.name : '';
+      document.getElementById('edCat').value = existing ? existing.category : 'Hot Coffee';
+      document.getElementById('edPrice').value = existing ? existing.basePrice : 150;
+      document.getElementById('edStock').value = existing ? existing.stock : 50;
+      document.getElementById('edDesc').value = existing ? existing.description : '';
+      document.getElementById('editorModal').classList.add('open');
+    }
+
+    function saveProduct() {
+      const name = (document.getElementById('edName').value || '').trim();
+      if (!name) return;
+      const cat = document.getElementById('edCat').value;
+      const price = parseFloat(document.getElementById('edPrice').value) || 150;
+      const stock = parseInt(document.getElementById('edStock').value, 10) || 50;
+      const desc = (document.getElementById('edDesc').value || '').trim() || 'Handcrafted daily at CafeGO.';
+
+      CafeDemo.setState(s => {
+        if (editingId) {
+          const it = s.menu.find(m => m.id === editingId);
+          if (it) { it.name = name; it.category = cat; it.basePrice = price; it.stock = stock; it.description = desc; }
+        } else {
+          s.menu.unshift({
+            id: 'item_' + Date.now(),
+            name, category: cat, basePrice: price, stock, description: desc,
+            isAvailable: true, isHidden: false,
+            isDrink: cat.includes('Coffee') || cat === 'Non-Coffee',
+            isIced: cat.includes('Iced'),
+            imageUrl: '../assets/images/coffee_splash.jpg'
+          });
+        }
+        return s;
+      });
+      document.getElementById('editorModal').classList.remove('open');
+    }
+
+    function renderCatalog(state) {
+      const q = (document.getElementById('catSearch').value || '').trim().toLowerCase();
+      const items = (state.menu || []).filter(i => {
+        const catOk = catFilter === 'All' || i.category === catFilter;
+        const qOk = !q || i.name.toLowerCase().includes(q);
+        return catOk && qOk;
+      });
+
+      document.getElementById('catalogList').innerHTML = items.map(it => {
+        const isLow = it.stock < 5;
+        return `
+          <div class="catalog-card">
+            <img src="${it.imageUrl || '../assets/images/coffee_splash.jpg'}" onerror="this.src='../assets/images/coffee_splash.jpg'" alt="${it.name}" class="cat-thumb" />
+            <div style="flex:1; min-width:0;">
+              <strong style="font-size:14.5px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${it.name}</strong>
+              <div class="muted-text" style="font-size:12px;">${it.category} • ${CafeDemo.peso(it.basePrice)}</div>
+              <div style="display:flex; align-items:center; gap:5px; margin-top:4px;">
+                <span style="font-size:11.5px; font-weight:700; color:${isLow ? '#D6336C' : 'var(--brand)'};">Stock: ${it.stock}</span>
+                ${isLow ? '<span class="low-badge">Low (&lt;5)</span>' : ''}
+                <button type="button" class="stock-circle-btn" onclick="adjStock('${it.id}', -1)">-</button>
+                <button type="button" class="stock-circle-btn" onclick="adjStock('${it.id}', 1)">+</button>
+              </div>
+            </div>
+            <button type="button" class="icon-btn-sm" onclick="openEditor('${it.id}')">✎</button>
+            <button type="button" class="icon-btn-sm" style="color:#D6336C;" onclick="delItem('${it.id}')">🗑</button>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+              <div class="avail-switch ${it.isAvailable ? '' : 'off'}" onclick="toggleAvail('${it.id}')"></div>
+              <span style="font-size:9.5px; font-weight:700; color:${it.isAvailable ? '#2E7D32' : '#D6336C'};">${it.isAvailable ? 'In Stock' : 'Sold Out'}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    CafeDemo.onUpdate(renderCatalog);
+  </script>
+</body>
+</html>

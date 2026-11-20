@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CafeGO — Your Cart</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .cart-card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; margin-bottom: 12px; }
+    .mini-stepper { display: inline-flex; align-items: center; gap: 10px; background: var(--surface-tint); border-radius: 99px; padding: 4px 10px; font-weight: 700; font-size: 13.5px; }
+    .mini-stepper button { border: none; background: none; font-size: 16px; font-weight: 800; color: var(--ink); cursor: pointer; width: 20px; }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <div class="phone-screen" id="phoneScreen">
+      <div class="status-bar">
+        <span>9:41</span>
+        <div class="dynamic-island"></div>
+        <div class="status-icons"><span>5G</span><span>■■</span></div>
+      </div>
+
+      <header class="main-top-bar">
+        <a href="menu.html" class="app-logo">
+          <div class="app-logo-emblem sm"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h1a4 4 0 0 1 0 8h-1v1a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V8h16zm0 6h1a2 2 0 0 0 0-4h-1v4z"/></svg></div>
+          <div class="app-logo-wordmark" style="font-size:18px;">Cafe<span class="go">GO</span></div>
+        </a>
+        <button type="button" class="theme-pill-btn" onclick="toggleAppTheme()">
+          <span id="themeToggleIcon">🌙</span><span id="themeToggleLabel">Espresso</span>
+        </button>
+      </header>
+
+      <main class="screen-scroll page-pad">
+        <div class="row-between" style="margin-bottom:14px;">
+          <h1 class="page-title">Your cart</h1>
+          <button type="button" onclick="clearCart()" style="border:none; background:none; font-size:13px; color:var(--mute); cursor:pointer; font-weight:600;">Clear all</button>
+        </div>
+
+        <div id="cartItemsWrap"></div>
+
+        <div id="cartFooterWrap">
+          <div class="divider" style="margin:18px 0;"></div>
+          <div class="row-between" style="margin-bottom:18px;">
+            <span style="font-size:16px; color:var(--mute); font-weight:600;">Total</span>
+            <span id="cartTotalVal" style="font-family:var(--font-serif); font-size:22px; font-weight:800;">₱ 0.00</span>
+          </div>
+          <a href="checkout.html" class="brand-btn has-trailing">
+            <span>Go to checkout</span>
+            <span id="checkoutBtnTotal">₱ 0.00</span>
+          </a>
+        </div>
+      </main>
+
+      <nav class="main-bottom-nav">
+        <a href="menu.html" class="nav-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/></svg>
+          <span>Menu</span>
+        </a>
+        <a href="cart.html" class="nav-item active">
+          <div class="nav-icon-wrap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            <span class="nav-badge" data-cart-badge>0</span>
+          </div>
+          <span>Cart</span>
+        </a>
+        <a href="orders.html" class="nav-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h5"/></svg>
+          <span>Orders</span>
+        </a>
+        <a href="profile.html" class="nav-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
+          <span>Profile</span>
+        </a>
+      </nav>
+
+      <div class="home-bar-wrap" style="background:var(--card);"><div class="home-bar"></div></div>
+    </div>
+  </div>
+
+  <script src="demo-store.js"></script>
+  <script src="shared.js"></script>
+  <script>
+    function clearCart() {
+      CafeDemo.setState(s => { s.cart = []; return s; });
+    }
+    function updateQty(lineId, delta) {
+      CafeDemo.setState(s => {
+        const l = s.cart.find(c => c.id === lineId);
+        if (!l) return s;
+        l.qty += delta;
+        if (l.qty <= 0) s.cart = s.cart.filter(c => c.id !== lineId);
+        return s;
+      });
+    }
+    function editLine(itemId, lineId) {
+      CafeDemo.setState(s => { s.selectedItemId = itemId; s.editCartLineId = lineId; return s; });
+      window.location.href = 'item-detail.html';
+    }
+    function removeLine(lineId) {
+      CafeDemo.setState(s => { s.cart = s.cart.filter(c => c.id !== lineId); return s; });
+    }
+
+    CafeDemo.onUpdate(state => {
+      CafeDemo.updateNavBadges(state);
+      const wrap = document.getElementById('cartItemsWrap');
+      const footer = document.getElementById('cartFooterWrap');
+      const cart = state.cart || [];
+
+      if (!cart.length) {
+        footer.style.display = 'none';
+        wrap.innerHTML = `
+          <div style="text-align:center; padding:48px 16px;">
+            <div style="font-size:44px; margin-bottom:10px;">🛍️</div>
+            <h2 style="font-family:var(--font-serif); font-size:20px; font-weight:700;">Your cart is empty</h2>
+            <p class="muted-text" style="margin:6px 0 18px;">Add handcrafted coffee or pastries to get started.</p>
+            <a href="menu.html" class="brand-btn" style="width:180px; margin:0 auto;">Browse menu</a>
+          </div>
+        `;
+        return;
+      }
+
+      footer.style.display = 'block';
+      let total = 0;
+      wrap.innerHTML = cart.map(line => {
+        const lineTotal = line.unitPrice * line.qty;
+        total += lineTotal;
+        return `
+          <div class="cart-card">
+            <div class="row-between">
+              <strong style="font-size:15.5px;">${line.qty}x ${line.name}</strong>
+              <strong style="font-size:15.5px;">${CafeDemo.peso(lineTotal)}</strong>
+            </div>
+            ${line.summary ? `<div class="muted-text" style="margin-top:4px; line-height:1.35;">${line.summary}</div>` : ''}
+            ${line.note ? `<div style="font-size:12px; font-style:italic; color:var(--mute); margin-top:4px;">Note: ${line.note}</div>` : ''}
+            <div class="row-between" style="margin-top:12px;">
+              <div style="display:flex; gap:8px;">
+                <button type="button" class="ghost-btn" style="padding:6px 12px; font-size:12px;" onclick="editLine('${line.itemId}', '${line.id}')">Edit</button>
+                <button type="button" class="ghost-btn" style="padding:6px 12px; font-size:12px;" onclick="removeLine('${line.id}')">Remove</button>
+              </div>
+              <div class="mini-stepper">
+                <button type="button" onclick="updateQty('${line.id}', -1)">-</button>
+                <span>${line.qty}</span>
+                <button type="button" onclick="updateQty('${line.id}', 1)">+</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('cartTotalVal').textContent = CafeDemo.peso(total);
+      document.getElementById('checkoutBtnTotal').textContent = CafeDemo.peso(total);
+    });
+  </script>
+</body>
+</html>

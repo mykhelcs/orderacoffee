@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CafeGO — Order Tracking</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .tracking-stack { flex: 1; position: relative; display: flex; flex-direction: column; overflow: hidden; }
+    .blurred-appbar { position: absolute; top: 0; left: 0; right: 0; z-index: 20; backdrop-filter: blur(10px); background: rgba(250,247,242,0.82); padding: 6px 12px 10px; display: flex; align-items: center; justify-content: space-between; }
+    .dark-mode .blurred-appbar { background: rgba(30,25,25,0.82); }
+    .tracking-sheet { margin-top: 175px; flex: 1; background: var(--bg-alt); border-radius: 28px 28px 0 0; border-top: 1px solid var(--line); position: relative; z-index: 10; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 -8px 24px rgba(0,0,0,0.14); }
+    .sheet-drag { width: 42px; height: 4px; border-radius: 99px; background: var(--line); margin: 10px auto 6px; flex-shrink: 0; }
+    .h-stepper { display: flex; justify-content: space-between; align-items: flex-start; position: relative; margin: 14px 4px 18px; }
+    .h-stepper-line { position: absolute; top: 13px; left: 28px; right: 28px; height: 3px; background: var(--line); z-index: 0; }
+    .h-stepper-fill { position: absolute; top: 13px; left: 28px; height: 3px; background: #C89568; z-index: 1; transition: width 0.3s ease; }
+    .step-node { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 68px; text-align: center; }
+    .step-dot { width: 28px; height: 28px; border-radius: 50%; background: var(--line); color: #FFFFFF; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+    .step-dot.done { background: #C89568; }
+    .step-dot.current { background: #5A3825; box-shadow: 0 2px 8px rgba(90,36,20,0.4); }
+    .dark-mode .step-dot.current { background: #D4A373; color: #1B120C; }
+    .rate-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.56); display: none; align-items: flex-end; z-index: 50; }
+    .rate-overlay.open { display: flex; }
+    .rate-card { width: 100%; background: var(--card); border-radius: 26px 26px 0 0; padding: 20px 20px 26px; text-align: center; }
+    .star-btn { font-size: 32px; background: none; border: none; color: #D4A373; cursor: pointer; opacity: 0.35; }
+    .star-btn.lit { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <div class="phone-screen" id="phoneScreen">
+      <div class="status-bar" style="background:var(--bg-alt);">
+        <span>9:41</span><div class="dynamic-island"></div><div class="status-icons"><span>5G</span><span>■■</span></div>
+      </div>
+
+      <div class="tracking-stack">
+        <div class="blurred-appbar">
+          <a href="orders.html" class="icon-btn-sm" aria-label="Back">←</a>
+          <span style="font-size:17px; font-weight:700;">Order Tracking</span>
+          <a href="order-receipt.html" class="icon-btn-sm" title="Receipt">🧾</a>
+        </div>
+
+        <div class="live-map-box" style="position:absolute; top:0; left:0; right:0; height:225px; border-radius:0; border:none;">
+          <svg width="100%" height="100%" viewBox="0 0 390 225" style="position:absolute; inset:0;">
+            <path d="M 66 156 Q 186 78 308 122" fill="none" stroke="#5A3825" stroke-width="4.5" stroke-linecap="round"/>
+          </svg>
+          <div class="map-pill" id="trackEtaPill" style="left:12px; top:54px;">📍 1.4 km • ~12 mins</div>
+          <div class="map-marker" style="left:48px; top:136px; background:#3B2314; color:#F7F1EB;">☕</div>
+          <div class="map-marker" id="riderPin" style="left:100px; top:112px; width:38px; height:38px; background:#D49755; border-color:#1B120C; transition: left 0.4s ease, top 0.4s ease;">🛵</div>
+          <div class="map-marker" style="right:62px; top:104px; background:#D6336C; color:#FFFFFF;">📍</div>
+        </div>
+
+        <div class="tracking-sheet">
+          <div class="sheet-drag"></div>
+          <div class="screen-scroll page-pad" style="padding-top:6px;">
+            <div class="row-between" style="margin-bottom:10px;">
+              <strong id="trackOrderId" style="font-size:16px;">Order #BB842A</strong>
+              <span id="trackPayBadge" class="status-badge paid">PAID • GCash</span>
+            </div>
+
+            <div id="cancelledCard" class="card-box" style="display:none; border-color:rgba(214,51,108,0.45); background:rgba(214,51,108,0.08); margin-bottom:12px;">
+              <strong style="color:#D6336C;">Order Cancelled</strong>
+              <div class="muted-text" style="margin-top:2px;">This order has been cancelled.</div>
+            </div>
+
+            <div id="pendingPayCard" class="card-box" style="display:none; border-color:rgba(217,119,6,0.45); margin-bottom:12px;">
+              <div class="row-between">
+                <div>
+                  <strong style="font-size:13.5px;">Scan QR to Pay via <span id="qrMethodLbl">GCash</span></strong>
+                  <div class="muted-text" style="font-size:11.5px;">Complete payment to confirm digital ticket</div>
+                </div>
+                <button type="button" class="brand-btn" style="width:auto; height:36px; padding:0 16px; font-size:12.5px;" onclick="payNow()">PAY</button>
+              </div>
+            </div>
+
+            <div class="muted-text" style="font-size:12px;">Estimated Delivery</div>
+            <div id="etaHeadline" style="font-family:var(--font-serif); font-size:24px; font-weight:800; line-height:1.15; margin-top:2px;">15–20 mins</div>
+            <div id="etaSubline" style="font-size:13.5px; color:var(--brand); font-weight:600; margin-top:2px;">Your order is confirmed!</div>
+
+            <div style="margin:6px 0;">
+              <svg viewBox="0 0 340 94" style="width:100%; height:94px;">
+                <path d="M 0 58 C 85 78, 155 48, 260 54" fill="none" stroke="rgba(212,163,115,0.65)" stroke-width="3.5" stroke-linecap="round"/>
+                <circle cx="182" cy="54" r="9" fill="#5A3825"/>
+                <polyline points="180,50 185,54 180,58" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <g transform="translate(226, 20)">
+                  <rect x="6" y="18" width="26" height="12" rx="5" fill="#C86D36"/>
+                  <rect x="2" y="10" width="12" height="10" rx="3" fill="#5A3825"/>
+                  <path d="M28 10 L35 28" stroke="#2C221E" stroke-width="3" stroke-linecap="round"/>
+                  <circle cx="10" cy="34" r="6" fill="#2C221E"/><circle cx="34" cy="34" r="6" fill="#2C221E"/>
+                </g>
+              </svg>
+            </div>
+
+            <div class="h-stepper">
+              <div class="h-stepper-line"></div>
+              <div class="h-stepper-fill" id="stepFillBar" style="width:0%;"></div>
+
+              <div class="step-node"><div class="step-dot" id="dot0">✓</div><span style="font-size:11px; font-weight:600;">Confirmed</span></div>
+              <div class="step-node"><div class="step-dot" id="dot1">♥</div><span style="font-size:11px; font-weight:600;">Preparing</span></div>
+              <div class="step-node"><div class="step-dot" id="dot2">🛵</div><span style="font-size:11px; font-weight:600;">On the way</span></div>
+              <div class="step-node"><div class="step-dot" id="dot3">✓</div><span style="font-size:11px; font-weight:600;">Delivered</span></div>
+            </div>
+
+            <div id="cancelBtnWrap" style="margin-bottom:12px; display:none;">
+              <button type="button" class="ghost-btn" style="width:100%; color:var(--bad); border-color:rgba(214,51,108,0.4);" onclick="cancelCurrentOrder()">
+                Cancel Order
+              </button>
+            </div>
+
+            <div class="card-box">
+              <div class="row-between" style="margin-bottom:10px;">
+                <span style="font-size:15px; font-weight:700;">Order Details</span>
+                <a href="order-receipt.html" style="font-size:12px; font-weight:700; color:var(--brand); text-decoration:none;">View Receipt →</a>
+              </div>
+              <div id="trackItemsList"></div>
+              <div class="divider"></div>
+              <div class="row-between muted-text" style="margin-bottom:4px;"><span>Subtotal</span><span id="trackSub" style="color:var(--ink);">₱ 0.00</span></div>
+              <div class="row-between muted-text" id="trackDelRow" style="margin-bottom:8px;"><span>Delivery Fee</span><span id="trackDel" style="color:var(--ink);">₱ 45.00</span></div>
+              <div class="row-between">
+                <strong style="font-size:17px;">Total</strong>
+                <strong id="trackTotal" style="font-size:18px; font-weight:800;">₱ 0.00</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rate-overlay" id="rateModal">
+          <div class="rate-card">
+            <h2 style="font-family:var(--font-serif); font-size:21px; font-weight:700;">How was your order?</h2>
+            <p class="muted-text" style="margin-top:4px;">Rate your CafeGO coffee experience</p>
+            <div style="margin:14px 0;">
+              <button type="button" class="star-btn lit" onclick="setStars(1)">★</button>
+              <button type="button" class="star-btn lit" onclick="setStars(2)">★</button>
+              <button type="button" class="star-btn lit" onclick="setStars(3)">★</button>
+              <button type="button" class="star-btn lit" onclick="setStars(4)">★</button>
+              <button type="button" class="star-btn lit" onclick="setStars(5)">★</button>
+            </div>
+            <input type="text" placeholder="Share a comment for the barista..." style="width:100%; padding:10px 12px; border-radius:12px; border:1px solid var(--line); background:var(--bg); color:var(--ink); margin-bottom:16px;" />
+            <button type="button" class="brand-btn" onclick="submitRating()">Submit Rating</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="home-bar-wrap" style="background:var(--bg-alt);"><div class="home-bar"></div></div>
+    </div>
+  </div>
+
+  <script src="demo-store.js"></script>
+  <script src="shared.js"></script>
+  <script>
+    let curOrder = null;
+    let chosenStars = 5;
+
+    function setStars(n) {
+      chosenStars = n;
+      document.querySelectorAll('.star-btn').forEach((b, i) => b.classList.toggle('lit', i < n));
+    }
+
+    function submitRating() {
+      if (!curOrder) return;
+      CafeDemo.setState(s => {
+        const o = s.orders.find(x => x.id === curOrder.id);
+        if (o) o.rating = chosenStars;
+        return s;
+      });
+      document.getElementById('rateModal').classList.remove('open');
+      window.location.href = 'order-receipt.html';
+    }
+
+    function payNow() {
+      if (!curOrder) return;
+      CafeDemo.setState(s => {
+        const o = s.orders.find(x => x.id === curOrder.id);
+        if (o) o.paymentStatus = 'paid';
+        return s;
+      });
+    }
+
+    function cancelCurrentOrder() {
+      if (!curOrder) return;
+      CafeDemo.setState(s => {
+        const o = s.orders.find(x => x.id === curOrder.id);
+        if (o) o.status = 'cancelled';
+        return s;
+      });
+    }
+
+    CafeDemo.onUpdate(state => {
+      const ord = state.orders.find(o => o.id === state.activeOrderId) || state.orders[0];
+      if (!ord) return;
+      curOrder = ord;
+
+      document.getElementById('trackOrderId').textContent = 'Order #' + ord.id;
+      const badge = document.getElementById('trackPayBadge');
+      const isPaid = ord.paymentStatus === 'paid';
+      badge.className = 'status-badge ' + (isPaid ? 'paid' : 'pending');
+      badge.textContent = (isPaid ? 'PAID • ' : 'PENDING • ') + ord.payment;
+
+      const isDigital = !ord.payment.toLowerCase().includes('cash') && !ord.payment.toLowerCase().includes('counter');
+      document.getElementById('pendingPayCard').style.display = (!isPaid && isDigital && ord.status !== 'cancelled') ? 'block' : 'none';
+      document.getElementById('qrMethodLbl').textContent = ord.payment;
+
+      document.getElementById('cancelledCard').style.display = ord.status === 'cancelled' ? 'block' : 'none';
+      document.getElementById('cancelBtnWrap').style.display = ord.status === 'received' ? 'block' : 'none';
+
+      let activeIdx = 0;
+      let headline = '15–20 mins';
+      let subline = 'We have received your order!';
+      if (ord.status === 'received') { activeIdx = 0; subline = 'We have received your order!'; }
+      else if (ord.status === 'preparing') { activeIdx = 1; headline = '12–15 mins'; subline = 'Baristas are handcrafted-brewing your order.'; }
+      else if (ord.status === 'ready') { activeIdx = 2; headline = ord.type === 'delivery' ? '5–10 mins' : 'Ready Now'; subline = ord.type === 'delivery' ? 'Your order is on the way!' : 'Ready for counter pickup!'; }
+      else if (ord.status === 'completed') { activeIdx = 3; headline = 'Delivered'; subline = 'Enjoy your CafeGO comfort brew!'; }
+      else if (ord.status === 'cancelled') { activeIdx = -1; headline = 'Cancelled'; subline = 'Order cancelled.'; }
+
+      document.getElementById('etaHeadline').textContent = headline;
+      document.getElementById('etaSubline').textContent = subline;
+
+      const widths = ['0%', '33%', '66%', '88%'];
+      document.getElementById('stepFillBar').style.width = activeIdx >= 0 ? widths[activeIdx] : '0%';
+      for (let i = 0; i < 4; i++) {
+        const dot = document.getElementById('dot' + i);
+        dot.className = 'step-dot' + (i < activeIdx ? ' done' : (i === activeIdx ? ' current' : ''));
+      }
+
+      const p = Math.min(1, Math.max(0.05, ord.riderProgress || (activeIdx === 0 ? 0.1 : activeIdx === 1 ? 0.25 : activeIdx === 2 ? 0.6 : 1)));
+      const pin = document.getElementById('riderPin');
+      pin.style.display = ord.type === 'delivery' ? 'flex' : 'none';
+      pin.style.left = (52 + p * 235) + 'px';
+      pin.style.top = (132 - Math.sin(p * Math.PI) * 44) + 'px';
+      const remKm = Math.max(0.1, (1.4 * (1 - p))).toFixed(1);
+      const remMin = Math.max(1, Math.round(12 * (1 - p)));
+      document.getElementById('trackEtaPill').textContent = ord.status === 'completed' ? '📍 Arrived' : `📍 ${remKm} km • ~${remMin} mins`;
+
+      document.getElementById('trackItemsList').innerHTML = (ord.items || []).map(it => `
+        <div class="row-between" style="gap:10px; margin-bottom:10px;">
+          <img src="${it.imageUrl || '../assets/images/coffee_splash.jpg'}" onerror="this.src='../assets/images/coffee_splash.jpg'" alt="${it.name}" style="width:42px; height:42px; border-radius:10px; object-fit:cover; background:var(--surface-tint);" />
+          <div style="flex:1;">
+            <div style="font-size:14px; font-weight:700;">${it.qty} x ${it.name}</div>
+            ${it.summary ? `<div class="muted-text" style="font-size:11.5px;">${it.summary}</div>` : ''}
+          </div>
+          <strong style="font-size:14px;">${CafeDemo.peso(it.total)}</strong>
+        </div>
+      `).join('');
+
+      document.getElementById('trackSub').textContent = CafeDemo.peso(ord.subtotal);
+      document.getElementById('trackDelRow').style.display = ord.deliveryFee > 0 ? 'flex' : 'none';
+      document.getElementById('trackDel').textContent = CafeDemo.peso(ord.deliveryFee);
+      document.getElementById('trackTotal').textContent = CafeDemo.peso(ord.total);
+
+      if (ord.status === 'completed' && !ord.rating) {
+        document.getElementById('rateModal').classList.add('open');
+      }
+    });
+  </script>
+</body>
+</html>

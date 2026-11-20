@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CafeGO — Customize</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .sheet-canvas { background: var(--bg-alt); display: flex; flex-direction: column; height: 100%; }
+    .sheet-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; flex-shrink: 0; }
+    .sheet-hero-img { height: 145px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .sheet-hero-img img { height: 132px; width: 132px; border-radius: 24px; object-fit: cover; box-shadow: 0 10px 24px rgba(59,35,20,0.22); }
+    .sheet-card { background: var(--card); border-radius: 28px 28px 0 0; padding: 20px 20px 18px; box-shadow: 0 -4px 16px rgba(0,0,0,0.05); flex: 1; }
+    .opt-title { font-size: 14px; font-weight: 700; color: var(--ink-strong); margin: 16px 0 8px; }
+    .pill-group { display: flex; gap: 10px; flex-wrap: wrap; }
+    .opt-pill { min-width: 48px; height: 38px; padding: 0 18px; border-radius: 99px; background: var(--surface-pill); color: var(--brand-dark-roast); font-family: var(--font-sans); font-size: 13.5px; font-weight: 600; border: none; cursor: pointer; }
+    .opt-pill.active { background: var(--brand-dark-roast); color: var(--on-brand); font-weight: 700; }
+    .addon-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 8px; font-size: 13.5px; cursor: pointer; }
+    .note-input { width: 100%; padding: 11px 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--bg-alt); color: var(--ink); font-family: var(--font-sans); font-size: 13px; outline: none; }
+    .docked-footer { background: var(--card); border-top: 1px solid var(--line); padding: 12px 16px 6px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+    .qty-stepper { display: inline-flex; align-items: center; gap: 12px; height: 48px; padding: 0 12px; border-radius: 99px; border: 1px solid var(--line); background: var(--bg-alt); font-weight: 800; font-size: 15px; }
+    .qty-stepper button { border: none; background: none; font-size: 18px; font-weight: 700; color: var(--ink); cursor: pointer; width: 24px; }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <div class="phone-screen" id="phoneScreen">
+      <div class="status-bar" style="background:var(--bg-alt);">
+        <span>9:41</span>
+        <div class="dynamic-island"></div>
+        <div class="status-icons"><span>5G</span><span>■■</span></div>
+      </div>
+
+      <div class="sheet-canvas">
+        <div class="sheet-header">
+          <a href="menu.html" class="icon-btn-sm" aria-label="Back">←</a>
+          <span style="font-size:17px; font-weight:700; color:var(--ink-strong);">Customize</span>
+          <button type="button" class="icon-btn-sm" onclick="toggleHeart()"><span id="favHeart" style="font-size:20px; color:var(--bad);">♥</span></button>
+        </div>
+
+        <div class="screen-scroll">
+          <div class="sheet-hero-img">
+            <img id="itemImg" src="../assets/images/coffee_splash.jpg" alt="Item" />
+          </div>
+
+          <div class="sheet-card">
+            <div class="row-between" style="align-items:flex-start; gap:12px;">
+              <h1 id="itemName" style="font-size:21px; font-weight:800; color:var(--ink-strong);">Spanish Latte</h1>
+              <span id="itemBasePrice" style="font-size:18px; font-weight:700; color:var(--ink-strong);">₱ 140.00</span>
+            </div>
+            <p id="itemDesc" class="muted-text" style="margin-top:6px; line-height:1.35;"></p>
+
+            <div id="drinkOptionsWrap">
+              <div class="opt-title">Size</div>
+              <div class="pill-group">
+                <button type="button" class="opt-pill" onclick="setSize('Small', -15, this)">S</button>
+                <button type="button" class="opt-pill active" onclick="setSize('Medium', 0, this)">M</button>
+                <button type="button" class="opt-pill" onclick="setSize('Large', 25, this)">L</button>
+              </div>
+
+              <div class="opt-title">Milk</div>
+              <div class="pill-group">
+                <button type="button" class="opt-pill active" onclick="setMilk('Regular', 0, this)">Regular</button>
+                <button type="button" class="opt-pill" onclick="setMilk('Oat', 30, this)">Oat</button>
+                <button type="button" class="opt-pill" onclick="setMilk('Almond', 30, this)">Almond</button>
+                <button type="button" class="opt-pill" onclick="setMilk('Soy', 20, this)">Soy</button>
+              </div>
+
+              <div class="opt-title">Shots</div>
+              <div class="pill-group">
+                <button type="button" class="opt-pill" onclick="setShots(1, this)">1</button>
+                <button type="button" class="opt-pill active" onclick="setShots(2, this)">2</button>
+                <button type="button" class="opt-pill" onclick="setShots(3, this)">3</button>
+              </div>
+
+              <div class="opt-title">Sweetness</div>
+              <div class="pill-group">
+                <button type="button" class="opt-pill" onclick="setSugar('0%', this)">0%</button>
+                <button type="button" class="opt-pill" onclick="setSugar('25%', this)">25%</button>
+                <button type="button" class="opt-pill" onclick="setSugar('50%', this)">50%</button>
+                <button type="button" class="opt-pill" onclick="setSugar('75%', this)">75%</button>
+                <button type="button" class="opt-pill active" onclick="setSugar('100%', this)">100%</button>
+              </div>
+
+              <div id="iceSection" style="display:none;">
+                <div class="opt-title">Ice Level</div>
+                <div class="pill-group">
+                  <button type="button" class="opt-pill" onclick="setIce('No ice', this)">No ice</button>
+                  <button type="button" class="opt-pill" onclick="setIce('Less', this)">Less</button>
+                  <button type="button" class="opt-pill active" onclick="setIce('Regular', this)">Regular</button>
+                </div>
+              </div>
+
+              <div class="opt-title">Extra</div>
+              <label class="addon-row">
+                <span><input type="checkbox" onchange="toggleAddon('Extra shot', 40, this.checked)" /> Extra shot</span>
+                <span style="font-weight:700; color:var(--brand);">+₱ 40.00</span>
+              </label>
+              <label class="addon-row">
+                <span><input type="checkbox" onchange="toggleAddon('Vanilla syrup', 25, this.checked)" /> Vanilla syrup</span>
+                <span style="font-weight:700; color:var(--brand);">+₱ 25.00</span>
+              </label>
+              <label class="addon-row">
+                <span><input type="checkbox" onchange="toggleAddon('Sea salt cold foam', 35, this.checked)" /> Sea salt cold foam</span>
+                <span style="font-weight:700; color:var(--brand);">+₱ 35.00</span>
+              </label>
+            </div>
+
+            <div class="opt-title">Special Instructions</div>
+            <input id="noteInput" type="text" class="note-input" placeholder="Add note for the barista..." />
+          </div>
+        </div>
+
+        <div class="docked-footer">
+          <div class="qty-stepper">
+            <button type="button" onclick="changeQty(-1)">-</button>
+            <span id="qtyVal">1</span>
+            <button type="button" onclick="changeQty(1)">+</button>
+          </div>
+          <button type="button" class="brand-btn has-trailing" style="flex:1; background:var(--brand-dark-roast);" onclick="saveToCart()">
+            <span id="ctaLabel">Add to Cart</span>
+            <span id="totalPrice">₱ 140.00</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="home-bar-wrap" style="background:var(--card);"><div class="home-bar"></div></div>
+    </div>
+  </div>
+
+  <script src="demo-store.js"></script>
+  <script src="shared.js"></script>
+  <script>
+    let currentItem = null;
+    let editId = null;
+    let opt = { size: 'Medium', sizeDelta: 0, milk: 'Regular', milkDelta: 0, shots: 2, sugar: '100%', ice: 'Regular', addons: {}, qty: 1 };
+
+    function unitPrice() {
+      if (!currentItem) return 0;
+      if (!currentItem.isDrink) return currentItem.basePrice;
+      const addonsSum = Object.values(opt.addons).reduce((s, p) => s + p, 0);
+      return currentItem.basePrice + opt.sizeDelta + opt.milkDelta + addonsSum;
+    }
+
+    function updateTotals() {
+      document.getElementById('qtyVal').textContent = opt.qty;
+      document.getElementById('totalPrice').textContent = CafeDemo.peso(unitPrice() * opt.qty);
+    }
+
+    function activateBtn(btn) {
+      btn.parentElement.querySelectorAll('.opt-pill').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+    }
+    function setSize(label, delta, btn) { activateBtn(btn); opt.size = label; opt.sizeDelta = delta; updateTotals(); }
+    function setMilk(label, delta, btn) { activateBtn(btn); opt.milk = label; opt.milkDelta = delta; updateTotals(); }
+    function setShots(n, btn) { activateBtn(btn); opt.shots = n; }
+    function setSugar(s, btn) { activateBtn(btn); opt.sugar = s; }
+    function setIce(i, btn) { activateBtn(btn); opt.ice = i; }
+    function toggleAddon(name, price, checked) {
+      if (checked) opt.addons[name] = price; else delete opt.addons[name];
+      updateTotals();
+    }
+    function changeQty(d) { opt.qty = Math.max(1, opt.qty + d); updateTotals(); }
+
+    function toggleHeart() {
+      if (!currentItem) return;
+      CafeDemo.setState(s => {
+        const i = s.user.favorites.indexOf(currentItem.id);
+        if (i >= 0) s.user.favorites.splice(i, 1);
+        else s.user.favorites.push(currentItem.id);
+        return s;
+      });
+    }
+
+    function saveToCart() {
+      if (!currentItem) return;
+      const note = (document.getElementById('noteInput').value || '').trim();
+      const addonsList = Object.keys(opt.addons);
+      const summary = currentItem.isDrink
+        ? [opt.size, opt.milk + (opt.milkDelta > 0 ? ` (+₱${opt.milkDelta})` : ''), `${opt.shots} Shots`, opt.sugar, currentItem.isIced ? `${opt.ice} Ice` : '', ...addonsList].filter(Boolean).join(' • ')
+        : '';
+      const unit = unitPrice();
+
+      CafeDemo.setState(s => {
+        if (editId) {
+          const line = s.cart.find(c => c.id === editId);
+          if (line) {
+            line.qty = opt.qty;
+            line.unitPrice = unit;
+            line.summary = summary;
+            line.note = note;
+          }
+          s.editCartLineId = null;
+        } else {
+          s.cart.push({
+            id: 'line_' + Date.now(),
+            itemId: currentItem.id,
+            name: currentItem.name,
+            qty: opt.qty,
+            unitPrice: unit,
+            summary,
+            note,
+            imageUrl: currentItem.imageUrl
+          });
+        }
+        return s;
+      });
+      window.location.href = editId ? 'cart.html' : 'menu.html';
+    }
+
+    CafeDemo.onUpdate(state => {
+      const item = state.menu.find(m => m.id === state.selectedItemId) || state.menu[0];
+      currentItem = item;
+      editId = state.editCartLineId;
+      document.getElementById('itemName').textContent = item.name;
+      document.getElementById('itemBasePrice').textContent = CafeDemo.peso(item.basePrice);
+      document.getElementById('itemDesc').textContent = item.description;
+      document.getElementById('itemImg').src = item.imageUrl || '../assets/images/coffee_splash.jpg';
+      document.getElementById('itemImg').onerror = function() { this.src = '../assets/images/coffee_splash.jpg'; };
+      document.getElementById('drinkOptionsWrap').style.display = item.isDrink ? 'block' : 'none';
+      document.getElementById('iceSection').style.display = (item.isDrink && item.isIced) ? 'block' : 'none';
+      document.getElementById('ctaLabel').textContent = editId ? 'Save Changes' : 'Add to Cart';
+
+      const isFav = (state.user.favorites || []).includes(item.id);
+      document.getElementById('favHeart').textContent = isFav ? '♥' : '♡';
+      document.getElementById('favHeart').style.color = isFav ? 'var(--bad)' : 'var(--ink)';
+      updateTotals();
+    });
+  </script>
+</body>
+</html>

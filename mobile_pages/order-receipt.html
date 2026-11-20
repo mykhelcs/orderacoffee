@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CafeGO — Order Receipt</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .receipt-appbar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--bg); flex-shrink: 0; }
+    .receipt-line { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13.5px; }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <div class="phone-screen" id="phoneScreen">
+      <div class="status-bar">
+        <span>9:41</span><div class="dynamic-island"></div><div class="status-icons"><span>5G</span><span>■■</span></div>
+      </div>
+
+      <header class="receipt-appbar">
+        <a href="orders.html" class="icon-btn-sm" aria-label="Back">←</a>
+        <h1 style="font-family:var(--font-serif); font-size:19px; font-weight:700;">Order Receipt</h1>
+      </header>
+
+      <main class="screen-scroll page-pad" style="display:flex; flex-direction:column;">
+        <div class="row-between" style="margin-bottom:6px;">
+          <h2 id="rcOrderId" style="font-family:var(--font-serif); font-size:21px; font-weight:700;">Order #BB842A</h2>
+          <span id="rcStatus" class="status-badge">Completed</span>
+        </div>
+        <div id="rcDate" class="muted-text" style="margin-bottom:14px;">Ordered on: Today</div>
+
+        <div class="divider"></div>
+        <div style="font-size:15px; font-weight:700; margin-bottom:8px;">Items</div>
+        <div id="rcItems"></div>
+
+        <div class="divider"></div>
+        <div class="receipt-line muted-text"><span>Subtotal</span><span id="rcSub" style="color:var(--ink);">₱ 0.00</span></div>
+        <div class="receipt-line muted-text"><span>Delivery Fee</span><span id="rcDel" style="color:var(--ink);">₱ 0.00</span></div>
+        <div class="receipt-line muted-text"><span>Discount</span><span id="rcDisc" style="color:var(--ok);">- ₱ 0.00</span></div>
+
+        <div class="receipt-line" style="margin-top:6px; font-size:17px; font-weight:800;">
+          <span>Total</span>
+          <span id="rcTotal" style="color:var(--brand);">₱ 0.00</span>
+        </div>
+
+        <div class="divider"></div>
+        <div style="font-size:15px; font-weight:700; margin-bottom:6px;">Branch</div>
+        <div id="rcBranchName" style="font-weight:600; font-size:14px;">CafeGO BGC High Street</div>
+        <div id="rcBranchAddr" class="muted-text" style="margin-top:2px;">Bonifacio High Street, 9th Ave, Taguig</div>
+        <div id="rcBranchHrs" class="muted-text">6:30 AM – 11:00 PM Daily</div>
+
+        <div style="margin-top:auto; padding-top:24px;">
+          <a href="orders.html" class="brand-btn" style="background:#5D4037; color:#FFFFFF;">Done</a>
+        </div>
+      </main>
+
+      <div class="home-bar-wrap"><div class="home-bar"></div></div>
+    </div>
+  </div>
+  <script src="demo-store.js"></script>
+  <script src="shared.js"></script>
+  <script>
+    CafeDemo.onUpdate(state => {
+      const ord = state.orders.find(o => o.id === state.activeOrderId) || state.orders[0];
+      if (!ord) return;
+      document.getElementById('rcOrderId').textContent = 'Order #' + ord.id;
+      const st = document.getElementById('rcStatus');
+      st.textContent = CafeDemo.statusLabel(ord.status);
+      st.className = 'status-badge' + (ord.status === 'cancelled' ? ' cancelled' : '');
+      document.getElementById('rcDate').textContent = 'Ordered on: ' + new Date(ord.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      document.getElementById('rcItems').innerHTML = (ord.items || []).map(i => `
+        <div class="receipt-line">
+          <div><div style="font-weight:600;">${i.qty}x ${i.name}</div>${i.summary ? `<div class="muted-text" style="font-size:12px;">${i.summary}</div>` : ''}</div>
+          <strong>${CafeDemo.peso(i.total)}</strong>
+        </div>
+      `).join('');
+
+      document.getElementById('rcSub').textContent = CafeDemo.peso(ord.subtotal);
+      document.getElementById('rcDel').textContent = CafeDemo.peso(ord.deliveryFee);
+      document.getElementById('rcDisc').textContent = '- ' + CafeDemo.peso(ord.discount || 0);
+      document.getElementById('rcTotal').textContent = CafeDemo.peso(ord.total);
+
+      const br = CafeDemo.BRANCHES.find(b => b.id === ord.branchId) || CafeDemo.BRANCHES[0];
+      document.getElementById('rcBranchName').textContent = br.name;
+      document.getElementById('rcBranchAddr').textContent = br.address;
+      document.getElementById('rcBranchHrs').textContent = br.hours;
+    });
+  </script>
+</body>
+</html>

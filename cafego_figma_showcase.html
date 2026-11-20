@@ -1,3080 +1,696 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CafeGO — Complete Figma System Board & HyperFrame Video Suite</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;0,800;0,900;1,600;1,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CafeGO — HyperFrame Cursor Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@500;600;700;800&family=JetBrains+Mono:wght@600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet" />
   <style>
-    :root {
-      --canvas-bg: #121316;
-      --canvas-grid: #20232a;
-      --figma-panel: #1a1c20;
-      --figma-border: #2c2f37;
-      --figma-text: #e8eaed;
-      --figma-mute: #8c93a0;
-      --figma-blue: #0c8ce9;
-      --figma-purple: #9747ff;
-      --figma-green: #0fa958;
-      --figma-amber: #e67e22;
-
-      /* CafeGO Flutter App Theme Tokens */
-      --brand-brown-dark: #382319;
-      --brand-brown-light: #5A3825;
-      --brand-crema: #D49755;
-      --brand-warm-amber: #E5A862;
-      --brand-latte-cream: #F9F6F0;
-      --brand-card-light: #FFFFFF;
-      --brand-ink-light: #231714;
-      --brand-mute-light: #786960;
-      --brand-line-light: #E8DFD5;
-      --brand-bg-dark: #231F20;
-      --brand-card-dark: #2E2728;
-      --brand-ink-dark: #F7F2EE;
-      --brand-mute-dark: #A69A93;
-      --brand-line-dark: #3F3536;
-      --brand-accent-amber: #D4A373;
-      --brand-ok: #2E7D32;
-      --brand-bad: #D6336C;
-      --brand-warn: #D97706;
-    }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      background-color: var(--canvas-bg);
-      background-image: radial-gradient(var(--canvas-grid) 1.5px, transparent 1.5px);
-      background-size: 24px 24px;
-      color: var(--figma-text);
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: radial-gradient(circle at 50% 25%, #231b18 0%, #111011 55%, #090809 100%);
+      color: #F7F2EE;
       min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 14px 18px 86px;
       overflow-x: hidden;
-      padding-bottom: 120px; /* space for hyperframe playbar */
     }
 
-    /* ── FIGMA TOP NAVIGATION BAR ── */
-    .figma-header {
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      background: rgba(26, 28, 32, 0.96);
-      backdrop-filter: blur(18px);
-      border-bottom: 1px solid var(--figma-border);
-      padding: 12px 24px;
+    /* Minimal Top Bar */
+    .demo-topbar {
+      width: 100%;
+      max-width: 920px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+      margin-bottom: 14px;
+      gap: 12px;
     }
 
-    .brand-section {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .figma-logo-badge {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(212, 163, 115, 0.15);
-      border: 1px solid rgba(212, 163, 115, 0.45);
-      padding: 6px 14px;
-      border-radius: 20px;
-    }
-
-    .brand-title {
+    .brand-mark {
       font-family: 'Playfair Display', serif;
+      font-size: 20px;
       font-weight: 800;
-      font-size: 19px;
+      color: #F7F2EE;
       letter-spacing: -0.3px;
-      color: #fff;
     }
-    .brand-title span { color: var(--brand-accent-amber); }
+    .brand-mark span { color: #D4A373; }
 
-    .version-pill {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      background: #272a32;
-      padding: 3px 9px;
-      border-radius: 6px;
-      color: #a0aec0;
-      border: 1px solid #3c424f;
-    }
-
-    /* Filter Tabs */
-    .filter-tabs {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      background: #141619;
-      padding: 4px;
-      border-radius: 12px;
-      border: 1px solid var(--figma-border);
-    }
-
-    .filter-btn {
-      background: transparent;
-      border: none;
-      color: var(--figma-mute);
-      padding: 7px 13px;
-      font-size: 12px;
-      font-weight: 700;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .filter-btn:hover {
-      color: #fff;
-      background: rgba(255, 255, 255, 0.06);
-    }
-
-    .filter-btn.active {
-      background: var(--brand-accent-amber);
-      color: #1a1513;
-      font-weight: 800;
-      box-shadow: 0 2px 10px rgba(212, 163, 115, 0.35);
-    }
-
-    .view-controls {
+    .top-actions {
       display: flex;
       align-items: center;
       gap: 8px;
     }
 
-    .ctrl-btn {
-      background: #23262d;
-      border: 1px solid var(--figma-border);
-      color: var(--figma-text);
-      padding: 7px 12px;
-      border-radius: 8px;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.15s ease;
-    }
-
-    .ctrl-btn:hover {
-      background: #2e323b;
-      border-color: #434958;
-    }
-
-    .ctrl-btn.active-wire {
-      background: rgba(12, 140, 233, 0.2);
-      border-color: var(--figma-blue);
-      color: #79c0ff;
-    }
-
-    /* ── CANVAS CONTAINER ── */
-    .figma-canvas {
-      padding: 40px 32px 60px;
-      max-width: 1780px;
-      margin: 0 auto;
-      transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
-      transform-origin: top center;
-      position: relative;
-    }
-
-    /* ── PROTOTYPE WIRES SVG OVERLAY ── */
-    #prototypeWiresOverlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 50;
-      overflow: visible;
-      transition: opacity 0.3s ease;
-    }
-
-    .proto-path {
-      fill: none;
-      stroke-width: 2.5;
-      stroke-dasharray: 6 6;
-      animation: dashMove 1.5s linear infinite;
-    }
-
-    @keyframes dashMove {
-      to { stroke-dashoffset: -24; }
-    }
-
-    /* ── SECTION HEADER ── */
-    .canvas-section {
-      margin-bottom: 70px;
-      position: relative;
-    }
-
-    .section-headline {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 24px;
-      padding-bottom: 14px;
-      border-bottom: 1px solid #282b33;
-    }
-
-    .section-title-wrap {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .section-badge {
-      width: 36px;
-      height: 36px;
-      border-radius: 11px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 800;
-      font-size: 15px;
-    }
-
-    .badge-client { background: rgba(212, 163, 115, 0.2); color: var(--brand-accent-amber); border: 1px solid var(--brand-accent-amber); }
-    .badge-staff { background: rgba(226, 149, 120, 0.2); color: #e29578; border: 1px solid #e29578; }
-    .badge-driver { background: rgba(42, 157, 143, 0.2); color: #2a9d8f; border: 1px solid #2a9d8f; }
-    .badge-admin { background: rgba(151, 71, 255, 0.2); color: var(--figma-purple); border: 1px solid var(--figma-purple); }
-    .badge-loop { background: rgba(12, 140, 233, 0.2); color: var(--figma-blue); border: 1px solid var(--figma-blue); }
-
-    .section-name {
-      font-size: 21px;
-      font-weight: 800;
-      letter-spacing: -0.4px;
-    }
-
-    .section-desc {
-      font-size: 13px;
-      color: var(--figma-mute);
-      margin-top: 3px;
-    }
-
-    /* ── SYSTEM FLOW LOOP CONTAINER ── */
-    .loop-board {
-      background: linear-gradient(135deg, #17181c 0%, #1f1d24 100%);
-      border: 1px solid #333640;
-      border-radius: 26px;
-      padding: 32px;
-      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.45);
-      margin-bottom: 50px;
-    }
-
-    .loop-grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 16px;
-      margin-top: 24px;
-      position: relative;
-    }
-
-    .loop-node {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 18px;
-      padding: 20px;
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .loop-node:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
-      border-color: rgba(212, 163, 115, 0.4);
-    }
-
-    .node-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-
-    .node-icon {
-      width: 38px;
-      height: 38px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 19px;
-    }
-
-    .node-step {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 10px;
-      color: var(--figma-mute);
-      text-transform: uppercase;
-      font-weight: 800;
-    }
-
-    .node-title {
-      font-size: 14.5px;
-      font-weight: 800;
-      color: #fff;
-    }
-
-    .node-steps-list {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 9px;
-      margin-top: 12px;
-    }
-
-    .node-steps-list li {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      font-size: 11.5px;
-      color: #cfd4dc;
-      line-height: 1.4;
-    }
-
-    .step-num {
-      width: 17px;
-      height: 17px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 9.5px;
-      font-weight: 700;
-      flex-shrink: 0;
-      margin-top: 1px;
-    }
-
-    .loop-sync-banner {
-      margin-top: 24px;
-      background: rgba(12, 140, 233, 0.1);
-      border: 1px dashed rgba(12, 140, 233, 0.4);
-      border-radius: 14px;
-      padding: 16px 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-    }
-
-    .sync-text {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 13px;
-      font-weight: 600;
-      color: #79c0ff;
-    }
-
-    .sync-pills {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .sync-tag {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      background: rgba(255, 255, 255, 0.08);
-      padding: 4px 10px;
-      border-radius: 6px;
-      color: #fff;
-    }
-
-    /* ── FRAMES GRID ── */
-    .frames-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-      gap: 36px;
-      align-items: start;
-    }
-
-    /* ── FIGMA FRAME CONTAINER & UPPER LABEL ── */
-    .figma-frame-card {
-      background: #17181c;
-      border: 1px solid var(--figma-border);
-      border-radius: 28px;
-      padding: 20px 20px 24px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      transition: all 0.25s ease;
-      position: relative;
-    }
-
-    .figma-frame-card:hover {
-      border-color: rgba(212, 163, 115, 0.55);
-      transform: translateY(-5px);
-      box-shadow: 0 18px 36px rgba(0, 0, 0, 0.5);
-    }
-
-    .figma-frame-card.active-scene {
-      border-color: var(--brand-accent-amber);
-      box-shadow: 0 0 0 2px var(--brand-accent-amber), 0 20px 40px rgba(212, 163, 115, 0.25);
-    }
-
-    /* Upper Figma Frame Label */
-    .frame-upper-header {
-      width: 100%;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid #282a31;
-    }
-
-    .frame-meta-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 6px;
-    }
-
-    .frame-number-badge {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      font-weight: 800;
-      background: #252830;
-      color: var(--brand-accent-amber);
-      padding: 3px 8px;
-      border-radius: 6px;
-      border: 1px solid #373b47;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .frame-status-pill {
-      font-size: 10px;
-      font-weight: 800;
-      padding: 2px 8px;
-      border-radius: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .status-live { background: rgba(15, 169, 88, 0.2); color: #2ecc71; border: 1px solid rgba(15, 169, 88, 0.4); }
-    .status-sync { background: rgba(12, 140, 233, 0.2); color: #58a6ff; border: 1px solid rgba(12, 140, 233, 0.4); }
-    .status-modal { background: rgba(151, 71, 255, 0.2); color: #bc8cff; border: 1px solid rgba(151, 71, 255, 0.4); }
-
-    .frame-page-title {
-      font-size: 15.5px;
-      font-weight: 800;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .frame-route-code {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      color: var(--figma-mute);
-      margin-top: 4px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .frame-route-code span {
-      background: #202227;
-      padding: 2px 6px;
-      border-radius: 4px;
-      color: #e2e8f0;
-    }
-
-    /* ── SMARTPHONE DEVICE FRAME (iPhone 16 Pro) ── */
-    .phone-mockup {
-      width: 320px;
-      height: 660px;
-      background: #000;
-      border-radius: 44px;
-      padding: 10px;
-      box-shadow: 0 0 0 4px #2c2d33, 0 24px 48px rgba(0, 0, 0, 0.65);
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      user-select: none;
-    }
-
-    .screen-content {
-      width: 100%;
-      height: 100%;
-      background: var(--brand-latte-cream);
-      color: var(--brand-ink-light);
-      border-radius: 36px;
-      overflow-y: auto;
-      overflow-x: hidden;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      scrollbar-width: none;
-    }
-
-    .screen-content::-webkit-scrollbar { display: none; }
-
-    .screen-content.dark-theme {
-      background: var(--brand-bg-dark);
-      color: var(--brand-ink-dark);
-    }
-
-    /* Dynamic Island & Status Bar */
-    .status-bar {
-      height: 40px;
-      padding: 8px 20px 0;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 11px;
-      font-weight: 700;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background: inherit;
-    }
-
-    .island-notch {
-      width: 82px;
-      height: 20px;
-      background: #000;
-      border-radius: 14px;
-      margin: 0 auto;
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      top: 8px;
-    }
-
-    /* Bottom Home Indicator */
-    .home-indicator {
-      width: 110px;
-      height: 4px;
-      background: rgba(0, 0, 0, 0.25);
-      border-radius: 99px;
-      margin: 8px auto 6px;
-      flex-shrink: 0;
-    }
-
-    .dark-theme .home-indicator {
-      background: rgba(255, 255, 255, 0.25);
-    }
-
-    /* ── FLUTTER WIDGETS FAITHFUL STYLING ── */
-    .app-brand-logo {
-      font-family: 'Playfair Display', serif;
-      font-weight: 900;
-      font-size: 17px;
-      color: var(--brand-brown-light);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .dark-theme .app-brand-logo { color: #fff; }
-    .app-brand-logo span { color: var(--brand-accent-amber); }
-
-    .btn-brand {
-      background: var(--brand-accent-amber);
-      color: #1a1513;
+    .top-pill-btn {
+      background: rgba(35, 31, 32, 0.88);
+      border: 1px solid #3F3536;
+      color: #F7F2EE;
       font-family: 'Figtree', sans-serif;
-      font-weight: 800;
-      font-size: 13px;
-      padding: 12px 18px;
-      border-radius: 14px;
-      border: none;
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      box-shadow: 0 4px 14px rgba(212, 163, 115, 0.35);
-      cursor: pointer;
-    }
-
-    .btn-ghost {
-      background: transparent;
-      border: 1px solid var(--brand-accent-amber);
-      color: var(--brand-accent-amber);
-      font-family: 'Figtree', sans-serif;
-      font-weight: 700;
-      font-size: 12px;
-      padding: 10px 14px;
-      border-radius: 12px;
-      width: 100%;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
-
-    /* Bottom App Bar */
-    .mobile-tab-bar {
-      margin-top: auto;
-      background: #ffffff;
-      border-top: 1px solid rgba(0, 0, 0, 0.06);
-      padding: 8px 16px 2px;
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      position: sticky;
-      bottom: 0;
-      z-index: 90;
-    }
-
-    .dark-theme .mobile-tab-bar {
-      background: #1c1816;
-      border-top-color: rgba(255, 255, 255, 0.08);
-    }
-
-    .tab-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 3px;
-      color: #8c857e;
-      font-size: 9px;
-      font-weight: 600;
-    }
-
-    .tab-item.active {
-      color: var(--brand-accent-amber);
-      font-weight: 800;
-    }
-
-    .tab-item svg {
-      width: 18px;
-      height: 18px;
-      stroke-width: 2.2;
-    }
-
-    /* ── HYPERFRAME VIDEO DIRECTOR CONTROLLER ── */
-    .hyperframe-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      z-index: 2000;
-      background: rgba(18, 19, 22, 0.94);
-      backdrop-filter: blur(20px);
-      border-top: 1px solid #333742;
-      padding: 12px 28px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.6);
-    }
-
-    .hyper-top-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-    }
-
-    .hyper-status-badge {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      font-weight: 700;
-      color: #79c0ff;
-    }
-
-    .hyper-pulse {
-      width: 8px;
-      height: 8px;
-      background: #2ecc71;
-      border-radius: 50%;
-      box-shadow: 0 0 10px #2ecc71;
-      animation: pulse 1.2s infinite;
-    }
-
-    @keyframes pulse {
-      0% { opacity: 0.4; transform: scale(0.9); }
-      50% { opacity: 1; transform: scale(1.2); }
-      100% { opacity: 0.4; transform: scale(0.9); }
-    }
-
-    .hyper-teleprompter {
-      font-size: 13px;
-      color: #e2e8f0;
-      font-weight: 600;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      padding: 6px 14px;
-      flex: 1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .hyper-controls-row {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .hyper-btn {
-      background: #252830;
-      border: 1px solid #3c424f;
-      color: #fff;
       font-size: 12px;
       font-weight: 700;
       padding: 6px 12px;
-      border-radius: 8px;
+      border-radius: 99px;
       cursor: pointer;
+      text-decoration: none;
+    }
+    .top-pill-btn:hover { border-color: #D4A373; color: #D4A373; }
+
+    /* Two-Phone HyperFrame Stage */
+    .stage-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 40px;
+      width: 100%;
+      margin-top: 2px;
+    }
+
+    .device-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.45s ease;
+    }
+
+    .device-col.spotlight {
+      transform: scale(1.028);
+      opacity: 1;
+    }
+
+    .device-col.dimmed {
+      transform: scale(0.975);
+      opacity: 0.78;
+    }
+
+    .role-strip {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
+      background: rgba(28, 25, 26, 0.9);
+      border: 1px solid #332B2D;
+      padding: 4px;
+      border-radius: 99px;
+    }
+
+    .role-tab {
+      background: transparent;
+      border: none;
+      color: #A69A93;
+      font-family: 'Figtree', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 10px;
+      border-radius: 99px;
+      cursor: pointer;
       transition: all 0.15s ease;
     }
-
-    .hyper-btn:hover { background: #323642; }
-
-    .hyper-scrubber {
-      flex: 1;
-      height: 6px;
-      -webkit-appearance: none;
-      background: #2c2f38;
-      border-radius: 4px;
-      outline: none;
-      cursor: pointer;
+    .role-tab:hover { color: #F7F2EE; }
+    .role-tab.active {
+      background: #D4A373;
+      color: #231F20;
     }
 
-    .hyper-scrubber::-webkit-slider-thumb {
+    .device-bezel {
+      width: 368px;
+      height: 760px;
+      background: #0a090a;
+      border-radius: 48px;
+      padding: 10px;
+      box-shadow: 0 0 0 2px #322B2D, 0 28px 64px rgba(0, 0, 0, 0.75);
+      transition: box-shadow 0.4s ease;
+    }
+
+    .device-col.spotlight .device-bezel {
+      box-shadow: 0 0 0 2px #D4A373, 0 32px 72px rgba(212, 163, 115, 0.22);
+    }
+
+    .device-viewport {
+      width: 100%;
+      height: 100%;
+      border-radius: 38px;
+      overflow: hidden;
+      background: #1A1513;
+    }
+
+    .device-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+
+    /* Minimal Floating HyperFrame Bar */
+    .hyper-dock {
+      position: fixed;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2500;
+      width: calc(100% - 28px);
+      max-width: 720px;
+      background: rgba(20, 18, 19, 0.92);
+      backdrop-filter: blur(18px);
+      border: 1px solid #362E30;
+      border-radius: 99px;
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65);
+    }
+
+    .play-pill {
+      background: #D4A373;
+      color: #231F20;
+      border: none;
+      border-radius: 99px;
+      padding: 7px 14px;
+      font-family: 'Figtree', sans-serif;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .scene-pill {
+      background: #2B2425;
+      border: 1px solid #413638;
+      color: #E5A862;
+      border-radius: 99px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .scrubber {
+      flex: 1;
+      height: 5px;
+      -webkit-appearance: none;
+      background: #362E30;
+      border-radius: 99px;
+      outline: none;
+      cursor: pointer;
+      min-width: 80px;
+    }
+    .scrubber::-webkit-slider-thumb {
       -webkit-appearance: none;
       width: 14px;
       height: 14px;
       border-radius: 50%;
-      background: var(--brand-accent-amber);
+      background: #D4A373;
+      box-shadow: 0 0 8px rgba(212, 163, 115, 0.8);
       cursor: pointer;
-      box-shadow: 0 0 8px rgba(212, 163, 115, 0.7);
     }
 
-    .hyper-time-display {
+    .time-readout {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 11.5px;
-      color: #a0aec0;
-      min-width: 90px;
+      font-size: 11px;
+      color: #A69A93;
+      white-space: nowrap;
     }
 
-    /* Responsive */
-    @media (max-width: 1200px) {
-      .loop-grid { grid-template-columns: repeat(2, 1fr); }
+    .spd-btn {
+      background: #231F20;
+      border: 1px solid #3B3234;
+      color: #A69A93;
+      border-radius: 99px;
+      padding: 4px 8px;
+      font-size: 10.5px;
+      font-weight: 700;
+      cursor: pointer;
     }
-    @media (max-width: 768px) {
-      .loop-grid { grid-template-columns: 1fr; }
-      .figma-header { flex-direction: column; align-items: stretch; }
-      .filter-tabs { overflow-x: auto; }
-      .hyper-top-row { flex-direction: column; align-items: flex-start; }
+    .spd-btn.active {
+      background: #3F3536;
+      color: #F7F2EE;
+      border-color: #D4A373;
+    }
+
+    /* Animated Demo Pointer Cursor & Tap Ripple */
+    .demo-cursor {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 3000;
+      pointer-events: none;
+      transform: translate(-4px, -2px);
+      transition: left 0.56s cubic-bezier(0.22, 1, 0.36, 1), top 0.56s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease, transform 0.14s ease;
+      filter: drop-shadow(0 5px 12px rgba(0, 0, 0, 0.55));
+      opacity: 0;
+    }
+    .demo-cursor.visible { opacity: 1; }
+    .demo-cursor.clicking { transform: translate(-4px, -2px) scale(0.82); }
+
+    .tap-ripple {
+      position: fixed;
+      z-index: 2999;
+      pointer-events: none;
+      width: 36px;
+      height: 36px;
+      margin-left: -18px;
+      margin-top: -18px;
+      border-radius: 50%;
+      border: 2.5px solid #D4A373;
+      background: rgba(212, 163, 115, 0.28);
+      opacity: 0;
+    }
+    .tap-ripple.animate {
+      animation: tapPop 0.52s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes tapPop {
+      0% { transform: scale(0.35); opacity: 0.95; }
+      100% { transform: scale(1.65); opacity: 0; }
+    }
+
+    @media (max-height: 900px) and (min-width: 820px) {
+      .device-bezel {
+        width: 344px;
+        height: 696px;
+      }
     }
   </style>
 </head>
 <body>
-
-  <!-- ── FIGMA MASTER TOOLBAR ── -->
-  <header class="figma-header">
-    <div class="brand-section">
-      <div class="figma-logo-badge">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
-          <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
-          <line x1="6" y1="1" x2="6" y2="4"></line>
-          <line x1="10" y1="1" x2="10" y2="4"></line>
-          <line x1="14" y1="1" x2="14" y2="4"></line>
-        </svg>
-        <span style="font-weight: 800; font-size: 12px; color: var(--brand-accent-amber);">CafeGO DESIGN BOARD</span>
-      </div>
-      <h1 class="brand-title">Cafe<span>GO</span> Complete System Architecture & UI Board</h1>
-      <span class="version-pill">v2.5.0 • PRODUCTION</span>
-    </div>
-
-    <!-- Filter Tabs -->
-    <nav class="filter-tabs">
-      <button class="filter-btn active" onclick="filterScreens('all', this)">All Screens (21)</button>
-      <button class="filter-btn" onclick="filterScreens('loop', this)">🔄 System Loop</button>
-      <button class="filter-btn" onclick="filterScreens('client', this)">☕ Client App (12)</button>
-      <button class="filter-btn" onclick="filterScreens('staff', this)">👨‍🍳 Kitchen KDS (2)</button>
-      <button class="filter-btn" onclick="filterScreens('driver', this)">🛵 Driver App (2)</button>
-      <button class="filter-btn" onclick="filterScreens('admin', this)">🛡️ Admin Console (5)</button>
-    </nav>
-
-    <!-- Canvas Controls -->
-    <div class="view-controls">
-      <button class="ctrl-btn active-wire" id="wireToggleBtn" onclick="togglePrototypeWires()">⚡ Prototype Wires: ON</button>
-      <button class="ctrl-btn" onclick="adjustZoom(-0.1)">- Zoom</button>
-      <span id="zoomLabel" style="font-family:'JetBrains Mono', monospace; font-size: 11px; color:#a0aec0;">100%</span>
-      <button class="ctrl-btn" onclick="adjustZoom(0.1)">+ Zoom</button>
-      <button class="ctrl-btn" onclick="resetZoom()">Fit</button>
+  <header class="demo-topbar">
+    <div class="brand-mark">Cafe<span>GO</span></div>
+    <div class="top-actions">
+      <a href="mobile_pages/index.html" class="top-pill-btn">All Screens</a>
+      <button type="button" class="top-pill-btn" onclick="resetAndPause()">↻ Reset</button>
     </div>
   </header>
 
-  <!-- ── MAIN CANVAS ── -->
-  <main class="figma-canvas" id="canvasArea">
-
-    <!-- SVG Dynamic Prototyping Wires Overlay -->
-    <svg id="prototypeWiresOverlay">
-      <defs>
-        <linearGradient id="protoGradAmber" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#D4A373" stop-opacity="0.9"/>
-          <stop offset="100%" stop-color="#E29578" stop-opacity="0.9"/>
-        </linearGradient>
-        <linearGradient id="protoGradBlue" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#0c8ce9" stop-opacity="0.9"/>
-          <stop offset="100%" stop-color="#2ecc71" stop-opacity="0.9"/>
-        </linearGradient>
-        <linearGradient id="protoGradPurple" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#9747ff" stop-opacity="0.9"/>
-          <stop offset="100%" stop-color="#D4A373" stop-opacity="0.9"/>
-        </linearGradient>
-        <marker id="arrowAmber" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M 0 1 L 8 5 L 0 9 z" fill="#D4A373"/>
-        </marker>
-        <marker id="arrowBlue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M 0 1 L 8 5 L 0 9 z" fill="#0c8ce9"/>
-        </marker>
-        <marker id="arrowPurple" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M 0 1 L 8 5 L 0 9 z" fill="#9747ff"/>
-        </marker>
-      </defs>
-      <!-- Paths will be rendered dynamically by JS -->
-    </svg>
-
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- 0. SYSTEM FLOW IN A LOOP (CLIENT, SERVER, ADMIN, DRIVER, POS)  -->
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <section class="canvas-section" data-category="loop" id="sec-loop">
-      <div class="section-headline">
-        <div class="section-title-wrap">
-          <div class="section-badge badge-loop">🔄</div>
-          <div>
-            <h2 class="section-name">End-to-End System Operational Flow (Continuous Reactive Loop)</h2>
-            <p class="section-desc">Real-time synchronized lifecycle spanning Customer storefront, Kitchen KDS queue, Driver logistics, and Admin control tower</p>
-          </div>
-        </div>
-        <span class="frame-number-badge">EVENT BUS: FIRESTORE + MULTI-TIER CACHE</span>
+  <main class="stage-grid">
+    <!-- Left Phone: Users App -->
+    <section class="device-col" id="userCol">
+      <div class="role-strip" id="userNavStrip">
+        <button type="button" class="role-tab" onclick="manualNavUser('mobile_pages/landing.html', 0)">Splash</button>
+        <button type="button" class="role-tab" onclick="manualNavUser('mobile_pages/login.html', 1)">Login</button>
+        <button type="button" class="role-tab active" onclick="manualNavUser('mobile_pages/menu.html', 2)">Menu</button>
+        <button type="button" class="role-tab" onclick="manualNavUser('mobile_pages/cart.html', 3)">Cart</button>
+        <button type="button" class="role-tab" onclick="manualNavUser('mobile_pages/order-tracking.html', 4)">Track</button>
+        <button type="button" class="role-tab" onclick="manualNavUser('mobile_pages/profile.html', 5)">Profile</button>
       </div>
-
-      <div class="loop-board">
-        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 14px;">
-          <div>
-            <h3 style="font-size: 17px; font-weight: 800; color: #fff;">Bidirectional Multi-Actor Synchronization Loop</h3>
-            <p style="font-size: 12px; color: #8b92a0; margin-top: 2px;">Changes initiated by any actor immediately propagate to all connected devices in sub-second latency.</p>
-          </div>
-          <span style="font-family:'JetBrains Mono', monospace; font-size: 11px; background: rgba(15,169,88,0.2); color:#2ecc71; padding: 4px 10px; border-radius: 8px; border:1px solid rgba(15,169,88,0.4);">
-            ● LIVE WEBSOCKET & CACHE READY
-          </span>
-        </div>
-
-        <div class="loop-grid">
-          <!-- Node 1: Customer Storefront -->
-          <div class="loop-node" style="border-top: 3px solid var(--brand-accent-amber);">
-            <div class="node-header">
-              <div class="node-icon" style="background: rgba(212,163,115,0.2); color: var(--brand-accent-amber);">☕</div>
-              <div>
-                <span class="node-step">Stage 1</span>
-                <h4 class="node-title">Customer Storefront</h4>
-              </div>
-            </div>
-            <ul class="node-steps-list">
-              <li><span class="step-num">1</span> <strong>Browse & Search:</strong> Live menu filtered by 5 categories with local disk cache.</li>
-              <li><span class="step-num">2</span> <strong>Customize:</strong> Size, Oat/Almond milk, sweetness, and special barista instructions.</li>
-              <li><span class="step-num">3</span> <strong>Place & Pay:</strong> GCash, Maya, COD, or Counter Cash with address validation.</li>
-              <li><span class="step-num">4</span> <strong>Real-time Tracking:</strong> Dynamic scooter tracker, 4-stage stepper, and live ETA.</li>
-              <li><span class="step-num">5</span> <strong>Loyalty Reward:</strong> Accrue stamps towards free drink, 1-tap re-order.</li>
-            </ul>
-          </div>
-
-          <!-- Node 2: Realtime Event Bus -->
-          <div class="loop-node" style="border-top: 3px solid var(--figma-blue);">
-            <div class="node-header">
-              <div class="node-icon" style="background: rgba(12,140,233,0.2); color: var(--figma-blue);">⚡</div>
-              <div>
-                <span class="node-step">Stage 2</span>
-                <h4 class="node-title">Reactive Event Bus</h4>
-              </div>
-            </div>
-            <ul class="node-steps-list">
-              <li><span class="step-num">1</span> <strong>Firestore Streams:</strong> Snapshot listeners propagate changes in sub-500ms.</li>
-              <li><span class="step-num">2</span> <strong>Disk Cache:</strong> 10-min offline TTL ensures instant startup.</li>
-              <li><span class="step-num">3</span> <strong>Clean Name Resolution:</strong> UIDs transformed into customer full names.</li>
-              <li><span class="step-num">4</span> <strong>PayMongo Webhook:</strong> Instant payment state verification.</li>
-              <li><span class="step-num">5</span> <strong>FCM Push:</strong> High-priority order progress alerts.</li>
-            </ul>
-          </div>
-
-          <!-- Node 3: Kitchen KDS & Cashier -->
-          <div class="loop-node" style="border-top: 3px solid #e29578;">
-            <div class="node-header">
-              <div class="node-icon" style="background: rgba(226,149,120,0.2); color: #e29578;">👨‍🍳</div>
-              <div>
-                <span class="node-step">Stage 3</span>
-                <h4 class="node-title">Kitchen KDS & POS</h4>
-              </div>
-            </div>
-            <ul class="node-steps-list">
-              <li><span class="step-num">1</span> <strong>FIFO Ticket Queue:</strong> Live incoming orders with prep timer color cues.</li>
-              <li><span class="step-num">2</span> <strong>Start Brewing:</strong> Barista advances status to "Preparing" with 1-tap.</li>
-              <li><span class="step-num">3</span> <strong>Stock Deduction:</strong> Ingredients automatically deducted from inventory.</li>
-              <li><span class="step-num">4</span> <strong>Cash Drawer POS:</strong> Over-the-counter tender with change calculator.</li>
-              <li><span class="step-num">5</span> <strong>Dispatch Alert:</strong> "Mark Ready" alerts assigned driver or pickup counter.</li>
-            </ul>
-          </div>
-
-          <!-- Node 4: Driver Fleet -->
-          <div class="loop-node" style="border-top: 3px solid #2a9d8f;">
-            <div class="node-header">
-              <div class="node-icon" style="background: rgba(42,157,143,0.2); color: #2a9d8f;">🛵</div>
-              <div>
-                <span class="node-step">Stage 4</span>
-                <h4 class="node-title">Driver Cockpit</h4>
-              </div>
-            </div>
-            <ul class="node-steps-list">
-              <li><span class="step-num">1</span> <strong>Online Availability:</strong> Driver joins active geofence pool via toggle.</li>
-              <li><span class="step-num">2</span> <strong>Delivery Pool:</strong> View ready orders with pickup distance and fee.</li>
-              <li><span class="step-num">3</span> <strong>Claim & Navigate:</strong> Accept delivery, pickup order, activate turn-by-turn.</li>
-              <li><span class="step-num">4</span> <strong>Customer Comms:</strong> One-tap phone dialer for gate or delivery notes.</li>
-              <li><span class="step-num">5</span> <strong>Handover & COD:</strong> Confirm delivery, collect cash, loop back to pool.</li>
-            </ul>
-          </div>
-
-          <!-- Node 5: Admin Control Tower -->
-          <div class="loop-node" style="border-top: 3px solid var(--figma-purple);">
-            <div class="node-header">
-              <div class="node-icon" style="background: rgba(151,71,255,0.2); color: var(--figma-purple);">🛡️</div>
-              <div>
-                <span class="node-step">Stage 5</span>
-                <h4 class="node-title">Admin Management</h4>
-              </div>
-            </div>
-            <ul class="node-steps-list">
-              <li><span class="step-num">1</span> <strong>Analytics Tower:</strong> Real-time gross revenue, net margin, hourly demand.</li>
-              <li><span class="step-num">2</span> <strong>Dispatch Override:</strong> Reassign drivers or resolve fulfillment delays.</li>
-              <li><span class="step-num">3</span> <strong>Stock Inventory:</strong> Real-time low-stock alerts with +/- steppers.</li>
-              <li><span class="step-num">4</span> <strong>Catalog Editor:</strong> Update pricing, descriptions, and photo uploads.</li>
-              <li><span class="step-num">5</span> <strong>Role Security:</strong> Promote or revoke Barista, Driver, and Admin RBAC.</li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="loop-sync-banner">
-          <div class="sync-text">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-            </svg>
-            <span><strong>Continuous Feedback Loop:</strong> Driver location and KDS status stream into Customer tracking screen every 500ms</span>
-          </div>
-          <div class="sync-pills">
-            <span class="sync-tag">⚡ Firestore Persistence</span>
-            <span class="sync-tag">💾 Disk Cache (10-min TTL)</span>
-            <span class="sync-tag">🔔 Push Notifications</span>
-            <span class="sync-tag">📱 Role Guards</span>
-          </div>
+      <div class="device-bezel">
+        <div class="device-viewport">
+          <iframe id="userPhoneFrame" class="device-iframe" src="mobile_pages/landing.html" title="User App"></iframe>
         </div>
       </div>
     </section>
 
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- 1. CLIENT / CUSTOMER SCREENS (12 FRAMES)                      -->
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <section class="canvas-section" data-category="client" id="sec-client">
-      <div class="section-headline">
-        <div class="section-title-wrap">
-          <div class="section-badge badge-client">☕</div>
-          <div>
-            <h2 class="section-name">Client & Customer Screens (Storefront Journey)</h2>
-            <p class="section-desc">Complete end-to-end customer purchasing flow: Onboarding, Authentication, Catalog, Customization, Cart, Checkout, Live Tracking, Digital Receipt, Order History, and Loyalty Card</p>
-          </div>
-        </div>
-        <span class="frame-number-badge">12 FRAMES • FLUTTER CLIENT SUITE</span>
+    <!-- Right Phone: Admin Manager & Staffs -->
+    <section class="device-col" id="opsCol">
+      <div class="role-strip" id="opsNavStrip">
+        <button type="button" class="role-tab active" onclick="manualNavOps('mobile_pages/staff-kds.html', 0)">Kitchen Staff</button>
+        <button type="button" class="role-tab" onclick="manualNavOps('mobile_pages/driver-workspace.html', 1)">Driver Staff</button>
+        <button type="button" class="role-tab" onclick="manualNavOps('mobile_pages/admin-orders.html', 2)">Admin Manager</button>
       </div>
-
-      <div class="frames-grid">
-        <!-- FRAME 01: Landing Screen -->
-        <div class="figma-frame-card" id="frame-01" data-frame-index="1">
-          <div class="frame-upper-header">
-            <div class="frame-meta-row">
-              <span class="frame-number-badge">FRAME 01</span>
-              <span class="frame-status-pill status-live">Live</span>
-            </div>
-            <h3 class="frame-page-title">Landing & Splash</h3>
-            <div class="frame-route-code">Route: <span>/landing</span> • Role: <span>Public</span></div>
-          </div>
-
-          <div class="phone-mockup">
-            <div class="status-bar">
-              <span>9:41</span>
-              <div class="island-notch"></div>
-              <span>5G ■■</span>
-            </div>
-            <div class="screen-content dark-theme" style="background: #1E1715; position: relative;">
-              <!-- Coffee Splash Background Gradient -->
-              <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(40,30,28,0.7) 50%, rgba(0,0,0,0.85) 100%);"></div>
-
-              <div style="position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; justify-content: space-between; padding: 48px 24px 28px;">
-                <div>
-                  <h1 style="font-family: 'Playfair Display', serif; font-size: 42px; font-weight: 800; color: #fff; line-height: 1.0; margin-bottom: 10px; text-shadow: 0 4px 12px rgba(0,0,0,0.5);">CafeGO</h1>
-                  <p style="font-family: 'Playfair Display', serif; font-size: 20px; font-style: italic; color: #F7F1EB; text-shadow: 0 2px 8px rgba(0,0,0,0.6);">Your daily comfort brew</p>
-                </div>
-
-                <!-- 3-Second Loading Bar Indicator -->
-                <div style="text-align: center; margin-bottom: 12px;">
-                  <div style="width: 140px; height: 4px; background: rgba(255,255,255,0.25); border-radius: 99px; margin: 0 auto 12px; overflow: hidden; position: relative;">
-                    <div style="width: 65%; height: 100%; background: #D4A373; border-radius: 99px; box-shadow: 0 0 8px #D4A373;"></div>
-                  </div>
-                  <p style="font-family: 'Playfair Display', serif; font-size: 12px; font-style: italic; color: rgba(226,214,207,0.85);">Brewing your experience...</p>
-                  <p style="font-size: 10px; color: #887e74; margin-top: 8px;">Tap anywhere to start</p>
-                </div>
-              </div>
-            </div>
-            <div class="home-indicator"></div>
-          </div>
+      <div class="device-bezel">
+        <div class="device-viewport">
+          <iframe id="opsPhoneFrame" class="device-iframe" src="mobile_pages/staff-kds.html" title="Admin and Staffs App"></iframe>
         </div>
-
-        <!-- FRAME 02: Login Screen -->
-        <div class="figma-frame-card" id="frame-02" data-frame-index="2">
-          <div class="frame-upper-header">
-            <div class="frame-meta-row">
-              <span class="frame-number-badge">FRAME 02</span>
-              <span class="frame-status-pill status-live">Live</span>
-            </div>
-            <h3 class="frame-page-title">Sign In & Quick RBAC</h3>
-            <div class="frame-route-code">Route: <span>/login</span> • Layer: <span>AuthProvider</span></div>
-          </div>
-
-          <div class="phone-mockup">
-            <div class="status-bar">
-              <span>9:41</span>
-              <div class="island-notch"></div>
-              <span>5G ■■</span>
-            </div>
-            <div class="screen-content" style="padding: 16px 18px; justify-content: space-between;">
-              <div>
-                <div class="app-brand-logo" style="margin-bottom: 14px;">
-                  <span style="font-size: 18px;">☕</span> Cafe<span>GO</span>
-                </div>
-
-                <!-- Interactive Tabs: Sign In | Sign Up -->
-                <div style="display: flex; background: #eee7de; padding: 4px; border-radius: 99px; margin-bottom: 16px;">
-                  <button style="flex: 1; padding: 8px; border: none; background: #231714; border-radius: 99px; font-weight: 800; font-size: 12px; color: #FAEDCD;">Sign In</button>
-                  <button style="flex: 1; padding: 8px; border: none; background: transparent; font-weight: 700; font-size: 12px; color: #887e74;">Sign Up</button>
-                </div>
-
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                  <div>
-                    <label style="font-size: 11px; font-weight: 700; color: #6d6359; display: block; margin-bottom: 4px;">Email</label>
-                    <div style="background: #fff; border: 1px solid #d9d1c7; border-radius: 30px; padding: 10px 16px; font-size: 12.5px;">maria@coughfee.ph</div>
-                  </div>
-                  <div>
-                    <label style="font-size: 11px; font-weight: 700; color: #6d6359; display: block; margin-bottom: 4px;">Password</label>
-                    <div style="background: #fff; border: 1px solid #d9d1c7; border-radius: 30px; padding: 10px 16px; font-size: 12.5px; display: flex; justify-content: space-between;">
-                      <span>••••••••••••</span>
-                      <span style="color: #999;">👁️</span>
-                    </div>
-                  </div>
-                  <div style="text-align: right;">
-                    <span style="font-family: 'Playfair Display', serif; font-size: 12px; font-style: italic; color: #786960;">Forgot Password?</span>
-                  </div>
-                </div>
-
-                <!-- RBAC Demo Switcher Pill Box -->
-                <div style="margin-top: 12px; background: rgba(212,163,115,0.12); border: 1px dashed var(--brand-accent-amber); border-radius: 12px; padding: 8px 10px;">
-                  <p style="font-size: 9.5px; font-weight: 800; color: var(--brand-brown-light); margin-bottom: 4px;">⚡ Quick Demo Roles:</p>
-                  <div style="display: flex; flex-wrap: wrap; gap: 4px; font-family:'JetBrains Mono', monospace; font-size: 9px;">
-                    <span style="background:#fff; padding:2px 6px; border-radius:4px; border:1px solid #ddd;">customer@cafego.ph</span>
-                    <span style="background:#fff; padding:2px 6px; border-radius:4px; border:1px solid #ddd;">admin@cafego.ph</span>
-                    <span style="background:#fff; padding:2px 6px; border-radius:4px; border:1px solid #ddd;">staff@cafego.ph</span>
-                    <span style="background:#fff; padding:2px 6px; border-radius:4px; border:1px solid #ddd;">driver@cafego.ph</span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <button class="btn-brand" style="margin-bottom: 8px;">Login</button>
-                <div style="display: flex; align-items: center; gap: 8px; margin: 8px 0;">
-                  <div style="flex:1; height:1px; background:#ddd;"></div>
-                  <span style="font-size: 11px; color: #887e74;">or</span>
-                  <div style="flex:1; height:1px; background:#ddd;"></div>
-                </div>
-                <!-- Google Sign In with "Last used" badge -->
-                <div style="position: relative;">
-                  <button class="btn-ghost" style="background:#fff; border-color:#d9d1c7; color:#231714; border-radius: 30px;">
-                    <span style="font-size: 14px;">🇬</span> Sign in with Google
-                  </button>
-                  <span style="position: absolute; top: -7px; right: 12px; background: #1B1516; color: var(--brand-accent-amber); font-size: 8.5px; font-weight: 800; padding: 1px 6px; border-radius: 8px; border: 1px solid var(--brand-accent-amber);">Last used</span>
-                </div>
-              </div>
-            </div>
-            <div class="home-indicator"></div>
-          </div>
-        </div>
-
-        <!-- FRAME 03: Sign Up Screen -->
-        <div class="figma-frame-card" id="frame-03" data-frame-index="3">
-          <div class="frame-upper-header">
-            <div class="frame-meta-row">
-              <span class="frame-number-badge">FRAME 03</span>
-              <span class="frame-status-pill status-live">Live</span>
-            </div>
-            <h3 class="frame-page-title">Sign Up & Phone Formatter</h3>
-            <div class="frame-route-code">Route: <span>/signup</span> • Validator: <span>PhilippinePhone</span></div>
-          </div>
-
-          <div class="phone-mockup">
-            <div class="status-bar">
-              <span>9:41</span>
-              <div class="island-notch"></div>
-              <span>5G ■■</span>
-            </div>
-            <div class="screen-content" style="padding: 16px 18px; justify-content: space-between;">
-              <div>
-                <div class="app-brand-logo" style="margin-bottom: 12px;">
-                  <span style="font-size: 18px;">☕</span> Cafe<span>GO</span>
-                </div>
-
-                <div style="display: flex; background: #eee7de; padding: 4px; border-radius: 99px; margin-bottom: 14px;">
-                  <button style="flex: 1; padding: 8px; border: none; background: transparent; font-weight: 700; font-size: 12px; color: #887e74;">Sign In</button>
-                  <button style="flex: 1; padding: 8px; border: none; background: #231714; border-radius: 99px; font-weight: 800; font-size: 12px; color: #FAEDCD;">Sign Up</button>
-                </div>
-
-                <h4 style="font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 800; margin-bottom: 10px; color: #231714;">Create Account</h4>
-
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                  <div>
-                    <label style="font-size: 10.5px; font-weight: 700; color: #6d6359; display: block; margin-bottom: 3px;">Full Name</label>
-                    <div style="background: #fff; border: 1px solid #d9d1c7; border-radius: 30px; padding: 8px 14px; font-size: 12px;">Maria Clara Santos</div>
-                  </div>
-                  <div>
-                    <label style="font-size: 10.5px; font-weight: 700; color: #6d6359; display: block; margin-bottom: 3px;">Email Address</label>
-                    <div style="background: #fff; border: 1px solid #d9d1c7; border-radius: 30px; padding: 8px 14px; font-size: 12px;">maria@coughfee.ph</div>
-                  </div>
-                  <div>
-                    <label style="font-size: 10.5px; font-weight: 700; color: #6d6359; display: block; margin-bottom: 3px;">Philippine Mobile (+63)</label>
-                    <div style="background: #fff; border: 1px solid #d9d1c7; border-radius: 30px; padding: 8px 14px; font-size: 12px; display: flex; align-items: center; gap: 6px;">
-                      <span style="font-weight: 700; color: #231714;">🇵🇭 +63</span>
-                      <span>917 555 0192</span>
-                    </div>
-                  </div>
-                  <div>
-                    <label style="font-size: 10.5px; font-weight: 700; color: #6d6359; display: block; margin-bottom: 3px;">Password</label>
-                    <div style="background: #fff; border: 1px solid #d9d1c7; border-radius: 30px; padding: 8px 14px; font-size: 12px; display: flex; justify-content: space-between;">
-                      <span>••••••••••</span>
-                      <span style="color: #999;">👁️</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <button class="btn-brand" style="margin-bottom: 6px;">Sign up</button>
-                <p style="font-size: 9.5px; color: #887e74; text-align: center;">By signing up, you agree to CafeGO Terms of Service</p>
-              </div>
-            </div>
-            <div class="home-indicator"></div>
-          </div>
-        </div>
-
-        <!-- FRAME 04: Email OTP Verification Screen -->
-        <div class="figma-frame-card" id="frame-04" data-frame-index="4">
-          <div class="frame-upper-header">
-            <div class="frame-meta-row">
-              <span class="frame-number-badge">FRAME 04</span>
-              <span class="frame-status-pill status-sync">Security</span>
-            </div>
-            <h3 class="frame-page-title">Email OTP Verification</h3>
-            <div class="frame-route-code">Route: <span>/verify-email</span> • Cooldown: <span>30s</span></div>
-          </div>
-
-          <div class="phone-mockup">
-            <div class="status-bar">
-              <span>9:41</span>
-              <div class="island-notch"></div>
-              <span>5G ■■</span>
-            </div>
-            <div class="screen-content" style="padding: 24px 20px; justify-content: space-between; text-align: center;">
-              <div>
-                <div class="app-brand-logo" style="justify-content: center; margin-bottom: 20px;">
-                  Cafe<span>GO</span>
-                </div>
-
-                <div style="width: 58px; height: 58px; border-radius: 50%; background: rgba(212,163,115,0.15); display: flex; align-items: center; justify-content: center; font-size: 26px; margin: 0 auto 14px; color: var(--brand-accent-amber);">
-                  ✉️
-                </div>
-
-                <h3 style="font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 800; color: #231714; margin-bottom: 6px;">Verify your email</h3>
-                <p style="font-size: 11.5px; color: #786960; line-height: 1.4; margin-bottom: 16px;">
-                  We sent a 6-digit authentication code to<br><strong style="color: #231714;">maria@coughfee.ph</strong>
-                </p>
-
-                <div style="background: rgba(212,163,115,0.1); border: 1px solid rgba(212,163,115,0.3); border-radius: 10px; padding: 8px 12px; font-size: 11px; color: #5A3825; text-align: left; display: flex; gap: 8px; margin-bottom: 20px;">
-                  <span>ℹ️</span>
-                  <span>Please check your inbox or spam folder for your 6-digit verification pin.</span>
-                </div>
-
-                <!-- 6 Square OTP Digit Boxes -->
-                <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 24px;">
-                  <div style="width: 38px; height: 46px; border-radius: 10px; background: #fff; border: 2px solid var(--brand-accent-amber); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800;">8</div>
-                  <div style="width: 38px; height: 46px; border-radius: 10px; background: #fff; border: 2px solid var(--brand-accent-amber); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800;">4</div>
-                  <div style="width: 38px; height: 46px; border-radius: 10px; background: #fff; border: 2px solid var(--brand-accent-amber); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800;">2</div>
-                  <div style="width: 38px; height: 46px; border-radius: 10px; background: #fff; border: 1px solid #d9d1c7; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800;">•</div>
-                  <div style="width: 38px; height: 46px; border-radius: 10px; background: #fff; border: 1px solid #d9d1c7; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800;">•</div>
-                  <div style="width: 38px; height: 46px; border-radius: 10px; background: #fff; border: 1px solid #d9d1c7; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800;">•</div>
-                </div>
-              </div>
-
-              <div>
-                <button class="btn-brand" style="margin-bottom: 12px;">Verify and Continue</button>
-                <p style="font-size: 11px; color: #786960;">
-                  Didn't receive code? <span style="font-weight: 800; color: var(--brand-accent-amber);">Resend in 24s</span>
-                </p>
-              </div>
-            </div>
-            <div class="home-indicator"></div>
-          </div>
-        </div>
-
-        <!-- FRAME 05: Customer Menu Screen -->
-        <div class="figma-frame-card" id="frame-05" data-frame-index="5">
-          <div class="frame-upper-header">
-            <div class="frame-meta-row">
-              <span class="frame-number-badge">FRAME 05</span>
-              <span class="frame-status-pill status-live">Live</span>
-            </div>
-            <h3 class="frame-page-title">Catalog & Drink Menu</h3>
-            <div class="frame-route-code">Route: <span>/</span> • Categories: <span>5 Tones</span></div>
-          </div>
-
-          <div class="phone-mockup">
-            <div class="status-bar">
-              <span>9:41</span>
-              <div class="island-notch"></div>
-              <span>5G ■■</span>
-            </div>
-            <div class="screen-content">
-              <!-- Top Shell Header -->
-              <div class="app-nav-bar">
-                <div class="app-brand-logo">Cafe<span>GO</span></div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <span style="background: #fff; border: 1px solid #e8dfd5; padding: 3px 8px; border-radius: 99px; font-size: 10px; font-weight: 700; color: #231714;">☀️ Light</span>
-                  <div style="position: relative;">
-                    <span style="font-size: 17px;">🛍️</span>
-                    <span style="position: absolute; top:-3px; right:-6px; background: #D6336C; color:#fff; font-size: 8px; font-weight: 800; border-radius: 99px; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center;">2</span>
-                  </div>
-                </div>
-              </div>
-
-              <div style="padding: 10px 14px;">
-                <!-- Hero Special Banner -->
-                <div style="background: linear-gradient(135deg, #5A3825 0%, #382014 100%); border-radius: 18px; padding: 14px; color: #fff; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
-                  <div style="max-width: 60%;">
-                    <span style="background: #D49755; color: #1B110B; font-size: 8px; font-weight: 800; padding: 2px 6px; border-radius: 99px;">DAILY SPECIAL</span>
-                    <h3 style="font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 800; margin-top: 4px; line-height: 1.15;">Your daily comfort brew.</h3>
-                    <p style="font-size: 9.5px; color: #E2D6CF; margin-top: 2px;">Order ahead. Freshly handcrafted.</p>
-                  </div>
-                  <div style="width: 58px; height: 58px; border-radius: 14px; background: #faedcd; display: flex; align-items: center; justify-content: center; font-size: 26px; border: 1.5px solid #D49755;">
-                    ☕
-                  </div>
-                </div>
-
-                <!-- Latte Pill Search -->
-                <div style="background: #EDE4DC; border: 1px solid #DDD2C7; border-radius: 30px; padding: 8px 12px; display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-                  <span style="color: #786960; font-size: 13px;">🔍</span>
-                  <span style="font-size: 11.5px; color: #786960;">Search handcrafted coffee & bakery...</span>
-                </div>
-
-                <!-- Category Chips -->
-                <div style="display: flex; gap: 5px; overflow-x: auto; margin-bottom: 12px; scrollbar-width: none;">
-                  <span style="background: #5A3825; color: #fff; padding: 4px 10px; border-radius: 99px; font-size: 10.5px; font-weight: 700; white-space: nowrap;">All</span>
-                  <span style="background: #fff; border: 1px solid #e8dfd5; color: #231714; padding: 4px 10px; border-radius: 99px; font-size: 10.5px; font-weight: 600; white-space: nowrap;">Hot Coffee</span>
-                  <span style="background: #fff; border: 1px solid #e8dfd5; color: #231714; padding: 4px 10px; border-radius: 99px; font-size: 10.5px; font-weight: 600; white-space: nowrap;">Iced Coffee</span>
-                  <span style="background: #fff; border: 1px solid #e8dfd5; color: #231714; padding: 4px 10px; border-radius: 99px; font-size: 10.5px; font-weight: 600; white-space: nowrap;">Non-Coffee</span>
-                </div>
-
-                <!-- 2-Column Catalog Grid -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                  <!-- Item 1 -->
-                  <div style="background: #fff; border: 1px solid #eee8df; border-radius: 14px; padding: 8px; position: relative;">
-                    <div style="background: #faedcd; height: 70px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 28px; position: relative;">
-                      ☕
-                      <span style="position: absolute; top:4px; left:4px; background: rgba(0,0,0,0.7); color:#fff; font-size: 8px; font-weight: 800; padding: 1px 4px; border-radius: 4px;">18 left</span>
-                    </div>
-                    <div style="font-size: 11px; font-weight: 800; margin-top: 6px;">Spanish Latte</div>
-                    <div style="font-size: 9px; color: #786960;">Espresso, microfoam</div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
-                      <span style="font-weight: 800; color: #D4A373; font-size: 11.5px;">₱ 140</span>
-                      <button style="width: 20px; height: 20px; border-radius: 6px; background: #D4A373; border: none; font-weight: 800; font-size: 12px; cursor: pointer;">+</button>
-                    </div>
-                  </div>
-
-                  <!-- Item 2 -->
-                  <div style="background: #fff; border: 1px solid #eee8df; border-radius: 14px; padding: 8px; position: relative;">
-                    <div style="background: #faedcd; height: 70px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 28px; position: relative;">
-                      🧊
-                      <span style="position: absolute; top:4px; left:4px; background: rgba(0,0,0,0.7); color:#fff; font-size: 8px; font-weight: 800; padding: 1px 4px; border-radius: 4px;">24 left</span>
-                    </div>
-                    <div style="font-size: 11px; font-weight: 800; margin-top: 6px;">Cold Brew Foam</div>
-                    <div style="font-size: 9px; color: #786960;">Slow steeped 18h</div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
-                      <span style="font-weight: 800; color: #D4A373; font-size: 11.5px;">₱ 165</span>
-                      <button style="width: 20px; height: 20px; border-radius: 6px; background: #D4A373; border: none; font-weight: 800; font-size: 12px; cursor: pointer;">+</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Customer Shell Bottom Tab Bar -->
-              <div class="mobile-tab-bar">
-                <div class="tab-item active"><span>☕ Menu</span></div>
-                <div class="tab-item"><span>🛍️ Cart (2)</span></div>
-                <div class="tab-item"><span>📜 Orders</span></div>
-                <div class="tab-item"><span>👤 Profile</span></div>
-              </div>
-            </div>
-            <div class="home-indicator"></div>
-          </div>
-        </div>
-
-        <!-- FRAME 06: Drink Customization Bottom Sheet -->
-        <div class="figma-frame-card" id="frame-06" data-frame-index="6">
-          <div class="frame-upper-header">
-            <div class="frame-meta-row">
-              <span class="frame-number-badge">FRAME 06</span>
-              <span class="frame-status-pill status-modal">Modal</span>
-            </div>
-            <h3 class="frame-page-title">Item Customization Sheet</h3>
-            <div class="frame-route-code">Component: <span>ItemDetailSheet</span></div>
-          </div>
-
-          <div class="phone-mockup">
-            <div class="status-bar">
-              <span>9:41</span>
-              <div class="island-notch"></div>
-              <span>5G ■■</span>
-            </div>
-            <div class="screen-content" style="background: rgba(0,0,0,0.4); justify-content: flex-end;">
-              <!-- Bottom Sheet Card -->
-              <div style="background: #fff; border-radius: 28px 28px 0 0; padding: 16px 18px; max-height: 85%; overflow-y: auto;">
-                <div style="width: 36px; height: 4px; background: #ddd; border-radius: 99px; margin: 0 auto 10px;"></div>
-
-                <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px;">
-                  <div style="width: 52px; height: 52px; border-radius: 12px; background: #faedcd; display: flex; align-items: center; justify-content: center; font-size: 26px;">☕</div>
-                  <div>
-                    <h3 style="font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 800; color: #231714;">Spanish Latte</h3>
-                    <p style="font-size: 11px; color: #D4A373; font-weight: 800;">Base ₱ 140</p>
-                  </div>
-                </div>
-
-                <!-- Size Selector -->
-                <div style="margin-bottom: 10px;">
-                  <span style="font-size: 11px; font-weight: 700; color: #6d6359; display: block; margin-bottom: 4px;">Size</span>
-                  <div style="display: flex; gap: 6px;">
-                    <span style="border: 1px solid #d9d1c7; padding: 5px 10px; border-radius: 8px; font-size: 10px;">Small (-₱15)</span>
-                    <span style="border: 1px solid #d9d1c7; padding: 5px 10px; border-radius: 8px; font-size: 10px;">Medium</span>
-                    <span style="border: 2px solid var(--brand-accent-amber); background: rgba(212,163,115,0.15); padding: 5px 10px; border-radius: 8px; font-size: 10px; font-weight: 800;">Large (+₱25)</span>
-                  </div>
-                </div>
-
-                <!-- Milk Choice -->
-                <div style="margin-bottom: 10px;">
-                  <span style="font-size: 11px; font-weight: 700; color: #6d6359; display: block; margin-bottom: 4px;">Milk Alternative</span>
-                  <div style="display: flex; gap: 6px;">
-                    <span style="border: 1px solid #d9d1c7; padding: 5px 8px; border-radius: 8px; font-size: 10px;">Whole</span>
-                    <span style="border: 2px solid var(--brand-accent-amber); background: rgba(212,163,115,0.15); padding: 5px 8px; border-radius: 8px; font-size: 10px; font-weight: 800;">Oat (+₱30)</span>
-                    <span style="border: 1px solid #d9d1c7; padding: 5px 8px; border-radius: 8px; font-size: 10px;">Almond (+₱30)</span>
-                  </div>
-                </div>
-
-                <!-- Sweetness & Ice -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
-                  <div>
-                    <span style="font-size: 10px; font-weight: 700; color: #6d6359;">Sweetness</span>
-                    <div style="background: #f7f2ee; padding: 5px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; text-align: center; margin-top: 2px;">50% Less Sweet</div>
-                  </div>
-                  <div>
-                    <span style="font-size: 10px; font-weight: 700; color: #6d6359;">Ice Level</span>
-                    <div style="background: #f7f2ee; padding: 5px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; text-align: center; margin-top: 2px;">Regular Ice</div>
-                  </div>
-                </div>
-
-                <!-- Quantity & Add to Cart -->
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 12px;">
-                  <div style="display: flex; align-items: center; gap: 8px; background: #f7f2ee; border-radius: 20px; padding: 3px 10px;">
-                    <span style="font-weight: 800; cursor: pointer;">-</span>
-                    <span style="font-size: 12px; font-weight: 800;">1</span>
-                    <span style="font-weight: 800; cursor: pointer;">+</span>
-                  </div>
-                  <button class="btn-brand" style="width: auto; padding: 10px 18px;">Add to Cart • ₱ 195</button>
-                </div>
-              </div>
-            </div>
-            <div class="home-indicator"></div>
-          </div>
-        </div>
-        <!-- FRAME 07: Customer Cart Screen -->
-        <div class="figma-frame-card" id="frame-07" data-frame-index="7">
-          <div class="frame-upper-header">
-            <div class="frame-meta-row">
-              <span class="frame-number-badge">FRAME 07</span>
-              <span class="frame-status-pill status-live">Live</span>
-            </div>
-            <h3 class="frame-page-title">Cart & Order Review</h3>
-            <div class="frame-route-code">Route: <span>/cart</span> • State: <span>CartProvider</span></div>
-          </div>
-
-          <div class="phone-mockup">
-            <div class="status-bar">
-              <span>9:41</span>
-              <div class="island-notch"></div>
-              <span>5G ■■</span>
-            </div>
-            <div class="screen-content" style="padding: 14px 16px; justify-content: space-between;">
-              <div>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                  <h3 style="font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 800; color: #231714;">Your Cart</h3>
-                  <span style="font-size: 11px; font-weight: 600; color: #786960; cursor: pointer;">Clear all</span>
-                </div>
-
-                <!-- Cart Item 1 -->
-                <div style="background: #fff; border: 1px solid #e8dfd5; border-radius: 14px; padding: 10px 12px; margin-bottom: 8px;">
-                  <div style="display: flex; justify-content: space-between;">
-                    <div style="font-size: 12px; font-weight: 800; color: #231714;">1x Spanish Latte</div>
-                    <span style="font-size: 12px; font-weight: 800; color: #231714;">₱ 195.00</span>
-                  </div>
-                  <p style="font-size: 10px; color: #786960; margin: 2px 0 6px;">Large • Oat milk • 50% sugar • Regular ice</p>
-                  <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div style="display: flex; gap: 6px;">
-                      <span style="font-size: 9.5px; border: 1px solid #D4A373; color: #D4A373; padding: 2px 6px; border-radius: 6px; cursor: pointer;">Edit</span>
-                      <span style="font-size: 9.5px; border: 1px solid #D6336C; color: #D6336C; padding: 2px 6px; border-radius: 6px; cursor: pointer;">Remove</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 6px; background: #f7f2ee; border-radius: 14px; padding: 2px 8px; font-size: 11px; font-weight: 800;">
-                      <span>-</span><span>1</span><span>+</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Cart Item 2 -->
-                <div style="background: #fff; border: 1px solid #e8dfd5; border-radius: 14px; padding: 10px 12px; margin-bottom: 8px;">
-                  <div style="display: flex; justify-content: space-between;">
-                    <div style="font-size: 12px; font-weight: 800; color: #231714;">1x Cold Brew Foam</div>
-                    <span style="font-size: 12px; font-weight: 800; color: #231714;">₱ 165.00</span>
-                  </div>
-                  <p style="font-size: 10px; color: #786960; margin: 2px 0 6px;">Regular • Sea salt foam • Less ice</p>
-                  <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div style="display: flex; gap: 6px;">
-                      <span style="font-size: 9.5px; border: 1px solid #D4A373; color: #D4A373; padding: 2px 6px; border-radius: 6px; cursor: pointer;">Edit</span>
-                      <span style="font-size: 9.5px; border: 1px solid #D6336C; color: #D6336C; padding: 2px 6px; border-radius: 6px; cursor: pointer;">Remove</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 6px; background: #f7f2ee; border-radius: 14px; padding: 2px 8px; font-size: 11px; font-weight: 800;">
-                      <span>-</span><span>1</span><span>+</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Subtotal Row -->
-                <div style="background: #fdfaf7; border: 1px dashed #e8dfd5; border-radius: 12px; padding: 8px 12px; margin-top: 8px; display: flex; justify-content: space-between; font-size: 12px;">
-                  <span style="color: #786960;">Subtotal</span>
-                  <span style="font-weight: 800; color: #231714;">₱ 360.00</span>
-                </div>
-              </div>
-
-              <div>
-                <button class="btn-brand">Proceed to Checkout • ₱ 360.00</button>
-              </div>
-            </div>
-            <div class="home-indicator"></div>
-          </div>
-        </div>
-
-        <!-- FRAME 08: Checkout & Multi-Payment Gateway Screen -->
-        <div class="figma-frame-card" id="frame-08" data-frame-index="8">
-          <div class="frame-upper-header">
-            <div class="frame-meta-row">
-              <span class="frame-number-badge">FRAME 08</span>
-              <span class="frame-status-pill status-live">Live</span>
-            </div>
-            <h3 class="frame-page-title">Checkout & Multi-Payment</h3>
-            <div class="frame-route-code">Route: <span>/checkout</span> • Gateways: <span>PayMongo/COD</span></div>
-          </div>
-
-          <div class="phone-mockup">
-            <div class="status-bar">
-              <span>9:41</span>
-              <div class="island-notch"></div>
-              <span>5G ■■</span>
-            </div>
-            <div class="screen-content" style="padding: 12px 14px; justify-content: space-between;">
-              <div style="overflow-y: auto;">
-                <h3 style="font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 800; margin-bottom: 8px; color: #231714;">Checkout</h3>
-
-                <!-- Order Type Segment -->
-                <div style="display: flex; background: #eee7de; padding: 3px; border-radius: 10px; margin-bottom: 10px;">
-                  <span style="flex:1; text-align: center; font-size: 10.5px; font-weight: 800; background: #fff; padding: 5px; border-radius: 8px;">Delivery</span>
-                  <span style="flex:1; text-align: center; font-size: 10.5px; font-weight: 600; color: #777; padding: 5px;">Pickup</span>
-                  <span style="flex:1; text-align: center; font-size: 10.5px; font-weight: 600; color: #777; padding: 5px;">Dine-in</span>
-                </div>
-
-                <!-- Branch Selector -->
-                <div style="margin-bottom: 8px;">
-                  <span style="font-size: 10px; font-weight: 700; color: #786960;">Selected CafeGO Branch</span>
-                  <div style="display: flex; gap: 4px; margin-top: 3px; overflow-x: auto;">
-                    <span style="background: #231714; color: #fff; padding: 3px 8px; border-radius: 8px; font-size: 9.5px; font-weight: 700; white-space: nowrap;">BGC Flagship</span>
-                    <span style="background: #fff; border: 1px solid #ddd; color: #231714; padding: 3px 8px; border-radius: 8px; font-size: 9.5px; white-space: nowrap;">Makati Central</span>
-                  </div>
-                </div>
-
-                <!-- Address & Geofence Pin -->
-                <div style="background: #fff; border: 1px solid #e8dfd5; border-radius: 12px; padding: 8px 10px; margin-bottom: 8px;">
-                  <div style="display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; color: #786960;">
-                    <span>Delivery Address</span>
-                    <span style="color: #D4A373;">GPS Verified 📍</span>
-                  </div>
-                  <div style="font-size: 11px; font-weight: 700; margin-top: 2px;">Unit 1204, High Street South, BGC, Taguig</div>
-                </div>
-
-                <!-- Payment Method Chips -->
-                <div style="margin-bottom: 8px;">
-                  <span style="font-size: 10px; font-weight: 700; color: #786960;">Payment Option</span>
-                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 3px;">
-                    <div style="border: 2px solid var(--brand-accent-amber); background: rgba(212,163,115,0.15); border-radius: 8px; padding: 6px; font-size: 9.5px; font-weight: 800; text-align: center;">GCash E-Wallet</div>
-                    <div style="border: 1px solid #ddd; background: #fff; border-radius: 8px; padding: 6px; font-size: 9.5px; text-align: center;">Maya QR</div>
-                    <div style="border: 1px solid #ddd; background: #fff; border-radius: 8px; padding: 6px; font-size: 9.5px; text-align: center;">Cash on Delivery</div>
-                    <div style="border: 1px solid #ddd; background: #fff; border-radius: 8px; padding: 6px; font-size: 9.5px; text-align: center;">Over Counter</div>
-                  </div>
-                </div>
-
-                <!-- Loyalty Discount Switch Card -->
-                <div style="background: #fff; border: 1px solid #e8dfd5; border-radius: 10px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                  <div>
-                    <div style="font-size: 10px; font-weight: 800; color: #231714;">Comfort Club (6/8 Stamps)</div>
-                    <div style="font-size: 8.5px; color: #786960;">Earn 1 stamp with this order!</div>
-                  </div>
-                  <span style="font-size: 8.5px; font-weight: 700; background: #e8dfd5; padding: 2px 6px; border-radius: 4px;">2 more</span>
-                </div>
-
-                <!-- Price Breakdown -->
-                <div style="background: #fdfaf7; border-radius: 10px; padding: 6px 10px; font-size: 10px;">
-                  <div style="display:flex; justify-content:space-between; margin-bottom:2px;"><span>Subtotal</span><span>₱ 360.00</span></div>
-                  <div style="display:flex; justify-content:space-between; margin-bottom:2px;"><span>Delivery Fee</span><span>₱ 45.00</span></div>
-                  <div style="display:flex; justify-content:space-between; border-top:1px solid #ddd; padding-top:4px; font-weight:800; font-size:11.5px; color:#231714;">
-                    <span>Grand Total</span><span style="color:#D4A373;">₱ 405.00</span>
-                  </div>
-                </div>
-              </div>
-
-              <button class="btn-brand" style="margin-top: 8px;">Place Order • ₱ 405.00</button>
-            </div>
-            <div class="home-indicator"></div>
-          </div>
-        </div>
-
-        <!-- FRAME 09: Live Real-time Order Tracking -->
-        <div class="figma-frame-card" id="frame-09" data-frame-index="9">
-          <div class="frame-upper-header">
-            <div class="frame-meta-row">
-              <span class="frame-number-badge">FRAME 09</span>
-              <span class="frame-status-pill status-sync">Telemetry</span>
-            </div>
-            <h3 class="frame-page-title">Live Tracking & Geofence</h3>
-            <div class="frame-route-code">Route: <span>/order/:id</span> • Stepper: <span>4 Stages</span></div>
-          </div>
-
-          <div class="phone-mockup">
-            <div class="status-bar">
-              <span>9:41</span>
-              <div class="island-notch"></div>
-              <span>5G ■■</span>
-            </div>
-            <div class="screen-content" style="position: relative;">
-              <!-- Simulated Map Canvas -->
-              <div style="height: 220px; background: #e5e3df; position: relative; overflow: hidden;">
-                <!-- Roads SVG -->
-                <svg width="100%" height="100%" style="position: absolute; inset: 0;">
-                  <line x1="20" y1="40" x2="300" y2="180" stroke="#fff" stroke-width="8"/>
-                  <line x1="80" y1="200" x2="260" y2="20" stroke="#fff" stroke-width="6"/>
-                  <path d="M 60 160 Q 140 100 240 60" stroke="#D4A373" stroke-width="4" stroke-dasharray="6 4" fill="none"/>
-                </svg>
-
-                <!-- CafeGO Store Pin -->
-                <div style="position: absolute; top: 140px; left: 50px; background: #231714; color: #fff; padding: 4px 8px; border-radius: 8px; font-size: 9px; font-weight: 800; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
-                  ☕ CafeGO BGC
-                </div>
-
-                <!-- Animated Scooter Courier -->
-                <div style="position: absolute; top: 85px; left: 140px; background: #D4A373; color: #1a1513; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; box-shadow: 0 0 12px #D4A373;">
-                  🛵
-                </div>
-
-                <!-- Customer Destination Pin -->
-                <div style="position: absolute; top: 40px; right: 40px; background: #2A9D8F; color: #fff; padding: 4px 8px; border-radius: 8px; font-size: 9px; font-weight: 800; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
-                  📍 Home Unit 1204
-                </div>
-              </div>
-
-              <!-- Draggable Bottom Sheet with Stepper -->
-              <div style="background: #fff; border-radius: 24px 24px 0 0; margin-top: -18px; position: relative; z-index: 10; padding: 14px 16px; flex: 1;">
-                <div style="width: 36px; height: 4px; background: #ddd; border-radius: 99px; margin: 0 auto 8px;"></div>
-
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                  <div>
-                    <span style="font-size: 10px; color: #786960;">Order #CG-8924</span>
-                    <h4 style="font-size: 18px; font-weight: 900; color: #231714;">15–20 mins</h4>
-                    <span style="font-size: 10px; color: #2E7D32; font-weight: 700;">● Courier on the way</span>
-                  </div>
-                  <span style="background: rgba(46,125,50,0.15); color: #2E7D32; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 8px;">PAID GCASH</span>
-                </div>
-
-                <!-- 4-Stage Horizontal Status Stepper -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin: 12px 0; position: relative;">
-                  <div style="position: absolute; top: 10px; left: 16px; right: 16px; height: 2px; background: #e8dfd5; z-index: 1;"></div>
-                  <div style="position: absolute; top: 10px; left: 16px; width: 66%; height: 2px; background: #D4A373; z-index: 2;"></div>
-
-                  <div style="text-align: center; position: relative; z-index: 3;">
-                    <div style="width: 20px; height: 20px; border-radius: 50%; background: #D4A373; color: #fff; font-size: 10px; display: flex; align-items: center; justify-content: center; margin: 0 auto;">✓</div>
-                    <span style="font-size: 8.5px; font-weight: 700; color: #231714; display: block; margin-top: 3px;">Placed</span>
-                  </div>
-                  <div style="text-align: center; position: relative; z-index: 3;">
-                    <div style="width: 20px; height: 20px; border-radius: 50%; background: #D4A373; color: #fff; font-size: 10px; display: flex; align-items: center; justify-content: center; margin: 0 auto;">✓</div>
-                    <span style="font-size: 8.5px; font-weight: 700; color: #231714; display: block; margin-top: 3px;">Brewing</span>
-                  </div>
-                  <div style="text-align: center; position: relative; z-index: 3;">
-                    <div style="width: 20px; height: 20px; border-radius: 50%; background: #D4A373; color: #fff; font-size: 10px; display: flex; align-items: center; justify-content: center; margin: 0 auto; box-shadow: 0 0 8px #D4A373;">🛵</div>
-                    <span style="font-size: 8.5px; font-weight: 800; color: #D4A373; display: block; margin-top: 3px;">On Way</span>
-                  </div>
-                  <div style="text-align: center; position: relative; z-index: 3;">
-                    <div style="width: 20px; height: 20px; border-radius: 50%; background: #e8dfd5; color: #888; font-size: 10px; display: flex; align-items: center; justify-content: center; margin: 0 auto;">4</div>
-                    <span style="font-size: 8.5px; color: #888; display: block; margin-top: 3px;">Delivered</span>
-                  </div>
-                </div>
-
-                <!-- Driver Card -->
-                <div style="background: #f7f2ee; border-radius: 12px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between;">
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #D4A373; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px;">JR</div>
-                    <div>
-                      <div style="font-size: 11px; font-weight: 800;">Jun-Jun Ramos</div>
-                      <div style="font-size: 9px; color: #786960;">Motorcycle • ABC-1234 • ⭐ 4.9</div>
-                    </div>
-                  </div>
-                  <button style="border: 1px solid #D4A373; background: #fff; color: #231714; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 8px; cursor: pointer;">📞 Call</button>
-                </div>
-              </div>
-            </div>
-            <div class="home-indicator"></div>
-          </div>
-        </div>
-
-        <!-- FRAME 10: Official Order Receipt & 5-Star Rating Screen -->
-        <div class="figma-frame-card" id="frame-10" data-frame-index="10">
-          <div class="frame-upper-header">
-            <div class="frame-meta-row">
-              <span class="frame-number-badge">FRAME 10</span>
-              <span class="frame-status-pill status-live">Live</span>
-            </div>
-            <h3 class="frame-page-title">Digital Receipt & Rating</h3>
-            <div class="frame-route-code">Route: <span>/order-receipt/:id</span> • Feedback: <span>5 Stars</span></div>
-          </div>
-
-          <div class="phone-mockup">
-            <div class="status-bar">
-              <span>9:41</span>
-              <div class="island-notch"></div>
-              <span>5G ■■</span>
-            </div>
-            <div class="screen-content" style="padding: 14px 16px; justify-content: space-between;">
-              <div>
-                <div style="text-align: center; margin-bottom: 10px;">
-                  <div class="app-brand-logo" style="justify-content: center;">Cafe<span>GO</span></div>
-                  <p style="font-size: 9px; color: #786960; margin-top: 2px;">Official Digital Receipt</p>
-                </div>
-
-                <!-- Receipt Box -->
-                <div style="background: #fff; border: 1px solid #e8dfd5; border-radius: 14px; padding: 12px; font-size: 11px; margin-bottom: 12px;">
-                  <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                    <span style="font-weight: 800; color: #231714;">Order #CG-8924</span>
-                    <span style="background: rgba(46,125,50,0.15); color: #2E7D32; font-size: 9px; font-weight: 800; padding: 1px 6px; border-radius: 4px;">COMPLETED</span>
-                  </div>
-                  <div style="font-size: 9.5px; color: #786960; margin-bottom: 8px;">Date: Nov 11, 2026 • 09:35 AM • BGC Flagship</div>
-
-                  <div style="border-top: 1px dashed #ddd; border-bottom: 1px dashed #ddd; padding: 8px 0; margin-bottom: 8px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                      <span>1x Spanish Latte (L)</span>
-                      <span style="font-weight: 700;">₱ 195.00</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                      <span>1x Cold Brew Foam (R)</span>
-                      <span style="font-weight: 700;">₱ 165.00</span>
-                    </div>
-                  </div>
-
-                  <div style="display: flex; justify-content: space-between; margin-bottom: 2px;"><span>Subtotal</span><span>₱ 360.00</span></div>
-                  <div style="display: flex; justify-content: space-between; margin-bottom: 2px;"><span>Delivery Fee</span><span>₱ 45.00</span></div>
-                  <div style="display: flex; justify-content: space-between; font-weight: 900; font-size: 13px; color: #231714; margin-top: 4px; padding-top: 4px; border-top: 1px solid #ddd;">
-                    <span>Total Paid</span><span style="color: #D4A373;">₱ 405.00</span>
-                  </div>
-                </div>
-
-                <!-- 5-Star Rating Card -->
-                <div style="background: #fdfaf7; border: 1px solid #e8dfd5; border-radius: 14px; padding: 10px; text-align: center;">
-                  <span style="font-size: 11px; font-weight: 800; color: #231714;">Rate your Barista Experience</span>
-                  <div style="font-size: 22px; color: #f59e0b; margin: 6px 0; letter-spacing: 4px; cursor: pointer;">
-                    ★★★★★
-                  </div>
-                  <p style="font-size: 9px; color: #786960;">"Silky smooth Spanish Latte and super quick courier!"</p>
-
-                  <div style="display: flex; justify-content: center; gap: 6px; margin-top: 8px;">
-                    <span style="font-size: 9px; background: #fff; border: 1px solid #ddd; padding: 2px 8px; border-radius: 6px;">+₱20 Tip</span>
-                    <span style="font-size: 9px; background: rgba(212,163,115,0.2); border: 1px solid #D4A373; font-weight: 800; padding: 2px 8px; border-radius: 6px;">+₱50 Tip</span>
-                    <span style="font-size: 9px; background: #fff; border: 1px solid #ddd; padding: 2px 8px; border-radius: 6px;">+₱100 Tip</span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <button class="btn-brand">Done • Back to Menu</button>
-              </div>
-            </div>
-            <div class="home-indicator"></div>
-          </div>
-        </div>
-
-        <!-- FRAME 11: Customer Order History Screen -->
-        <div class="figma-frame-card" id="frame-11" data-frame-index="11">
-          <div class="frame-upper-header">
-            <div class="frame-meta-row">
-              <span class="frame-number-badge">FRAME 11</span>
-              <span class="frame-status-pill status-live">Live</span>
-            </div>
-            <h3 class="frame-page-title">Order History & Re-Order</h3>
-            <div class="frame-route-code">Route: <span>/orders</span> • Feature: <span>1-Tap Reorder</span></div>
-          </div>
-
-          <div class="phone-mockup">
-            <div class="status-bar">
-              <span>9:41</span>
-              <div class="island-notch"></div>
-              <span>5G ■■</span>
-            </div>
-            <div class="screen-content">
-              <div class="app-nav-bar">
-                <div class="app-brand-logo">Cafe<span>GO</span></div>
-                <span style="font-size: 11px; font-weight: 700; color: #786960;">Past Brews</span>
-              </div>
-
-              <div style="padding: 10px 14px;">
-                <h3 style="font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 800; color: #231714; margin-bottom: 10px;">Your Orders</h3>
-
-                <!-- Active Order Highlight Banner -->
-                <div style="background: linear-gradient(135deg, #382319 0%, #1E1410 100%); border-radius: 14px; padding: 12px; color: #fff; margin-bottom: 12px;">
-                  <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 9px; font-weight: 800; background: #D49755; color: #1a1513; padding: 2px 6px; border-radius: 4px;">ACTIVE DISPATCH</span>
-                    <span style="font-size: 10px; color: #D4A373;">ETA: 15 mins</span>
-                  </div>
-                  <div style="font-size: 12px; font-weight: 800; margin-top: 4px;">Order #CG-8924 • 2 items</div>
-                  <p style="font-size: 9.5px; color: #E2D6CF;">Spanish Latte, Cold Brew Foam</p>
-                </div>
-
-                <!-- Past Order Card 1 -->
-                <div style="background: #fff; border: 1px solid #e8dfd5; border-radius: 12px; padding: 10px; margin-bottom: 8px;">
-                  <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 800;">
-                    <span>Order #CG-8710</span>
-                    <span style="color: #2E7D32;">Delivered</span>
-                  </div>
-                  <div style="font-size: 9.5px; color: #786960; margin: 2px 0 6px;">Nov 09, 2026 • 2x Cappuccino, 1x Croissant</div>
-                  <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-weight: 800; font-size: 11.5px; color: #D4A373;">₱ 380.00</span>
-                    <button style="background: #f7f2ee; border: 1px solid #D4A373; color: #D4A373; font-size: 9.5px; font-weight: 800; padding: 4px 8px; border-radius: 6px; cursor: pointer;">1-Tap Reorder</button>
-                  </div>
-                </div>
-
-                <!-- Past Order Card 2 -->
-                <div style="background: #fff; border: 1px solid #e8dfd5; border-radius: 12px; padding: 10px;">
-                  <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 800;">
-                    <span>Order #CG-8542</span>
-                    <span style="color: #2E7D32;">Delivered</span>
-                  </div>
-                  <div style="font-size: 9.5px; color: #786960; margin: 2px 0 6px;">Nov 06, 2026 • 1x Pistachio Velvet Latte</div>
-                  <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-weight: 800; font-size: 11.5px; color: #D4A373;">₱ 165.00</span>
-                    <button style="background: #f7f2ee; border: 1px solid #D4A373; color: #D4A373; font-size: 9.5px; font-weight: 800; padding: 4px 8px; border-radius: 6px; cursor: pointer;">1-Tap Reorder</button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Customer Shell Bottom Tab Bar -->
-              <div class="mobile-tab-bar">
-                <div class="tab-item"><span>☕ Menu</span></div>
-                <div class="tab-item"><span>🛍️ Cart</span></div>
-                <div class="tab-item active"><span>📜 Orders</span></div>
-                <div class="tab-item"><span>👤 Profile</span></div>
-              </div>
-            </div>
-            <div class="home-indicator"></div>
-          </div>
-        </div>
-
-        <!-- FRAME 12: Customer Profile & 8-Cup Loyalty Card -->
-        <div class="figma-frame-card" id="frame-12" data-frame-index="12">
-          <div class="frame-upper-header">
-            <div class="frame-meta-row">
-              <span class="frame-number-badge">FRAME 12</span>
-              <span class="frame-status-pill status-live">Live</span>
-            </div>
-            <h3 class="frame-page-title">Profile & 8-Cup Loyalty</h3>
-            <div class="frame-route-code">Route: <span>/profile</span> • Loyalty: <span>6/8 Stamps</span></div>
-          </div>
-
-          <div class="phone-mockup">
-            <div class="status-bar">
-              <span>9:41</span>
-              <div class="island-notch"></div>
-              <span>5G ■■</span>
-            </div>
-            <div class="screen-content">
-              <div class="app-nav-bar">
-                <div class="app-brand-logo">Cafe<span>GO</span></div>
-                <span style="font-size: 11px; font-weight: 700; color: #D4A373;">⭐ Gold Tier</span>
-              </div>
-
-              <div style="padding: 10px 14px;">
-                <!-- Profile Avatar Card -->
-                <div style="background: #fff; border: 1px solid #e8dfd5; border-radius: 16px; padding: 12px; display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                  <div style="width: 48px; height: 48px; border-radius: 16px; background: linear-gradient(135deg, #7A4A2F, #3B2317); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800;">
-                    MC
-                  </div>
-                  <div>
-                    <h4 style="font-family: 'Playfair Display', serif; font-size: 14px; font-weight: 800; color: #231714;">Maria Clara Santos</h4>
-                    <p style="font-size: 10px; color: #786960;">maria@coughfee.ph • +63 917 555 0192</p>
-                  </div>
-                </div>
-
-                <!-- 8-Cup Comfort Club Loyalty Card -->
-                <div style="background: linear-gradient(135deg, #382319 0%, #231610 100%); border-radius: 16px; padding: 14px; color: #fff; margin-bottom: 12px;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <div>
-                      <h4 style="font-family: 'Playfair Display', serif; font-size: 13px; font-weight: 700; color: #F7F1EB;">CafeGO Comfort Club</h4>
-                      <p style="font-size: 9.5px; color: #D4C8C2;">2 more stamps to free beverage</p>
-                    </div>
-                    <span style="background: #D49755; color: #1B110B; font-weight: 800; font-size: 10.5px; padding: 2px 8px; border-radius: 8px;">6 / 8</span>
-                  </div>
-
-                  <!-- 8 Stamp Cups Grid -->
-                  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 10px 0;">
-                    <div style="background: #D49755; border-radius: 8px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px;">☕</div>
-                    <div style="background: #D49755; border-radius: 8px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px;">☕</div>
-                    <div style="background: #D49755; border-radius: 8px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px;">☕</div>
-                    <div style="background: #D49755; border-radius: 8px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px;">☕</div>
-                    <div style="background: #D49755; border-radius: 8px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px;">☕</div>
-                    <div style="background: #D49755; border-radius: 8px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px;">☕</div>
-                    <div style="border: 1px dashed rgba(255,255,255,0.4); border-radius: 8px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #aaa;">7</div>
-                    <div style="border: 1.5px dashed #D49755; background: rgba(212,151,85,0.15); border-radius: 8px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 13px;">🎁</div>
-                  </div>
-                </div>
-
-                <!-- Account Actions List -->
-                <div style="background: #fff; border: 1px solid #e8dfd5; border-radius: 12px; font-size: 11px;">
-                  <div style="padding: 8px 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between;">
-                    <span>📍 Saved Delivery Addresses</span><span>›</span>
-                  </div>
-                  <div style="padding: 8px 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between;">
-                    <span>🗺️ CafeGO Store Locator</span><span>›</span>
-                  </div>
-                  <div style="padding: 8px 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between;">
-                    <span>❓ Help & FAQ</span><span>›</span>
-                  </div>
-                  <div style="padding: 8px 12px; color: #D6336C; font-weight: 700;">
-                    🚪 Sign Out
-                  </div>
-                </div>
-              </div>
-
-              <!-- Customer Shell Bottom Tab Bar -->
-              <div class="mobile-tab-bar">
-                <div class="tab-item"><span>☕ Menu</span></div>
-                <div class="tab-item"><span>🛍️ Cart</span></div>
-                <div class="tab-item"><span>📜 Orders</span></div>
-                <div class="tab-item active"><span>👤 Profile</span></div>
-              </div>
-            </div>
-            <div class="home-indicator"></div>
-          </div>
-        </div>
-
       </div>
     </section>
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- 2. STAFF & KITCHEN KDS SCREENS (2 FRAMES)                     -->
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <section class="canvas-section" data-category="staff" id="sec-staff">
-      <div class="section-headline">
-        <div class="section-title-wrap">
-          <div class="section-badge badge-staff">👨‍🍳</div>
-          <div>
-            <h2 class="section-name">Kitchen KDS & Cashier POS (Barista Fulfillment)</h2>
-            <p class="section-desc">Real-time FIFO ticket queue, elapsed prep timers, dynamic ingredient deduction, and over-the-counter cash drawer modal</p>
-          </div>
-        </div>
-        <span class="frame-number-badge">2 FRAMES • OPERATIONAL DESK</span>
-      </div>
-
-      <div class="frames-grid">
-
-        <!-- FRAME 13: Staff Kitchen Display System (KDS) -->
-        <div class="figma-frame-card" id="frame-13" data-frame-index="13">
-          <div class="frame-upper-header">
-            <div class="frame-meta-row">
-              <span class="frame-number-badge">FRAME 13</span>
-              <span class="frame-status-pill status-live">Live</span>
-            </div>
-            <h3 class="frame-page-title">Kitchen KDS Ticket Queue</h3>
-            <div class="frame-route-code">Route: <span>/staff</span> • Sorting: <span>FIFO Queue</span></div>
-          </div>
-
-          <div class="phone-mockup">
-            <div class="status-bar">
-              <span>9:41</span>
-              <div class="island-notch"></div>
-              <span>5G ■■</span>
-            </div>
-            <div class="screen-content dark-theme">
-              <div class="app-nav-bar" style="border-bottom-color: #332924;">
-                <div class="app-brand-logo">Cafe<span>GO</span> KDS</div>
-                <span style="font-family:'JetBrains Mono', monospace; font-size: 10px; background: rgba(226,149,120,0.2); color:#e29578; padding: 2px 6px; border-radius: 4px;">BARISTA DESK</span>
-              </div>
-
-              <div style="padding: 10px 14px;">
-                <!-- KDS Filter Tabs -->
-                <div style="display: flex; gap: 4px; background: #2b221e; padding: 3px; border-radius: 8px; margin-bottom: 12px;">
-                  <span style="flex:1; text-align:center; font-size: 10px; font-weight: 800; background: #e29578; color: #1a1513; padding: 4px; border-radius: 6px;">All (4)</span>
-                  <span style="flex:1; text-align:center; font-size: 10px; font-weight: 700; color: #a89a8f; padding: 4px;">Preparing (2)</span>
-                  <span style="flex:1; text-align:center; font-size: 10px; font-weight: 700; color: #a89a8f; padding: 4px;">Ready (1)</span>
-                </div>
-
-                <!-- Ticket 1: Active Prep -->
-                <div style="background: #251e1b; border: 1px solid #3d322c; border-left: 4px solid #D4A373; border-radius: 12px; padding: 10px; margin-bottom: 8px;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <span style="font-size: 11px; font-weight: 800; color: #fff;">#CG-8924 • Delivery</span>
-                    <span style="font-family:'JetBrains Mono', monospace; font-size: 9.5px; background: rgba(226,149,120,0.2); color:#e29578; padding: 2px 6px; border-radius: 4px; font-weight: 800;">⏱️ 04:12</span>
-                  </div>
-                  <div style="font-size: 10.5px; color: #fff; line-height: 1.4; margin-bottom: 8px;">
-                    <div>• 1x Spanish Latte (L, Oat, 50% Sugar)</div>
-                    <div>• 1x Cold Brew Foam (R, Sea salt foam)</div>
-                  </div>
-                  <div style="display: flex; gap: 6px;">
-                    <button style="flex: 1; background: #2A9D8F; border: none; color: #fff; font-size: 10px; font-weight: 800; padding: 6px; border-radius: 8px; cursor: pointer;">Mark Ready</button>
-                    <button style="background: #372e29; border: none; color: #a89a8f; font-size: 10px; padding: 6px 10px; border-radius: 8px;">Details</button>
-                  </div>
-                </div>
-
-                <!-- Ticket 2: Received -->
-                <div style="background: #251e1b; border: 1px solid #3d322c; border-left: 4px solid #0c8ce9; border-radius: 12px; padding: 10px;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <span style="font-size: 11px; font-weight: 800; color: #fff;">#CG-8925 • Pickup</span>
-                    <span style="font-family:'JetBrains Mono', monospace; font-size: 9.5px; background: rgba(12,140,233,0.2); color:#79c0ff; padding: 2px 6px; border-radius: 4px; font-weight: 800;">⏱️ 01:05</span>
-                  </div>
-                  <div style="font-size: 10.5px; color: #fff; line-height: 1.4; margin-bottom: 8px;">
-                    <div>• 2x Cappuccino (Hot, Whole milk)</div>
-                  </div>
-                  <button style="width: 100%; background: #D4A373; border: none; color: #1a1513; font-size: 10px; font-weight: 800; padding: 6px; border-radius: 8px; cursor: pointer;">Start Preparing</button>
-                </div>
-              </div>
-            </div>
-            <div class="home-indicator"></div>
-          </div>
-        </div>
-
-        <!-- FRAME 14: Staff Cashier POS Drawer Modal -->
-        <div class="figma-frame-card" id="frame-14" data-frame-index="14">
-          <div class="frame-upper-header">
-            <div class="frame-meta-row">
-              <span class="frame-number-badge">FRAME 14</span>
-              <span class="frame-status-pill status-modal">Modal</span>
-            </div>
-            <h3 class="frame-page-title">Cashier Register & Change</h3>
-            <div class="frame-route-code">Modal: <span>_showCashierDrawer</span> • Tender: <span>Cash POS</span></div>
-          </div>
-
-          <div class="phone-mockup">
-            <div class="status-bar">
-              <span>9:41</span>
-              <div class="island-notch"></div>
-              <span>5G ■■</span>
-            </div>
-            <div class="screen-content dark-theme" style="justify-content: flex-end;">
-              <!-- POS Cash Drawer Modal -->
-              <div style="background: #251e1b; border-radius: 24px 24px 0 0; padding: 16px 18px; border: 1px solid #3d322c;">
-                <div style="width: 36px; height: 4px; background: #4a3e37; border-radius: 99px; margin: 0 auto 10px;"></div>
-
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                  <div>
-                    <span style="font-size: 10px; color: #a89a8f;">OTC CASH TENDER</span>
-                    <h4 style="font-size: 15px; font-weight: 800; color: #fff;">Order #CG-8926</h4>
-                  </div>
-                  <div style="text-align: right;">
-                    <span style="font-size: 9px; color: #a89a8f;">Total Due</span>
-                    <div style="font-size: 16px; font-weight: 900; color: #D4A373;">₱ 280.00</div>
-                  </div>
-                </div>
-
-                <!-- Cash Quick Denominations -->
-                <div style="margin-bottom: 10px;">
-                  <span style="font-size: 10px; color: #a89a8f; display: block; margin-bottom: 4px;">Fast Cash Selection</span>
-                  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;">
-                    <button style="background: #332924; border: 1px solid #4a3e37; color: #fff; font-size: 10px; font-weight: 800; padding: 6px; border-radius: 6px;">Exact</button>
-                    <button style="background: #332924; border: 1px solid #4a3e37; color: #fff; font-size: 10px; font-weight: 800; padding: 6px; border-radius: 6px;">₱300</button>
-                    <button style="background: rgba(212,163,115,0.2); border: 1.5px solid #D4A373; color: #D4A373; font-size: 10px; font-weight: 800; padding: 6px; border-radius: 6px;">₱500</button>
-                    <button style="background: #332924; border: 1px solid #4a3e37; color: #fff; font-size: 10px; font-weight: 800; padding: 6px; border-radius: 6px;">₱1,000</button>
-                  </div>
-                </div>
-
-                <!-- Cash Received & Change Return -->
-                <div style="background: #1c1614; border: 1px solid #332924; border-radius: 12px; padding: 10px; margin-bottom: 12px;">
-                  <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
-                    <span style="color: #a89a8f;">Cash Received:</span>
-                    <span style="font-weight: 800; color: #fff;">₱ 500.00</span>
-                  </div>
-                  <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 900; color: #2ecc71; border-top: 1px dashed #332924; padding-top: 4px;">
-                    <span>Change Return:</span>
-                    <span>₱ 220.00</span>
-                  </div>
-                </div>
-
-                <button class="btn-brand">Complete Cash Payment</button>
-              </div>
-            </div>
-            <div class="home-indicator"></div>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- 3. DRIVER LOGISTICS SCREENS (2 FRAMES)                        -->
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <section class="canvas-section" data-category="driver" id="sec-driver">
-      <div class="section-headline">
-        <div class="section-title-wrap">
-          <div class="section-badge badge-driver">🛵</div>
-          <div>
-            <h2 class="section-name">Driver Cockpit & GPS Logistics (Delivery Fleet)</h2>
-            <p class="section-desc">Real-time driver availability toggle, unassigned delivery pool claiming, turn-by-turn routing, customer dialer, and COD cash handover</p>
-          </div>
-        </div>
-        <span class="frame-number-badge">2 FRAMES • LOGISTICS FLEET</span>
-      </div>
-
-      <div class="frames-grid">
-
-        <!-- FRAME 15: Driver Cockpit & Available Jobs Pool -->
-        <div class="figma-frame-card" id="frame-15" data-frame-index="15">
-          <div class="frame-upper-header">
-            <div class="frame-meta-row">
-              <span class="frame-number-badge">FRAME 15</span>
-              <span class="frame-status-pill status-live">Live</span>
-            </div>
-            <h3 class="frame-page-title">Delivery Pool & Earnings</h3>
-            <div class="frame-route-code">Route: <span>/driver</span> • Commission: <span>₱45/trip</span></div>
-          </div>
-
-          <div class="phone-mockup">
-            <div class="status-bar">
-              <span>9:41</span>
-              <div class="island-notch"></div>
-              <span>5G ■■</span>
-            </div>
-            <div class="screen-content">
-              <!-- Driver Top Bar -->
-              <div class="app-nav-bar">
-                <div class="app-brand-logo">Cafe<span>GO</span> Driver</div>
-                <div style="display: flex; align-items: center; gap: 6px;">
-                  <span style="font-size: 10px; font-weight: 800; color: #2E7D32;">● ONLINE</span>
-                  <div style="width: 24px; height: 14px; background: #2E7D32; border-radius: 99px; position: relative;">
-                    <div style="width: 10px; height: 10px; background: #fff; border-radius: 50%; position: absolute; right: 2px; top: 2px;"></div>
-                  </div>
-                </div>
-              </div>
-
-              <div style="padding: 10px 14px;">
-                <!-- Driver Info & Earnings -->
-                <div style="background: #fff; border: 1px solid #e8dfd5; border-radius: 14px; padding: 10px 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-                  <div>
-                    <h4 style="font-size: 12px; font-weight: 800; color: #231714;">Jun-Jun Ramos</h4>
-                    <p style="font-size: 9.5px; color: #786960;">Motorcycle • ABC-1234 • ⭐ 4.9</p>
-                  </div>
-                  <div style="text-align: right;">
-                    <span style="font-size: 9px; color: #786960;">Today Earnings</span>
-                    <div style="font-size: 13px; font-weight: 900; color: #D4A373;">₱ 450.00 (10 trips)</div>
-                  </div>
-                </div>
-
-                <h4 style="font-size: 12px; font-weight: 800; color: #231714; margin-bottom: 8px;">Available Orders Nearby (2)</h4>
-
-                <!-- Job 1 -->
-                <div style="background: #fff; border: 1px solid #e8dfd5; border-radius: 12px; padding: 10px; margin-bottom: 8px;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <span style="font-size: 11px; font-weight: 800; color: #231714;">#CG-8924 • Ready</span>
-                    <span style="font-size: 11px; font-weight: 800; color: #2E7D32;">+₱ 45.00 Fee</span>
-                  </div>
-                  <div style="font-size: 9.5px; color: #786960; margin-bottom: 6px;">
-                    <div>🏪 Pickup: CafeGO BGC Flagship (0.4 km)</div>
-                    <div>📍 Drop: Unit 1204, High Street South (1.2 km)</div>
-                  </div>
-                  <button class="btn-brand" style="padding: 6px 12px; font-size: 11px;">Claim Delivery</button>
-                </div>
-
-                <!-- Job 2 -->
-                <div style="background: #fff; border: 1px solid #e8dfd5; border-radius: 12px; padding: 10px;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <span style="font-size: 11px; font-weight: 800; color: #231714;">#CG-8927 • Preparing</span>
-                    <span style="font-size: 11px; font-weight: 800; color: #2E7D32;">+₱ 45.00 Fee</span>
-                  </div>
-                  <div style="font-size: 9.5px; color: #786960; margin-bottom: 6px;">
-                    <div>🏪 Pickup: CafeGO Makati Central (1.8 km)</div>
-                    <div>📍 Drop: Salcedo Village, Makati (2.4 km)</div>
-                  </div>
-                  <button class="btn-ghost" style="padding: 6px 12px; font-size: 11px;">View Job Details</button>
-                </div>
-              </div>
-            </div>
-            <div class="home-indicator"></div>
-          </div>
-        </div>
-
-        <!-- FRAME 16: Driver Active Turn-by-Turn Navigation & Handover -->
-        <div class="figma-frame-card" id="frame-16" data-frame-index="16">
-          <div class="frame-upper-header">
-            <div class="frame-meta-row">
-              <span class="frame-number-badge">FRAME 16</span>
-              <span class="frame-status-pill status-sync">Active GPS</span>
-            </div>
-            <h3 class="frame-page-title">Active GPS Navigation</h3>
-            <div class="frame-route-code">Mode: <span>Active Navigation</span> • Status: <span>On Route</span></div>
-          </div>
-
-          <div class="phone-mockup">
-            <div class="status-bar">
-              <span>9:41</span>
-              <div class="island-notch"></div>
-              <span>5G ■■</span>
-            </div>
-            <div class="screen-content" style="position: relative;">
-              <!-- Map Viewport -->
-              <div style="height: 230px; background: #e0deda; position: relative;">
-                <svg width="100%" height="100%" style="position: absolute; inset: 0;">
-                  <line x1="40" y1="20" x2="280" y2="200" stroke="#fff" stroke-width="10"/>
-                  <line x1="260" y1="30" x2="30" y2="180" stroke="#fff" stroke-width="8"/>
-                  <path d="M 60 50 Q 180 80 240 180" stroke="#2A9D8F" stroke-width="5" fill="none"/>
-                </svg>
-
-                <div style="position: absolute; top: 10px; left: 14px; right: 14px; background: rgba(35,23,20,0.92); color: #fff; padding: 6px 12px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
-                  <span style="font-size: 11px; font-weight: 800;">Turn Right on 26th Street in 150m</span>
-                  <span style="font-size: 11px; color: #D4A373;">4 min</span>
-                </div>
-
-                <div style="position: absolute; bottom: 35px; right: 50px; background: #2A9D8F; color: #fff; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: 0 0 10px #2A9D8F;">
-                  🛵
-                </div>
-              </div>
-
-              <!-- Customer Handover Bottom Card -->
-              <div style="background: #fff; border-radius: 20px 20px 0 0; margin-top: -16px; position: relative; z-index: 10; padding: 12px 14px; flex: 1;">
-                <div style="width: 36px; height: 4px; background: #ddd; border-radius: 99px; margin: 0 auto 8px;"></div>
-
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                  <div>
-                    <h4 style="font-size: 13px; font-weight: 800; color: #231714;">Maria Clara Santos</h4>
-                    <p style="font-size: 9.5px; color: #786960;">Unit 1204, High Street South, BGC</p>
-                  </div>
-                  <button style="background: #2E7D32; border: none; color: #fff; font-size: 10px; font-weight: 800; padding: 5px 10px; border-radius: 8px;">📞 Call</button>
-                </div>
-
-                <div style="background: #fdfaf7; border: 1px solid #e8dfd5; border-radius: 10px; padding: 8px 10px; font-size: 9.5px; margin-bottom: 10px;">
-                  <div style="font-weight: 800; color: #231714; margin-bottom: 2px;">Order #CG-8924 (Paid GCash)</div>
-                  <div style="color: #786960;">1x Spanish Latte, 1x Cold Brew Foam</div>
-                </div>
-
-                <button class="btn-brand" style="background: #2A9D8F; color: #fff;">Confirm Handover & Complete</button>
-              </div>
-            </div>
-            <div class="home-indicator"></div>
-          </div>
-        </div>
-
-      </div>
-    </section>
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- 4. ADMIN MANAGEMENT TOWER (5 FRAMES)                          -->
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <section class="canvas-section" data-category="admin" id="sec-admin">
-      <div class="section-headline">
-        <div class="section-title-wrap">
-          <div class="section-badge badge-admin">🛡️</div>
-          <div>
-            <h2 class="section-name">Admin Control Tower & Management Console</h2>
-            <p class="section-desc">Unified administrative control: Live orders with clean name resolution, Driver dispatch modal, Catalog & stock +/- steppers, Executive analytics charts, and RBAC user management</p>
-          </div>
-        </div>
-        <span class="frame-number-badge">5 FRAMES • ADMIN CONSOLE</span>
-      </div>
-
-      <div class="frames-grid">
-
-        <!-- FRAME 17: Admin Live Order Matrix & Clean Names -->
-        <div class="figma-frame-card" id="frame-17" data-frame-index="17">
-          <div class="frame-upper-header">
-            <div class="frame-meta-row">
-              <span class="frame-number-badge">FRAME 17</span>
-              <span class="frame-status-pill status-live">Live</span>
-            </div>
-            <h3 class="frame-page-title">Live Orders & Clean Names</h3>
-            <div class="frame-route-code">Route: <span>/admin (Tab 0)</span> • Resolver: <span>UserRepository</span></div>
-          </div>
-
-          <div class="phone-mockup">
-            <div class="status-bar">
-              <span>9:41</span>
-              <div class="island-notch"></div>
-              <span>5G ■■</span>
-            </div>
-            <div class="screen-content dark-theme">
-              <div class="app-nav-bar" style="border-bottom-color: #332924;">
-                <div class="app-brand-logo">Cafe<span>GO</span> Control</div>
-                <span style="font-family:'JetBrains Mono', monospace; font-size: 10px; color: var(--figma-purple); background: rgba(151,71,255,0.15); padding: 2px 6px; border-radius: 4px;">ADMIN TOWER</span>
-              </div>
-
-              <div style="padding: 10px 14px;">
-                <!-- Status Filter Pills -->
-                <div style="display: flex; gap: 4px; overflow-x: auto; margin-bottom: 10px; scrollbar-width: none;">
-                  <span style="background: var(--brand-accent-amber); color: #1a1513; font-size: 9.5px; font-weight: 800; padding: 3px 8px; border-radius: 6px; white-space: nowrap;">All Orders (14)</span>
-                  <span style="background: #251e1b; border: 1px solid #3d322c; color: #a89a8f; font-size: 9.5px; padding: 3px 8px; border-radius: 6px; white-space: nowrap;">Preparing (4)</span>
-                  <span style="background: #251e1b; border: 1px solid #3d322c; color: #a89a8f; font-size: 9.5px; padding: 3px 8px; border-radius: 6px; white-space: nowrap;">Ready (3)</span>
-                </div>
-
-                <!-- Order Row 1 -->
-                <div style="background: #251e1b; border: 1px solid #3d322c; border-radius: 10px; padding: 10px; margin-bottom: 8px;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <div>
-                      <span style="font-size: 11px; font-weight: 800; color: #fff;">#CG-8924</span>
-                      <span style="font-size: 10.5px; font-weight: 700; color: #D4A373; margin-left: 6px;">Maria Clara Santos</span>
-                    </div>
-                    <span style="background: rgba(42,157,143,0.2); color: #2A9D8F; font-size: 9px; font-weight: 800; padding: 1px 6px; border-radius: 4px;">DISPATCHED</span>
-                  </div>
-                  <div style="display: flex; justify-content: space-between; font-size: 9.5px; color: #a89a8f;">
-                    <span>2 items • Driver: Jun-Jun Ramos</span>
-                    <span style="color: #fff; font-weight: 700;">₱ 405.00</span>
-                  </div>
-                </div>
-
-                <!-- Order Row 2 -->
-                <div style="background: #251e1b; border: 1px solid #3d322c; border-radius: 10px; padding: 10px; margin-bottom: 8px;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <div>
-                      <span style="font-size: 11px; font-weight: 800; color: #fff;">#CG-8925</span>
-                      <span style="font-size: 10.5px; font-weight: 700; color: #D4A373; margin-left: 6px;">Juan Dela Cruz</span>
-                    </div>
-                    <span style="background: rgba(212,163,115,0.2); color: #D4A373; font-size: 9px; font-weight: 800; padding: 1px 6px; border-radius: 4px;">PREPARING</span>
-                  </div>
-                  <div style="display: flex; justify-content: space-between; font-size: 9.5px; color: #a89a8f;">
-                    <span>1 item • Pickup BGC Flagship</span>
-                    <span style="color: #fff; font-weight: 700;">₱ 140.00</span>
-                  </div>
-                </div>
-
-                <!-- Order Row 3 -->
-                <div style="background: #251e1b; border: 1px solid #3d322c; border-radius: 10px; padding: 10px;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <div>
-                      <span style="font-size: 11px; font-weight: 800; color: #fff;">#CG-8926</span>
-                      <span style="font-size: 10.5px; font-weight: 700; color: #D4A373; margin-left: 6px;">Andrea Brillantes</span>
-                    </div>
-                    <span style="background: rgba(46,125,50,0.2); color: #2ecc71; font-size: 9px; font-weight: 800; padding: 1px 6px; border-radius: 4px;">COMPLETED</span>
-                  </div>
-                  <div style="display: flex; justify-content: space-between; font-size: 9.5px; color: #a89a8f;">
-                    <span>3 items • Dine-in Table 4</span>
-                    <span style="color: #fff; font-weight: 700;">₱ 520.00</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Admin Bottom Navigation -->
-              <div class="mobile-tab-bar">
-                <div class="tab-item active"><span>Orders</span></div>
-                <div class="tab-item"><span>Catalog</span></div>
-                <div class="tab-item"><span>Analytics</span></div>
-                <div class="tab-item"><span>Staff</span></div>
-              </div>
-            </div>
-            <div class="home-indicator"></div>
-          </div>
-        </div>
-
-        <!-- FRAME 18: Admin Order Details Modal & Driver Dispatch -->
-        <div class="figma-frame-card" id="frame-18" data-frame-index="18">
-          <div class="frame-upper-header">
-            <div class="frame-meta-row">
-              <span class="frame-number-badge">FRAME 18</span>
-              <span class="frame-status-pill status-modal">Modal</span>
-            </div>
-            <h3 class="frame-page-title">Dispatch & Driver Modal</h3>
-            <div class="frame-route-code">Component: <span>OrderDetailsModal</span></div>
-          </div>
-
-          <div class="phone-mockup">
-            <div class="status-bar">
-              <span>9:41</span>
-              <div class="island-notch"></div>
-              <span>5G ■■</span>
-            </div>
-            <div class="screen-content dark-theme" style="justify-content: flex-end;">
-              <!-- Dispatch Modal Content -->
-              <div style="background: #251e1b; border-radius: 24px 24px 0 0; padding: 16px 18px; border: 1px solid #3d322c;">
-                <div style="width: 36px; height: 4px; background: #4a3e37; border-radius: 99px; margin: 0 auto 10px;"></div>
-
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                  <div>
-                    <h4 style="font-size: 14px; font-weight: 800; color: #fff;">Dispatch Override: #CG-8924</h4>
-                    <p style="font-size: 9.5px; color: #a89a8f;">Customer: Maria Clara Santos (+63 917 555 0192)</p>
-                  </div>
-                  <span style="font-size: 12px; font-weight: 800; color: #D4A373;">₱ 405.00</span>
-                </div>
-
-                <!-- Driver Assignment Dropdown Picker -->
-                <div style="margin-bottom: 12px;">
-                  <label style="font-size: 10px; color: #a89a8f; display: block; margin-bottom: 4px;">Assign Available Driver</label>
-                  <div style="background: #1c1614; border: 1px solid #4a3e37; border-radius: 8px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
-                    <span>🛵 Jun-Jun Ramos (0.4 km away • Available)</span>
-                    <span style="color: #D4A373;">▼</span>
-                  </div>
-                </div>
-
-                <!-- Status Override Radio -->
-                <div style="margin-bottom: 12px;">
-                  <label style="font-size: 10px; color: #a89a8f; display: block; margin-bottom: 4px;">Status Transition</label>
-                  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;">
-                    <span style="background: #332924; border: 1px solid #4a3e37; color: #a89a8f; padding: 5px; border-radius: 6px; font-size: 9px; text-align: center;">Preparing</span>
-                    <span style="background: rgba(212,163,115,0.2); border: 1px solid #D4A373; color: #D4A373; font-weight: 800; padding: 5px; border-radius: 6px; font-size: 9px; text-align: center;">Ready</span>
-                    <span style="background: #332924; border: 1px solid #4a3e37; color: #a89a8f; padding: 5px; border-radius: 6px; font-size: 9px; text-align: center;">Out for Delivery</span>
-                  </div>
-                </div>
-
-                <div style="display: flex; gap: 6px;">
-                  <button class="btn-brand" style="flex: 1; padding: 10px; font-size: 11px;">Confirm Reassignment</button>
-                  <button style="background: #3a1c1d; border: 1px solid #D6336C; color: #D6336C; font-size: 11px; font-weight: 800; padding: 10px 14px; border-radius: 14px; cursor: pointer;">Cancel Order</button>
-                </div>
-              </div>
-            </div>
-            <div class="home-indicator"></div>
-          </div>
-        </div>
-
-        <!-- FRAME 19: Admin Catalog & Stock Inventory Steppers -->
-        <div class="figma-frame-card" id="frame-19" data-frame-index="19">
-          <div class="frame-upper-header">
-            <div class="frame-meta-row">
-              <span class="frame-number-badge">FRAME 19</span>
-              <span class="frame-status-pill status-live">Live</span>
-            </div>
-            <h3 class="frame-page-title">Catalog & Stock Steppers</h3>
-            <div class="frame-route-code">Route: <span>/admin (Tab 1)</span> • Stepper: <span>Live +/-</span></div>
-          </div>
-
-          <div class="phone-mockup">
-            <div class="status-bar">
-              <span>9:41</span>
-              <div class="island-notch"></div>
-              <span>5G ■■</span>
-            </div>
-            <div class="screen-content dark-theme">
-              <div class="app-nav-bar" style="border-bottom-color: #332924;">
-                <div class="app-brand-logo">Cafe<span>GO</span> Catalog</div>
-                <button style="background: #D4A373; border: none; color: #1a1513; font-size: 9.5px; font-weight: 800; padding: 4px 8px; border-radius: 6px; cursor: pointer;">+ New Item</button>
-              </div>
-
-              <div style="padding: 10px 14px;">
-                <!-- Catalog Item 1: Normal Stock -->
-                <div style="background: #251e1b; border: 1px solid #3d322c; border-radius: 12px; padding: 10px; margin-bottom: 8px;">
-                  <div style="display: flex; gap: 10px; align-items: center;">
-                    <div style="width: 42px; height: 42px; border-radius: 8px; background: #382319; display: flex; align-items: center; justify-content: center; font-size: 20px;">☕</div>
-                    <div style="flex: 1;">
-                      <div style="font-size: 11px; font-weight: 800; color: #fff;">Spanish Latte</div>
-                      <div style="font-size: 9px; color: #D4A373;">₱ 140.00 • Hot Coffee</div>
-                    </div>
-                    <!-- Real-time Stock Stepper -->
-                    <div style="display: flex; align-items: center; gap: 6px; background: #1c1614; padding: 4px 8px; border-radius: 8px; border: 1px solid #3d322c;">
-                      <button style="background: none; border: none; color: #fff; font-weight: 800; cursor: pointer;">-</button>
-                      <span style="font-size: 11px; font-weight: 800; color: #fff;">18</span>
-                      <button style="background: none; border: none; color: #fff; font-weight: 800; cursor: pointer;">+</button>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Catalog Item 2: LOW STOCK ALERT (<5) -->
-                <div style="background: #251e1b; border: 1px solid #e63946; border-radius: 12px; padding: 10px; margin-bottom: 8px;">
-                  <div style="display: flex; gap: 10px; align-items: center;">
-                    <div style="width: 42px; height: 42px; border-radius: 8px; background: #382319; display: flex; align-items: center; justify-content: center; font-size: 20px;">🥐</div>
-                    <div style="flex: 1;">
-                      <div style="display: flex; align-items: center; gap: 6px;">
-                        <span style="font-size: 11px; font-weight: 800; color: #fff;">Butter Croissant</span>
-                        <span style="background: #e63946; color: #fff; font-size: 7.5px; font-weight: 800; padding: 1px 4px; border-radius: 4px;">LOW STOCK</span>
-                      </div>
-                      <div style="font-size: 9px; color: #D4A373;">₱ 95.00 • Pastries</div>
-                    </div>
-                    <!-- Real-time Stock Stepper -->
-                    <div style="display: flex; align-items: center; gap: 6px; background: #1c1614; padding: 4px 8px; border-radius: 8px; border: 1px solid #e63946;">
-                      <button style="background: none; border: none; color: #fff; font-weight: 800; cursor: pointer;">-</button>
-                      <span style="font-size: 11px; font-weight: 800; color: #e63946;">3</span>
-                      <button style="background: none; border: none; color: #fff; font-weight: 800; cursor: pointer;">+</button>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Catalog Item 3: Normal Stock -->
-                <div style="background: #251e1b; border: 1px solid #3d322c; border-radius: 12px; padding: 10px;">
-                  <div style="display: flex; gap: 10px; align-items: center;">
-                    <div style="width: 42px; height: 42px; border-radius: 8px; background: #382319; display: flex; align-items: center; justify-content: center; font-size: 20px;">🧊</div>
-                    <div style="flex: 1;">
-                      <div style="font-size: 11px; font-weight: 800; color: #fff;">Cold Brew Foam</div>
-                      <div style="font-size: 9px; color: #D4A373;">₱ 165.00 • Iced Coffee</div>
-                    </div>
-                    <!-- Real-time Stock Stepper -->
-                    <div style="display: flex; align-items: center; gap: 6px; background: #1c1614; padding: 4px 8px; border-radius: 8px; border: 1px solid #3d322c;">
-                      <button style="background: none; border: none; color: #fff; font-weight: 800; cursor: pointer;">-</button>
-                      <span style="font-size: 11px; font-weight: 800; color: #fff;">24</span>
-                      <button style="background: none; border: none; color: #fff; font-weight: 800; cursor: pointer;">+</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Admin Bottom Navigation -->
-              <div class="mobile-tab-bar">
-                <div class="tab-item"><span>Orders</span></div>
-                <div class="tab-item active"><span>Catalog</span></div>
-                <div class="tab-item"><span>Analytics</span></div>
-                <div class="tab-item"><span>Staff</span></div>
-              </div>
-            </div>
-            <div class="home-indicator"></div>
-          </div>
-        </div>
-
-        <!-- FRAME 20: Admin Executive Overview & Real-Time Charts -->
-        <div class="figma-frame-card" id="frame-20" data-frame-index="20">
-          <div class="frame-upper-header">
-            <div class="frame-meta-row">
-              <span class="frame-number-badge">FRAME 20</span>
-              <span class="frame-status-pill status-live">Live</span>
-            </div>
-            <h3 class="frame-page-title">Analytics & Demand Curves</h3>
-            <div class="frame-route-code">Route: <span>/admin (Tab 2)</span> • Visuals: <span>Trend & Hourly</span></div>
-          </div>
-
-          <div class="phone-mockup">
-            <div class="status-bar">
-              <span>9:41</span>
-              <div class="island-notch"></div>
-              <span>5G ■■</span>
-            </div>
-            <div class="screen-content dark-theme">
-              <div class="app-nav-bar" style="border-bottom-color: #332924;">
-                <div class="app-brand-logo">Cafe<span>GO</span> Analytics</div>
-                <span style="font-size: 10px; color: #2ecc71;">● REAL-TIME</span>
-              </div>
-
-              <div style="padding: 10px 14px;">
-                <!-- Revenue Stats Grid -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
-                  <div style="background: #251e1b; border: 1px solid #3d322c; border-radius: 10px; padding: 10px;">
-                    <span style="font-size: 8.5px; color: #a09489;">GROSS REVENUE</span>
-                    <div style="font-size: 15px; font-weight: 900; color: #D4A373; margin-top: 2px;">₱ 14,820</div>
-                  </div>
-                  <div style="background: #251e1b; border: 1px solid #3d322c; border-radius: 10px; padding: 10px;">
-                    <span style="font-size: 8.5px; color: #a09489;">COMPLETED</span>
-                    <div style="font-size: 15px; font-weight: 900; color: #52b788; margin-top: 2px;">68 Orders</div>
-                  </div>
-                </div>
-
-                <!-- 7-Day Revenue Trend Bar Chart -->
-                <div style="background: #251e1b; border: 1px solid #3d322c; border-radius: 12px; padding: 10px; margin-bottom: 8px;">
-                  <div style="font-size: 10px; font-weight: 800; color: #fff; margin-bottom: 4px;">7-Day Revenue Trend (₱)</div>
-                  <svg viewBox="0 0 200 65" style="width:100%; height:65px;">
-                    <rect x="10" y="30" width="18" height="35" rx="3" fill="#D4A373" opacity="0.6"/>
-                    <rect x="36" y="20" width="18" height="45" rx="3" fill="#D4A373" opacity="0.6"/>
-                    <rect x="62" y="38" width="18" height="27" rx="3" fill="#D4A373" opacity="0.6"/>
-                    <rect x="88" y="16" width="18" height="49" rx="3" fill="#D4A373" opacity="0.7"/>
-                    <rect x="114" y="24" width="18" height="41" rx="3" fill="#D4A373" opacity="0.7"/>
-                    <rect x="140" y="12" width="18" height="53" rx="3" fill="#D4A373" opacity="0.9"/>
-                    <rect x="166" y="6" width="18" height="59" rx="3" fill="#E29578"/>
-                    <text x="175" y="63" font-size="6" fill="#fff" text-anchor="middle">Today</text>
-                  </svg>
-                </div>
-
-                <!-- Hourly Peak Demand Distribution -->
-                <div style="background: #251e1b; border: 1px solid #3d322c; border-radius: 12px; padding: 10px;">
-                  <div style="font-size: 10px; font-weight: 800; color: #fff; margin-bottom: 2px;">Hourly Peak Demand</div>
-                  <svg viewBox="0 0 200 50" style="width:100%; height:50px;">
-                    <path d="M 0 45 Q 50 10 100 35 T 200 15 L 200 50 L 0 50 Z" fill="rgba(42,157,143,0.2)"/>
-                    <path d="M 0 45 Q 50 10 100 35 T 200 15" fill="none" stroke="#2A9D8F" stroke-width="2"/>
-                    <circle cx="50" cy="18" r="3" fill="#2A9D8F"/>
-                    <text x="50" y="12" font-size="6" fill="#2A9D8F" text-anchor="middle">8AM Peak</text>
-                    <circle cx="150" cy="22" r="3" fill="#2A9D8F"/>
-                    <text x="150" y="16" font-size="6" fill="#2A9D8F" text-anchor="middle">2PM Peak</text>
-                  </svg>
-                </div>
-              </div>
-
-              <!-- Admin Bottom Navigation -->
-              <div class="mobile-tab-bar">
-                <div class="tab-item"><span>Orders</span></div>
-                <div class="tab-item"><span>Catalog</span></div>
-                <div class="tab-item active"><span>Analytics</span></div>
-                <div class="tab-item"><span>Staff</span></div>
-              </div>
-            </div>
-            <div class="home-indicator"></div>
-          </div>
-        </div>
-
-        <!-- FRAME 21: Admin User & Staff RBAC Access Control -->
-        <div class="figma-frame-card" id="frame-21" data-frame-index="21">
-          <div class="frame-upper-header">
-            <div class="frame-meta-row">
-              <span class="frame-number-badge">FRAME 21</span>
-              <span class="frame-status-pill status-live">Live</span>
-            </div>
-            <h3 class="frame-page-title">RBAC Roles & Staff Roster</h3>
-            <div class="frame-route-code">Route: <span>/admin (Tab 3)</span> • Roles: <span>4 RBAC</span></div>
-          </div>
-
-          <div class="phone-mockup">
-            <div class="status-bar">
-              <span>9:41</span>
-              <div class="island-notch"></div>
-              <span>5G ■■</span>
-            </div>
-            <div class="screen-content dark-theme">
-              <div class="app-nav-bar" style="border-bottom-color: #332924;">
-                <div class="app-brand-logo">Cafe<span>GO</span> Staff</div>
-                <button style="background: var(--brand-accent-amber); border: none; color: #1a1513; font-size: 9.5px; font-weight: 800; padding: 4px 8px; border-radius: 6px; cursor: pointer;">+ Add Role</button>
-              </div>
-
-              <div style="padding: 10px 14px;">
-                <!-- Role Filter Chips -->
-                <div style="display: flex; gap: 4px; overflow-x: auto; margin-bottom: 10px; scrollbar-width: none;">
-                  <span style="background: var(--brand-accent-amber); color: #1a1513; font-size: 9.5px; font-weight: 800; padding: 3px 8px; border-radius: 6px; white-space: nowrap;">All Users (28)</span>
-                  <span style="background: #251e1b; border: 1px solid #3d322c; color: #a89a8f; font-size: 9.5px; padding: 3px 8px; border-radius: 6px; white-space: nowrap;">Staff (6)</span>
-                  <span style="background: #251e1b; border: 1px solid #3d322c; color: #a89a8f; font-size: 9.5px; padding: 3px 8px; border-radius: 6px; white-space: nowrap;">Drivers (8)</span>
-                </div>
-
-                <!-- User Row 1: Barista -->
-                <div style="background: #251e1b; border: 1px solid #3d322c; border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-                  <div style="display: flex; gap: 8px; align-items: center;">
-                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #e29578; color: #1a1513; display: flex; align-items: center; justify-content: center; font-size: 14px;">👨‍🍳</div>
-                    <div>
-                      <div style="font-size: 11px; font-weight: 800; color: #fff;">Chef Carlo Gomez</div>
-                      <div style="font-size: 9px; color: #a89a8f;">staff@cafego.ph • Active</div>
-                    </div>
-                  </div>
-                  <span style="background: rgba(226,149,120,0.2); color: #e29578; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px;">BARISTA</span>
-                </div>
-
-                <!-- User Row 2: Driver -->
-                <div style="background: #251e1b; border: 1px solid #3d322c; border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-                  <div style="display: flex; gap: 8px; align-items: center;">
-                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #2A9D8F; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px;">🛵</div>
-                    <div>
-                      <div style="font-size: 11px; font-weight: 800; color: #fff;">Jun-Jun Ramos</div>
-                      <div style="font-size: 9px; color: #a89a8f;">driver@cafego.ph • Active</div>
-                    </div>
-                  </div>
-                  <span style="background: rgba(42,157,143,0.2); color: #2A9D8F; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px;">COURIER</span>
-                </div>
-
-                <!-- User Row 3: Admin -->
-                <div style="background: #251e1b; border: 1px solid #3d322c; border-radius: 10px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center;">
-                  <div style="display: flex; gap: 8px; align-items: center;">
-                    <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--figma-purple); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px;">🛡️</div>
-                    <div>
-                      <div style="font-size: 11px; font-weight: 800; color: #fff;">Operations Director</div>
-                      <div style="font-size: 9px; color: #a89a8f;">admin@cafego.ph • Full Access</div>
-                    </div>
-                  </div>
-                  <span style="background: rgba(151,71,255,0.2); color: var(--figma-purple); font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px;">ADMIN</span>
-                </div>
-              </div>
-
-              <!-- Admin Bottom Navigation -->
-              <div class="mobile-tab-bar">
-                <div class="tab-item"><span>Orders</span></div>
-                <div class="tab-item"><span>Catalog</span></div>
-                <div class="tab-item"><span>Analytics</span></div>
-                <div class="tab-item active"><span>Staff</span></div>
-              </div>
-            </div>
-            <div class="home-indicator"></div>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
   </main>
-  <!-- ── HYPERFRAME VIDEO DIRECTOR & AUDIO SUITE ── -->
-  <div class="hyperframe-bar" id="hyperframeBar">
-    <div class="hyper-top-row">
-      <div class="hyper-status-badge">
-        <span class="hyper-pulse"></span>
-        <span id="hyperStatusText">HYPERFRAME VIDEO RENDER ENGINE • READY</span>
-      </div>
 
-      <!-- Live Synced Teleprompter Voiceover Subtitles -->
-      <div class="hyper-teleprompter" id="teleprompter">
-        🎙️ Voiceover: "Welcome to CafeGO — an artisanal coffee ordering platform with real-time bidirectional synchronization between Client, Kitchen KDS, Driver Fleet, and Admin Control Tower."
-      </div>
-
-      <div style="display: flex; gap: 6px;">
-        <button class="hyper-btn" id="aspectBtn" onclick="toggleAspectRatio()">📐 Aspect: Free</button>
-        <button class="hyper-btn" id="audioBtn" onclick="toggleAudioSynth()">🔊 Sound: ON</button>
-      </div>
-    </div>
-
-    <div class="hyper-controls-row">
-      <button class="hyper-btn" id="playBtn" onclick="toggleVideoPlayback()" style="background: var(--brand-accent-amber); color: #1a1513; font-weight: 800;">
-        ▶ Play Tour
-      </button>
-
-      <span class="hyper-time-display" id="timeDisplay">00:00 / 01:30</span>
-
-      <input type="range" class="hyper-scrubber" id="timeScrubber" min="0" max="90" step="0.1" value="0" oninput="onScrubInput(this.value)">
-
-      <div style="display: flex; gap: 4px;">
-        <button class="hyper-btn" onclick="setVideoSpeed(0.5)">0.5x</button>
-        <button class="hyper-btn" id="speed1xBtn" style="background:#3d4250;" onclick="setVideoSpeed(1.0)">1x</button>
-        <button class="hyper-btn" onclick="setVideoSpeed(2.0)">2x</button>
-      </div>
-    </div>
+  <!-- Minimal HyperFrame Transport Bar -->
+  <div class="hyper-dock">
+    <button type="button" class="play-pill" id="playBtn" onclick="togglePlay()">⏸ Pause</button>
+    <span class="scene-pill" id="sceneChip">1 · Onboarding</span>
+    <input type="range" class="scrubber" id="timeScrubber" min="0" max="48" step="0.1" value="0" oninput="onScrub(this.value)" />
+    <span class="time-readout" id="timeReadout">00:00 / 00:48</span>
+    <button type="button" class="spd-btn active" onclick="setSpeed(1, this)">1x</button>
+    <button type="button" class="spd-btn" onclick="setSpeed(1.5, this)">1.5x</button>
+    <button type="button" class="spd-btn" onclick="setSpeed(2, this)">2x</button>
   </div>
 
+  <!-- Crisp Animated Pointer Cursor + Ripple -->
+  <div class="demo-cursor" id="demoCursor">
+    <svg width="26" height="26" viewBox="0 0 28 28" fill="none">
+      <path d="M5 3L23 13.5L14.8 15.8L11.5 23.5L5 3Z" fill="#1B120C" stroke="#FFFFFF" stroke-width="2.2" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <div class="tap-ripple" id="tapRipple"></div>
+
+  <script src="mobile_pages/demo-store.js"></script>
   <script>
-    // ─────────────────────────────────────────────────────────────
-    // 1. ZOOM & CANVAS CONTROLS
-    // ─────────────────────────────────────────────────────────────
-    let currentZoom = 1.0;
-    const canvas = document.getElementById('canvasArea');
-    const zoomLabel = document.getElementById('zoomLabel');
+    const userFrame = document.getElementById('userPhoneFrame');
+    const opsFrame = document.getElementById('opsPhoneFrame');
+    const userCol = document.getElementById('userCol');
+    const opsCol = document.getElementById('opsCol');
+    const cursorEl = document.getElementById('demoCursor');
+    const rippleEl = document.getElementById('tapRipple');
 
-    function adjustZoom(delta) {
-      currentZoom = Math.min(Math.max(currentZoom + delta, 0.5), 1.6);
-      applyZoom();
-    }
-
-    function resetZoom() {
-      currentZoom = 1.0;
-      applyZoom();
-    }
-
-    function applyZoom() {
-      canvas.style.transform = \`scale(\${currentZoom})\`;
-      zoomLabel.innerText = \`\${Math.round(currentZoom * 100)}%\`;
-      requestAnimationFrame(renderPrototypeWires);
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // 2. CATEGORY SCREEN FILTERING
-    // ─────────────────────────────────────────────────────────────
-    function filterScreens(category, btn) {
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      if (btn) btn.classList.add('active');
-
-      const sections = document.querySelectorAll('.canvas-section');
-      sections.forEach(sec => {
-        if (category === 'all' || sec.getAttribute('data-category') === category) {
-          sec.style.display = 'block';
-        } else {
-          sec.style.display = 'none';
-        }
-      });
-      requestAnimationFrame(renderPrototypeWires);
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // 3. DYNAMIC SVG PROTOTYPE WIRES (Figma Flow Connections)
-    // ─────────────────────────────────────────────────────────────
-    let showWires = true;
-
-    function togglePrototypeWires() {
-      showWires = !showWires;
-      const overlay = document.getElementById('prototypeWiresOverlay');
-      const btn = document.getElementById('wireToggleBtn');
-      if (showWires) {
-        overlay.style.opacity = '1';
-        btn.classList.add('active-wire');
-        btn.innerText = '⚡ Prototype Wires: ON';
-        renderPrototypeWires();
-      } else {
-        overlay.style.opacity = '0';
-        btn.classList.remove('active-wire');
-        btn.innerText = '⚡ Prototype Wires: OFF';
-      }
-    }
-
-    function renderPrototypeWires() {
-      if (!showWires) return;
-      const svg = document.getElementById('prototypeWiresOverlay');
-      // Keep definitions, remove old paths
-      const defs = svg.querySelector('defs');
-      svg.innerHTML = '';
-      if (defs) svg.appendChild(defs);
-
-      // Define sequential flow connections between frames
-      const connections = [
-        { from: 'frame-01', to: 'frame-02', color: 'url(#protoGradAmber)', marker: 'url(#arrowAmber)' },
-        { from: 'frame-02', to: 'frame-03', color: 'url(#protoGradAmber)', marker: 'url(#arrowAmber)' },
-        { from: 'frame-03', to: 'frame-04', color: 'url(#protoGradAmber)', marker: 'url(#arrowAmber)' },
-        { from: 'frame-04', to: 'frame-05', color: 'url(#protoGradAmber)', marker: 'url(#arrowAmber)' },
-        { from: 'frame-05', to: 'frame-06', color: 'url(#protoGradAmber)', marker: 'url(#arrowAmber)' },
-        { from: 'frame-06', to: 'frame-07', color: 'url(#protoGradAmber)', marker: 'url(#arrowAmber)' },
-        { from: 'frame-07', to: 'frame-08', color: 'url(#protoGradAmber)', marker: 'url(#arrowAmber)' },
-        { from: 'frame-08', to: 'frame-13', color: 'url(#protoGradBlue)', marker: 'url(#arrowBlue)' }, // Checkout to KDS
-        { from: 'frame-13', to: 'frame-15', color: 'url(#protoGradBlue)', marker: 'url(#arrowBlue)' }, // KDS to Driver Pool
-        { from: 'frame-15', to: 'frame-16', color: 'url(#protoGradBlue)', marker: 'url(#arrowBlue)' }, // Driver to Navigation
-        { from: 'frame-16', to: 'frame-09', color: 'url(#protoGradBlue)', marker: 'url(#arrowBlue)' }, // Driver to Customer Tracking
-        { from: 'frame-09', to: 'frame-10', color: 'url(#protoGradAmber)', marker: 'url(#arrowAmber)' }, // Tracking to Receipt
-        { from: 'frame-10', to: 'frame-12', color: 'url(#protoGradAmber)', marker: 'url(#arrowAmber)' }, // Receipt to Loyalty Card
-        { from: 'frame-12', to: 'frame-11', color: 'url(#protoGradAmber)', marker: 'url(#arrowAmber)' }, // Loyalty to Order History
-        { from: 'frame-11', to: 'frame-05', color: 'url(#protoGradAmber)', marker: 'url(#arrowAmber)' }, // 1-Tap Reorder back to Menu Loop!
-        { from: 'frame-08', to: 'frame-17', color: 'url(#protoGradPurple)', marker: 'url(#arrowPurple)' }, // Checkout to Admin Orders
-        { from: 'frame-17', to: 'frame-18', color: 'url(#protoGradPurple)', marker: 'url(#arrowPurple)' }, // Orders to Dispatch Modal
-        { from: 'frame-18', to: 'frame-19', color: 'url(#protoGradPurple)', marker: 'url(#arrowPurple)' }, // Dispatch to Stock Stepper
-        { from: 'frame-19', to: 'frame-20', color: 'url(#protoGradPurple)', marker: 'url(#arrowPurple)' }, // Stock to Analytics
-        { from: 'frame-20', to: 'frame-21', color: 'url(#protoGradPurple)', marker: 'url(#arrowPurple)' }  // Analytics to RBAC
-      ];
-
-      const canvasRect = canvas.getBoundingClientRect();
-
-      connections.forEach(conn => {
-        const fromEl = document.getElementById(conn.from);
-        const toEl = document.getElementById(conn.to);
-        if (!fromEl || !toEl) return;
-
-        // Check if both elements are currently visible
-        if (fromEl.closest('.canvas-section').style.display === 'none' ||
-            toEl.closest('.canvas-section').style.display === 'none') return;
-
-        const r1 = fromEl.getBoundingClientRect();
-        const r2 = toEl.getBoundingClientRect();
-
-        // Convert coords relative to SVG overlay
-        const x1 = (r1.right - canvasRect.left) / currentZoom - 10;
-        const y1 = (r1.top + r1.height * 0.45 - canvasRect.top) / currentZoom;
-        const x2 = (r2.left - canvasRect.left) / currentZoom + 10;
-        const y2 = (r2.top + r2.height * 0.45 - canvasRect.top) / currentZoom;
-
-        const dx = Math.abs(x2 - x1) * 0.5;
-        const cx1 = x1 + dx;
-        const cy1 = y1;
-        const cx2 = x2 - dx;
-        const cy2 = y2;
-
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', \`M \${x1} \${y1} C \${cx1} \${cy1}, \${cx2} \${cy2}, \${x2} \${y2}\`);
-        path.setAttribute('class', 'proto-path');
-        path.setAttribute('stroke', conn.color);
-        path.setAttribute('marker-end', conn.marker);
-
-        svg.appendChild(path);
-      });
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // 4. WEB AUDIO API SYNTHESIZER (Coffeehouse Ambient & UI Chimes)
-    // ─────────────────────────────────────────────────────────────
-    let audioCtx = null;
-    let isAudioEnabled = true;
-    let bgSynthInterval = null;
-
-    function initAudio() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
-    }
-
-    function toggleAudioSynth() {
-      isAudioEnabled = !isAudioEnabled;
-      const btn = document.getElementById('audioBtn');
-      if (isAudioEnabled) {
-        btn.innerText = '🔊 Sound: ON';
-        initAudio();
-        startAmbientLoFiChords();
-      } else {
-        btn.innerText = '🔇 Sound: OFF';
-        stopAmbientLoFiChords();
-      }
-    }
-
-    function playChime(freq = 523.25, type = 'sine', duration = 0.4) {
-      if (!isAudioEnabled) return;
-      initAudio();
-      try {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + duration);
-      } catch (e) {}
-    }
-
-    // Ambient Warm Coffeehouse Chord Progressions (A Maj7 -> F#m7 -> D Maj7 -> E7)
-    const loFiChords = [
-      [220.00, 277.18, 329.63, 415.30], // A Maj7
-      [185.00, 220.00, 277.18, 329.63], // F# m7
-      [146.83, 185.00, 220.00, 277.18], // D Maj7
-      [164.81, 207.65, 246.94, 293.66]  // E 7
-    ];
-    let chordIndex = 0;
-
-    function playNextChord() {
-      if (!isAudioEnabled || !audioCtx) return;
-      const notes = loFiChords[chordIndex % loFiChords.length];
-      chordIndex++;
-
-      notes.forEach((freq, i) => {
-        try {
-          const osc = audioCtx.createOscillator();
-          const filter = audioCtx.createBiquadFilter();
-          const gain = audioCtx.createGain();
-
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-
-          filter.type = 'lowpass';
-          filter.frequency.setValueAtTime(800, audioCtx.currentTime);
-
-          gain.gain.setValueAtTime(0.012, audioCtx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 3.2);
-
-          osc.connect(filter);
-          filter.connect(gain);
-          gain.connect(audioCtx.destination);
-
-          osc.start(audioCtx.currentTime + i * 0.08);
-          osc.stop(audioCtx.currentTime + 3.4);
-        } catch (e) {}
-      });
-    }
-
-    function startAmbientLoFiChords() {
-      stopAmbientLoFiChords();
-      playNextChord();
-      bgSynthInterval = setInterval(playNextChord, 3500);
-    }
-
-    function stopAmbientLoFiChords() {
-      if (bgSynthInterval) {
-        clearInterval(bgSynthInterval);
-        bgSynthInterval = null;
-      }
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // 5. HYPERFRAME DETERMINISTIC VIDEO ENGINE & CAMERA TOUR
-    // ─────────────────────────────────────────────────────────────
-    const TOTAL_DURATION = 90.0; // 90 seconds complete tour
+    const TOTAL_DURATION = 48.0;
+    let hostState = CafeDemo.getState();
     let currentTime = 0.0;
     let isPlaying = false;
     let playbackSpeed = 1.0;
-    let lastTimestamp = null;
-    let animFrameId = null;
+    let lastTs = null;
+    let rafId = null;
+    let firedStepIds = new Set();
+    let reqCounter = 1;
+    const pendingRectQueries = new Map();
 
-    // Timeline Narration Scripts & Scene Targets
-    const scriptTimeline = [
-      { start: 0, end: 12, target: 'sec-loop', title: 'System Architecture Loop', text: 'Welcome to CafeGO: an artisanal coffee ordering platform with continuous multi-actor synchronization across Customer, Kitchen KDS, Driver Fleet, and Admin Control Tower.' },
-      { start: 12, end: 20, target: 'frame-01', title: 'Landing & Onboarding', text: 'Frame 01: Customer initiates journey through the luxury CafeGO splash screen featuring a 3-second animated progress line.' },
-      { start: 20, end: 28, target: 'frame-02', title: 'Authentication & Role Routing', text: 'Frame 02 & 03: Sign in with email or Google, plus Philippine mobile verification with +63 formatting and instant RBAC switcher.' },
-      { start: 28, end: 35, target: 'frame-04', title: 'Email OTP Security', text: 'Frame 04: 6-digit pin verification with 30-second resend cooldown timer and automated confirmation stream.' },
-      { start: 35, end: 44, target: 'frame-05', title: 'Live Catalog & Barista Picks', text: 'Frame 05 & 06: Customers browse 5 drink categories with offline disk caching and open the Item Customization Sheet for Oat milk, size, and sweetness adjustments.' },
-      { start: 44, end: 52, target: 'frame-07', title: 'Cart & Checkout Multi-Payment', text: 'Frame 07 & 08: Order review, Delivery versus Pickup toggle, CafeGO branch selection, and instant GCash, Maya, or COD payment processing.' },
-      { start: 52, end: 60, target: 'frame-13', title: 'Kitchen KDS FIFO Queue', text: 'Frame 13 & 14: Kitchen Baristas receive incoming tickets in sub-500ms, start preparation timers, deduct inventory, and ring up over-the-counter payments.' },
-      { start: 60, end: 68, target: 'frame-15', title: 'Driver Logistics & GPS Fleet', text: 'Frame 15 & 16: Available couriers claim deliveries, activate live turn-by-turn routing, contact customers, and collect cash upon arrival.' },
-      { start: 68, end: 77, target: 'frame-09', title: 'Real-Time Scooter Telemetry & Receipt', text: 'Frame 09 & 10: Customer tracks the courier via animated live map, views the 4-stage stepper, rates the barista 5 stars, and receives their digital receipt.' },
-      { start: 77, end: 84, target: 'frame-12', title: 'Comfort Club Loyalty Loop', text: 'Frame 11 & 12: Every order earns a digital stamp on the 8-cup loyalty card, unlocking free handcrafted drinks and 1-tap reordering.' },
-      { start: 84, end: 90, target: 'frame-17', title: 'Admin Command Tower & Closed Loop', text: 'Frames 17 through 21: Executive analytics, real-time dispatch override, live stock increment steppers, and RBAC user permissions close the continuous operational loop.' }
+    // 1. Cross-frame State Sync Bridge
+    function broadcastState(state, exceptSource) {
+      [userFrame, opsFrame].forEach(f => {
+        if (f && f.contentWindow && f.contentWindow !== exceptSource) {
+          f.contentWindow.postMessage({ type: 'CAFEGO_STATE_SYNC', state }, '*');
+        }
+      });
+    }
+
+    window.addEventListener('message', (e) => {
+      const data = e.data;
+      if (!data || typeof data !== 'object') return;
+      if (data.type === 'CAFEGO_PULL_STATE') {
+        if (e.source) e.source.postMessage({ type: 'CAFEGO_STATE_SYNC', state: hostState }, '*');
+      } else if (data.type === 'CAFEGO_STATE_PUSH' && data.state) {
+        hostState = data.state;
+        try { localStorage.setItem('cafego_live_demo_state_v1', JSON.stringify(hostState)); } catch (_) {}
+        broadcastState(hostState, e.source);
+      } else if (data.type === 'CAFEGO_RECT_REPLY') {
+        const resolver = pendingRectQueries.get(data.reqId);
+        if (resolver) {
+          pendingRectQueries.delete(data.reqId);
+          resolver(data.rect);
+        }
+      }
+    });
+
+    userFrame.addEventListener('load', () => {
+      userFrame.contentWindow.postMessage({ type: 'CAFEGO_STATE_SYNC', state: hostState }, '*');
+    });
+    opsFrame.addEventListener('load', () => {
+      opsFrame.contentWindow.postMessage({ type: 'CAFEGO_STATE_SYNC', state: hostState }, '*');
+    });
+
+    // 2. Spotlight & Strip Tab Helpers
+    function setFocus(side) {
+      if (side === 'left') {
+        userCol.className = 'device-col spotlight';
+        opsCol.className = 'device-col dimmed';
+      } else if (side === 'right') {
+        userCol.className = 'device-col dimmed';
+        opsCol.className = 'device-col spotlight';
+      } else {
+        userCol.className = 'device-col';
+        opsCol.className = 'device-col';
+      }
+    }
+
+    function setUserStrip(idx) {
+      document.querySelectorAll('#userNavStrip .role-tab').forEach((b, i) => b.classList.toggle('active', i === idx));
+    }
+    function setOpsStrip(idx) {
+      document.querySelectorAll('#opsNavStrip .role-tab').forEach((b, i) => b.classList.toggle('active', i === idx));
+    }
+
+    function manualNavUser(url, idx) {
+      pauseVideo();
+      setUserStrip(idx);
+      userFrame.src = url;
+    }
+    function manualNavOps(url, idx) {
+      pauseVideo();
+      setOpsStrip(idx);
+      opsFrame.src = url;
+    }
+
+    // 3. Sub-pixel Accurate Cursor Glide + Tap Ripple inside Iframes
+    function queryElementRect(frame, selector, textMatch, index) {
+      return new Promise(resolve => {
+        if (!frame || !frame.contentWindow) return resolve(null);
+        const id = reqCounter++;
+        pendingRectQueries.set(id, resolve);
+        frame.contentWindow.postMessage({ type: 'CAFEGO_QUERY_RECT', reqId: id, selector, textMatch, index }, '*');
+        setTimeout(() => {
+          if (pendingRectQueries.has(id)) {
+            pendingRectQueries.delete(id);
+            resolve(null);
+          }
+        }, 700);
+      });
+    }
+
+    function triggerTap(x, y) {
+      cursorEl.classList.add('clicking');
+      rippleEl.style.left = x + 'px';
+      rippleEl.style.top = y + 'px';
+      rippleEl.classList.remove('animate');
+      void rippleEl.offsetWidth;
+      rippleEl.classList.add('animate');
+      setTimeout(() => cursorEl.classList.remove('clicking'), 160);
+    }
+
+    async function performCursorAction(step) {
+      const frame = step.phone === 'left' ? userFrame : opsFrame;
+      setFocus(step.phone);
+
+      if (step.action === 'nav') {
+        if (step.phone === 'left') { userFrame.src = step.url; setUserStrip(step.tabIdx); }
+        else { opsFrame.src = step.url; setOpsStrip(step.tabIdx); }
+        return;
+      }
+
+      if (step.action === 'scroll') {
+        frame.contentWindow.postMessage({ type: 'CAFEGO_SCROLL', y: step.y || 0 }, '*');
+        return;
+      }
+
+      const elRect = await queryElementRect(frame, step.selector, step.textMatch, step.index);
+      if (!elRect) return;
+
+      const fRect = frame.getBoundingClientRect();
+      const scaleX = fRect.width / (frame.offsetWidth || 348);
+      const scaleY = fRect.height / (frame.offsetHeight || 680);
+      const cx = fRect.left + (elRect.left + elRect.width * 0.5) * scaleX;
+      const cy = fRect.top + (elRect.top + elRect.height * 0.5) * scaleY;
+
+      cursorEl.classList.add('visible');
+      cursorEl.style.left = cx + 'px';
+      cursorEl.style.top = cy + 'px';
+
+      setTimeout(() => {
+        if (!isPlaying) return;
+        triggerTap(cx, cy);
+        if (step.action === 'type') {
+          frame.contentWindow.postMessage({ type: 'CAFEGO_TYPE', selector: step.selector, textMatch: step.textMatch, value: step.value }, '*');
+        } else if (step.action === 'click') {
+          frame.contentWindow.postMessage({ type: 'CAFEGO_EXEC_CLICK', selector: step.selector, textMatch: step.textMatch, index: step.index }, '*');
+          if (step.tabIdx !== undefined) {
+            if (step.phone === 'left') setUserStrip(step.tabIdx);
+            else setOpsStrip(step.tabIdx);
+          }
+        }
+      }, 420);
+    }
+
+    // 4. Deterministic Scenes & Steps (0..48s)
+    const SCENES = [
+      { start: 0, end: 5.5, label: '1 · Onboarding' },
+      { start: 5.5, end: 13.0, label: '2 · Customize Drink' },
+      { start: 13.0, end: 21.5, label: '3 · Cart & Pay' },
+      { start: 21.5, end: 28.0, label: '4 · Kitchen KDS' },
+      { start: 28.0, end: 36.5, label: '5 · Driver GPS' },
+      { start: 36.5, end: 41.5, label: '6 · Rate & Receipt' },
+      { start: 41.5, end: 48.0, label: '7 · Admin Manager' }
     ];
 
-    let lastSceneTarget = null;
+    const STEPS = [
+      { id: 's0_init', t: 0.1, phone: 'left', action: 'nav', url: 'mobile_pages/landing.html', tabIdx: 0 },
+      { id: 's0_ops', t: 0.2, phone: 'right', action: 'nav', url: 'mobile_pages/staff-kds.html', tabIdx: 0 },
+      { id: 's0_splash_tap', t: 2.0, phone: 'left', action: 'click', selector: '.splash-wrap', tabIdx: 1 },
+      { id: 's0_login_wait', t: 3.4, phone: 'left', action: 'click', selector: '.auth-cta-btn', textMatch: 'Login', tabIdx: 2 },
+
+      { id: 's1_scroll', t: 5.7, phone: 'left', action: 'scroll', y: 150 },
+      { id: 's1_pick', t: 6.7, phone: 'left', action: 'click', selector: '.item-card', textMatch: 'Spanish Latte' },
+      { id: 's1_oat', t: 8.3, phone: 'left', action: 'click', selector: '.opt-pill', textMatch: 'Oat' },
+      { id: 's1_note', t: 9.7, phone: 'left', action: 'type', selector: '#noteInput', value: 'Extra hot please' },
+      { id: 's1_add', t: 11.1, phone: 'left', action: 'click', selector: 'button.brand-btn', textMatch: 'Add to Cart' },
+
+      { id: 's2_cart', t: 13.2, phone: 'left', action: 'click', selector: 'a[href="cart.html"]', tabIdx: 3 },
+      { id: 's2_chk', t: 14.9, phone: 'left', action: 'click', selector: 'a[href="checkout.html"]' },
+      { id: 's2_scroll', t: 16.4, phone: 'left', action: 'scroll', y: 380 },
+      { id: 's2_place', t: 17.6, phone: 'left', action: 'click', selector: '#placeOrderBtn' },
+      { id: 's2_auth', t: 19.6, phone: 'left', action: 'click', selector: 'button.brand-btn', textMatch: 'Authorize Payment Now', tabIdx: 4 },
+
+      { id: 's3_prep', t: 22.0, phone: 'right', action: 'click', selector: 'button.brand-btn', textMatch: 'Start Preparing' },
+      { id: 's3_ready', t: 25.0, phone: 'right', action: 'click', selector: 'button.brand-btn', textMatch: 'Mark as Ready' },
+
+      { id: 's4_drv_nav', t: 28.1, phone: 'right', action: 'nav', url: 'mobile_pages/driver-workspace.html', tabIdx: 1 },
+      { id: 's4_accept', t: 29.5, phone: 'right', action: 'click', selector: 'button.brand-btn', textMatch: 'Accept Delivery' },
+      { id: 's4_gps1', t: 31.4, phone: 'right', action: 'click', selector: 'button.ghost-btn', textMatch: 'Advance GPS' },
+      { id: 's4_gps2', t: 33.1, phone: 'right', action: 'click', selector: 'button.ghost-btn', textMatch: 'Advance GPS' },
+      { id: 's4_done', t: 34.9, phone: 'right', action: 'click', selector: '#completeBtn' },
+
+      { id: 's5_star', t: 37.2, phone: 'left', action: 'click', selector: '.star-btn', index: 4 },
+      { id: 's5_submit', t: 38.9, phone: 'left', action: 'click', selector: 'button.brand-btn', textMatch: 'Submit Rating' },
+
+      { id: 's6_adm_nav', t: 41.6, phone: 'right', action: 'nav', url: 'mobile_pages/admin-orders.html', tabIdx: 2 },
+      { id: 's6_adm_cat', t: 43.5, phone: 'right', action: 'click', selector: 'a[href="admin-catalog.html"]' },
+      { id: 's6_adm_an', t: 45.4, phone: 'right', action: 'click', selector: 'a[href="admin-analytics.html"]' }
+    ];
+
+    function resetDemoData() {
+      const nextRev = (hostState && hostState._rev ? hostState._rev : 1) + 1;
+      hostState = CafeDemo.buildDefaultState();
+      hostState._rev = nextRev;
+      try { localStorage.setItem('cafego_live_demo_state_v1', JSON.stringify(hostState)); } catch (_) {}
+      broadcastState(hostState, null);
+    }
+
+    function prepareBaselineAt(t) {
+      resetDemoData();
+      if (t < 5.5) {
+        userFrame.src = t >= 2.3 ? 'mobile_pages/login.html' : 'mobile_pages/landing.html';
+        opsFrame.src = 'mobile_pages/staff-kds.html';
+        setUserStrip(t >= 2.3 ? 1 : 0);
+        setOpsStrip(0);
+      } else if (t < 13.0) {
+        userFrame.src = 'mobile_pages/menu.html';
+        opsFrame.src = 'mobile_pages/staff-kds.html';
+        setUserStrip(2); setOpsStrip(0);
+      } else if (t < 21.5) {
+        userFrame.src = 'mobile_pages/cart.html';
+        opsFrame.src = 'mobile_pages/staff-kds.html';
+        setUserStrip(3); setOpsStrip(0);
+      } else if (t < 28.0) {
+        userFrame.src = 'mobile_pages/order-tracking.html';
+        opsFrame.src = 'mobile_pages/staff-kds.html';
+        setUserStrip(4); setOpsStrip(0);
+      } else if (t < 36.5) {
+        hostState.orders[0].status = 'ready';
+        hostState._rev++;
+        broadcastState(hostState, null);
+        userFrame.src = 'mobile_pages/order-tracking.html';
+        opsFrame.src = 'mobile_pages/driver-workspace.html';
+        setUserStrip(4); setOpsStrip(1);
+      } else if (t < 41.5) {
+        hostState.orders[0].status = 'completed';
+        hostState.orders[0].riderProgress = 1.0;
+        hostState._rev++;
+        broadcastState(hostState, null);
+        userFrame.src = 'mobile_pages/order-tracking.html';
+        opsFrame.src = 'mobile_pages/driver-workspace.html';
+        setUserStrip(4); setOpsStrip(1);
+      } else {
+        hostState.orders[0].status = 'completed';
+        hostState.orders[0].rating = 5;
+        hostState._rev++;
+        broadcastState(hostState, null);
+        userFrame.src = 'mobile_pages/order-receipt.html';
+        opsFrame.src = 'mobile_pages/admin-orders.html';
+        setUserStrip(4); setOpsStrip(2);
+      }
+      firedStepIds = new Set(STEPS.filter(s => s.t < t).map(s => s.id));
+    }
+
+    function updateHUD() {
+      document.getElementById('timeScrubber').value = currentTime;
+      const mins = String(Math.floor(currentTime / 60)).padStart(2, '0');
+      const secs = String(Math.floor(currentTime % 60)).padStart(2, '0');
+      document.getElementById('timeReadout').textContent = `${mins}:${secs} / 00:48`;
+      const sc = SCENES.find(s => currentTime >= s.start && currentTime < s.end) || SCENES[SCENES.length - 1];
+      document.getElementById('sceneChip').textContent = sc.label;
+    }
 
     function seekTo(seconds) {
       currentTime = Math.min(Math.max(seconds, 0), TOTAL_DURATION);
-      updateTimelineUI();
+      prepareBaselineAt(currentTime);
+      updateHUD();
     }
 
-    function updateTimelineUI() {
-      // Update Scrubber & Display
-      document.getElementById('timeScrubber').value = currentTime;
-      const mins = Math.floor(currentTime / 60).toString().padLeft(2, '0');
-      const secs = Math.floor(currentTime % 60).toString().padLeft(2, '0');
-      document.getElementById('timeDisplay').innerText = \`\${mins}:\${secs} / 01:30\`;
-
-      // Find current scene script
-      const currentScene = scriptTimeline.find(s => currentTime >= s.start && currentTime < s.end) || scriptTimeline[scriptTimeline.length - 1];
-
-      // Update Teleprompter
-      document.getElementById('teleprompter').innerText = \`🎙️ [\${currentScene.title}] \${currentScene.text}\`;
-
-      // Smooth camera glide to active scene element
-      if (currentScene.target !== lastSceneTarget) {
-        lastSceneTarget = currentScene.target;
-        highlightAndCenterTarget(currentScene.target);
-        playChime(659.25, 'sine', 0.25); // Subtle chime on scene step
-      }
-    }
-
-    function highlightAndCenterTarget(targetId) {
-      // Remove previous active classes
-      document.querySelectorAll('.figma-frame-card').forEach(c => c.classList.remove('active-scene'));
-
-      const el = document.getElementById(targetId);
-      if (el) {
-        el.classList.add('active-scene');
-        el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-      }
-    }
-
-    function toggleVideoPlayback() {
-      if (isPlaying) {
-        pauseVideo();
-      } else {
-        playVideo();
-      }
+    function onScrub(val) {
+      seekTo(parseFloat(val));
     }
 
     function playVideo() {
+      if (isPlaying) return;
       isPlaying = true;
-      initAudio();
-      if (isAudioEnabled) startAmbientLoFiChords();
-      document.getElementById('playBtn').innerText = '⏸ Pause Tour';
-      document.getElementById('hyperStatusText').innerText = 'HYPERFRAME DIRECTOR • RENDERING SCENE';
-      lastTimestamp = performance.now();
-      animLoop();
+      document.getElementById('playBtn').textContent = '⏸ Pause';
+      cursorEl.classList.add('visible');
+      lastTs = performance.now();
+      tickLoop(lastTs);
     }
 
     function pauseVideo() {
       isPlaying = false;
-      stopAmbientLoFiChords();
-      document.getElementById('playBtn').innerText = '▶ Play Tour';
-      document.getElementById('hyperStatusText').innerText = 'HYPERFRAME DIRECTOR • PAUSED';
-      if (animFrameId) cancelAnimationFrame(animFrameId);
+      document.getElementById('playBtn').textContent = '▶ Play';
+      cursorEl.classList.remove('visible');
+      setFocus('none');
+      if (rafId) cancelAnimationFrame(rafId);
     }
 
-    function animLoop(now) {
+    function togglePlay() {
+      if (isPlaying) pauseVideo(); else playVideo();
+    }
+
+    function setSpeed(spd, btn) {
+      playbackSpeed = spd;
+      document.querySelectorAll('.spd-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+    }
+
+    function resetAndPause() {
+      pauseVideo();
+      currentTime = 0;
+      firedStepIds.clear();
+      resetDemoData();
+      userFrame.src = 'mobile_pages/menu.html';
+      opsFrame.src = 'mobile_pages/admin-orders.html';
+      setUserStrip(2); setOpsStrip(2);
+      updateHUD();
+    }
+
+    function tickLoop(now) {
       if (!isPlaying) return;
-      if (lastTimestamp && now) {
-        const delta = (now - lastTimestamp) / 1000.0;
-        currentTime += delta * playbackSpeed;
-        if (currentTime >= TOTAL_DURATION) {
-          currentTime = 0; // Loop seamlessly
+      const dt = (now - lastTs) / 1000.0;
+      lastTs = now;
+      currentTime += dt * playbackSpeed;
+
+      if (currentTime >= TOTAL_DURATION) {
+        currentTime = 0.0;
+        firedStepIds.clear();
+        resetDemoData();
+      }
+
+      STEPS.forEach(step => {
+        if (!firedStepIds.has(step.id) && currentTime >= step.t) {
+          firedStepIds.add(step.id);
+          performCursorAction(step);
         }
-        updateTimelineUI();
-      }
-      lastTimestamp = now;
-      animFrameId = requestAnimationFrame(animLoop);
-    }
-
-    function onScrubInput(val) {
-      seekTo(parseFloat(val));
-    }
-
-    function setVideoSpeed(speed) {
-      playbackSpeed = speed;
-      document.querySelectorAll('.hyper-controls-row button').forEach(b => {
-        if (b.innerText.includes('x')) b.style.background = '#252830';
       });
-      const activeBtn = Array.from(document.querySelectorAll('.hyper-controls-row button')).find(b => b.innerText === \`\${speed}x\`);
-      if (activeBtn) activeBtn.style.background = '#3d4250';
+
+      updateHUD();
+      rafId = requestAnimationFrame(tickLoop);
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // 6. ASPECT RATIO PRESET CONTROLLER (16:9 / 9:16 / Free)
-    // ─────────────────────────────────────────────────────────────
-    const aspectModes = ['Free', '16:9 HD', '9:16 Reel'];
-    let aspectIndex = 0;
-
-    function toggleAspectRatio() {
-      aspectIndex = (aspectIndex + 1) % aspectModes.length;
-      const mode = aspectModes[aspectIndex];
-      document.getElementById('aspectBtn').innerText = \`📐 Aspect: \${mode}\`;
-
-      if (mode === '16:9 HD') {
-        canvas.style.maxWidth = '1920px';
-        canvas.style.aspectRatio = '16 / 9';
-      } else if (mode === '9:16 Reel') {
-        canvas.style.maxWidth = '1080px';
-        canvas.style.aspectRatio = '9 / 16';
-      } else {
-        canvas.style.maxWidth = '1780px';
-        canvas.style.aspectRatio = 'auto';
-      }
-      requestAnimationFrame(renderPrototypeWires);
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // 7. GLOBAL DETERMINISTIC HYPERFRAME API HOOKS
-    // ─────────────────────────────────────────────────────────────
-    window.seekTo = function(seconds) {
-      seekTo(seconds);
-    };
-
+    window.seekTo = seekTo;
     window.playVideo = playVideo;
     window.pauseVideo = pauseVideo;
-
     window.hyperframeTimeline = {
       duration: TOTAL_DURATION,
-      seek: function(t) { seekTo(t); },
+      seek: seekTo,
       play: playVideo,
       pause: pauseVideo,
-      getCurrentTime: function() { return currentTime; },
-      getTotalDuration: function() { return TOTAL_DURATION; }
+      getCurrentTime: () => currentTime,
+      getTotalDuration: () => TOTAL_DURATION
     };
 
-    // Keyboard Shortcuts: Spacebar to Play/Pause, Left/Right Arrow to seek
-    window.addEventListener('keydown', (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      if (e.code === 'Space') {
-        e.preventDefault();
-        toggleVideoPlayback();
-      } else if (e.code === 'ArrowRight') {
-        seekTo(currentTime + 5);
-      } else if (e.code === 'ArrowLeft') {
-        seekTo(currentTime - 5);
-      }
-    });
-
-    // Initial render
     window.addEventListener('load', () => {
-      renderPrototypeWires();
-      updateTimelineUI();
-    });
-    window.addEventListener('resize', () => {
-      requestAnimationFrame(renderPrototypeWires);
+      resetDemoData();
+      updateHUD();
+      setTimeout(() => playVideo(), 450);
     });
   </script>
 </body>

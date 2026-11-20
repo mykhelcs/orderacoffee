@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CafeGO — Admin Staff &amp; Users</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .user-card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--surface-tint); color: var(--brand); font-family: var(--font-serif); font-weight: 800; font-size: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .role-pill { font-size: 9.5px; font-weight: 800; padding: 2px 6px; border-radius: 6px; margin-left: 6px; }
+    .role-admin { background: rgba(212,163,115,0.2); color: #D4A373; }
+    .role-staff { background: rgba(33,150,243,0.16); color: #2196F3; }
+    .role-driver { background: rgba(46,125,50,0.16); color: #2E7D32; }
+    .role-customer { background: rgba(120,105,96,0.16); color: var(--mute); }
+    .role-modal-bg { position: absolute; inset: 0; background: rgba(0,0,0,0.56); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 40; }
+    .role-modal-bg.open { display: flex; }
+    .radio-row { display: flex; align-items: center; gap: 10px; padding: 10px 8px; border-radius: 10px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <div class="phone-screen" id="phoneScreen">
+      <div class="status-bar">
+        <span>9:41</span><div class="dynamic-island"></div><div class="status-icons"><span>5G</span><span>■■</span></div>
+      </div>
+
+      <header class="admin-top-bar">
+        <div class="app-logo">
+          <div class="app-logo-emblem sm"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h1a4 4 0 0 1 0 8h-1v1a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V8h16zm0 6h1a2 2 0 0 0 0-4h-1v4z"/></svg></div>
+          <div class="app-logo-wordmark" style="font-size:15.5px;">Cafe<span class="go">GO</span></div>
+        </div>
+        <span class="admin-badge">🛡️ ADMIN</span>
+        <button type="button" class="icon-btn-sm" onclick="toggleAppTheme()">◐</button>
+        <div style="flex:1;"></div>
+        <a href="menu.html" class="icon-btn-sm">🏪</a>
+        <a href="login.html" class="icon-btn-sm">⎋</a>
+      </header>
+
+      <main class="screen-scroll page-pad">
+        <div class="row-between" style="margin-bottom:12px;">
+          <h1 class="section-title" style="font-size:18px;">Accounts &amp; Staff Directory</h1>
+          <span id="regCount" class="muted-text" style="font-size:12px;">4 registered</span>
+        </div>
+        <div id="usersList"></div>
+      </main>
+
+      <div class="role-modal-bg" id="roleModal">
+        <div class="card-box" style="width:100%; border-radius:20px; padding:18px;">
+          <h2 id="roleModalTitle" style="font-family:var(--font-serif); font-size:18px; font-weight:700; margin-bottom:10px;">Edit Role</h2>
+          <label class="radio-row"><input type="radio" name="rbacRole" value="customer" /> CUSTOMER</label>
+          <label class="radio-row"><input type="radio" name="rbacRole" value="staff" /> STAFF</label>
+          <label class="radio-row"><input type="radio" name="rbacRole" value="driver" /> DRIVER</label>
+          <label class="radio-row"><input type="radio" name="rbacRole" value="admin" /> ADMIN</label>
+          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:14px;">
+            <button type="button" class="ghost-btn" onclick="document.getElementById('roleModal').classList.remove('open')">Cancel</button>
+            <button type="button" class="brand-btn" style="width:auto; height:40px; padding:0 16px; font-size:13.5px;" onclick="saveRole()">Update Role</button>
+          </div>
+        </div>
+      </div>
+
+      <nav class="admin-bottom-bar">
+        <a href="admin-orders.html" class="admin-tab-pill"><span>🧾</span><span>Orders</span></a>
+        <a href="admin-catalog.html" class="admin-tab-pill"><span>☕</span><span>Catalog</span></a>
+        <a href="admin-analytics.html" class="admin-tab-pill"><span>📊</span><span>Analytics</span></a>
+        <a href="admin-users.html" class="admin-tab-pill active"><span>👥</span><span>Staff/Users</span></a>
+      </nav>
+
+      <div class="home-bar-wrap" style="background:var(--card);"><div class="home-bar"></div></div>
+    </div>
+  </div>
+
+  <script src="demo-store.js"></script>
+  <script src="shared.js"></script>
+  <script>
+    let editingUid = null;
+
+    function openRoleModal(uid, name, role) {
+      editingUid = uid;
+      document.getElementById('roleModalTitle').textContent = 'Edit Role for ' + name;
+      document.querySelectorAll('input[name="rbacRole"]').forEach(r => { r.checked = r.value === role; });
+      document.getElementById('roleModal').classList.add('open');
+    }
+
+    function saveRole() {
+      const picked = document.querySelector('input[name="rbacRole"]:checked');
+      if (picked && editingUid) {
+        CafeDemo.setState(s => {
+          const u = s.usersDirectory.find(x => x.uid === editingUid);
+          if (u) u.role = picked.value;
+          return s;
+        });
+      }
+      document.getElementById('roleModal').classList.remove('open');
+    }
+
+    CafeDemo.onUpdate(state => {
+      const users = state.usersDirectory || [];
+      document.getElementById('regCount').textContent = `${users.length} registered`;
+      document.getElementById('usersList').innerHTML = users.map(u => `
+        <div class="user-card">
+          <div class="user-avatar">${u.name[0].toUpperCase()}</div>
+          <div style="flex:1;">
+            <div style="display:flex; align-items:center;">
+              <strong style="font-size:14px;">${u.name}</strong>
+              <span class="role-pill role-${u.role}">${u.role.toUpperCase()}</span>
+            </div>
+            <div class="muted-text" style="font-size:12px;">${u.email}</div>
+            <div class="muted-text" style="font-size:11px;">${u.phone}</div>
+          </div>
+          <button type="button" class="icon-btn-sm" onclick="openRoleModal('${u.uid}', '${u.name}', '${u.role}')">👤</button>
+        </div>
+      `).join('');
+    });
+  </script>
+</body>
+</html>

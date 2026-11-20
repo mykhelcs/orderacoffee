@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CafeGO — Sign In</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .auth-canvas { background: #342B2B !important; color: #FFFFFF; }
+    .auth-hero { position: relative; height: 248px; flex-shrink: 0; overflow: hidden; }
+    .auth-hero img { width: 100%; height: 100%; object-fit: cover; object-position: center 42%; }
+    .auth-hero-scrim { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(26,21,19,0.34) 0%, rgba(26,21,19,0.58) 100%); }
+    .auth-hero-brand { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding-top: 18px; }
+    .auth-hero-title { font-family: var(--font-serif); font-size: 38px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.6px; line-height: 1.05; }
+    .auth-hero-sub { font-family: var(--font-serif); font-style: italic; font-size: 16.5px; color: #F7F1EB; margin-top: 4px; }
+    .auth-wave { position: absolute; bottom: -1px; left: 0; width: 100%; height: 36px; display: block; }
+    .auth-body { padding: 6px 26px 22px; display: flex; flex-direction: column; align-items: center; flex: 1; }
+    .auth-tabs { display: flex; gap: 44px; margin-bottom: 24px; align-items: center; }
+    .auth-tab { font-family: var(--font-serif); font-size: 16.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; padding-bottom: 6px; border-bottom: 2px solid transparent; }
+    .auth-tab.active { color: #FFFFFF; border-bottom-color: #FFFFFF; }
+    .pill-input-wrap { width: 100%; height: 48px; border-radius: 99px; background: #E5DDD8; display: flex; align-items: center; padding: 0 18px; margin-bottom: 14px; }
+    .pill-input-wrap input { flex: 1; border: none; background: transparent; font-family: var(--font-sans); font-size: 14px; color: #231714; outline: none; }
+    .pill-input-wrap input::placeholder { color: #6B5C54; }
+    .forgot-link { font-family: var(--font-serif); font-style: italic; font-size: 12.5px; color: rgba(255,255,255,0.72); background: none; border: none; cursor: pointer; margin: 4px 0 18px; }
+    .auth-cta-btn { width: 148px; height: 44px; border-radius: 99px; background: #1B1516; color: #FFFFFF; border: none; font-family: var(--font-serif); font-size: 15.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.35); }
+    .or-row { width: 100%; display: flex; align-items: center; gap: 12px; margin: 18px 0; color: rgba(255,255,255,0.52); font-size: 12.5px; }
+    .or-row::before, .or-row::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.14); }
+    .google-pill-btn { width: 100%; height: 48px; border-radius: 99px; background: #E5DDD8; color: #231714; border: none; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: var(--font-sans); font-size: 14px; font-weight: 600; cursor: pointer; position: relative; }
+    .last-used-chip { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 9.5px; font-weight: 700; color: #5A3825; background: rgba(90,56,37,0.12); padding: 2px 7px; border-radius: 99px; }
+    .bottom-prompt { margin-top: 22px; font-family: var(--font-serif); font-style: italic; font-size: 12.5px; color: rgba(255,255,255,0.65); text-decoration: none; }
+    .modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.62); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 60; }
+    .modal-backdrop.open { display: flex; }
+    .google-dialog { width: 100%; background: #FFFFFF; color: #202124; border-radius: 20px; padding: 18px; box-shadow: 0 20px 44px rgba(0,0,0,0.5); }
+    .reset-dialog { width: 100%; background: #2E2728; color: #F7F2EE; border-radius: 20px; padding: 20px; border: 1px solid #3F3536; }
+    .acct-row { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 12px; text-decoration: none; color: #202124; border: 1px solid #ececec; margin-bottom: 8px; font-size: 12.5px; cursor: pointer; }
+    .acct-row:hover { background: #f5f5f5; }
+    .acct-avatar { width: 30px; height: 30px; border-radius: 50%; background: #5A3825; color: #FFFFFF; font-weight: 700; font-size: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <div class="phone-screen auth-canvas auth-theme" id="phoneScreen" data-force-theme="auth">
+      <div class="status-bar light-text" style="position:absolute; top:0; left:0; right:0;">
+        <span>9:41</span>
+        <div class="dynamic-island"></div>
+        <div class="status-icons"><span>5G</span><span>■■</span></div>
+      </div>
+
+      <div class="screen-scroll">
+        <div class="auth-hero">
+          <img src="../assets/images/coffee_splash.jpg" alt="CafeGO Espresso Splash" />
+          <div class="auth-hero-scrim"></div>
+          <div class="auth-hero-brand">
+            <div class="auth-hero-title">CafeGO</div>
+            <div class="auth-hero-sub">Your daily comfort brew</div>
+          </div>
+          <svg class="auth-wave" viewBox="0 0 390 36" preserveAspectRatio="none">
+            <path d="M0,18 Q98,0 195,18 T390,14 L390,36 L0,36 Z" fill="#342B2B" />
+          </svg>
+        </div>
+
+        <div class="auth-body">
+          <div class="auth-tabs">
+            <a href="login.html" class="auth-tab active">Sign In</a>
+            <a href="signup.html" class="auth-tab">Sign Up</a>
+          </div>
+
+          <div class="pill-input-wrap">
+            <input id="emailInput" type="email" value="customer@cafego.ph" placeholder="Email" aria-label="Email" />
+          </div>
+
+          <div class="pill-input-wrap">
+            <input id="passInput" type="password" value="Customer@123456" placeholder="Password" aria-label="Password" />
+            <button type="button" onclick="togglePass()" style="background:none; border:none; cursor:pointer; color:#6B5C54; font-size:15px;">👁</button>
+          </div>
+
+          <button type="button" class="forgot-link" onclick="document.getElementById('resetModal').classList.add('open')">
+            Forgot Password?
+          </button>
+
+          <button type="button" class="auth-cta-btn" onclick="submitLogin()">Login</button>
+
+          <div class="or-row">or</div>
+
+          <button type="button" class="google-pill-btn" onclick="document.getElementById('googleModal').classList.add('open')">
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.14C3.26 21.3 7.31 24 12 24z"/>
+              <path fill="#FBBC05" d="M5.28 14.24c-.24-.72-.38-1.49-.38-2.24s.14-1.52.38-2.24V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.99-3.14z"/>
+              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.99 3.14c.95-2.85 3.6-4.96 6.72-4.96z"/>
+            </svg>
+            <span>Sign in with Google</span>
+            <span class="last-used-chip">Last used</span>
+          </button>
+
+          <a href="signup.html" class="bottom-prompt">Don't have an account yet?</a>
+        </div>
+      </div>
+
+      <div class="modal-backdrop" id="googleModal">
+        <div class="google-dialog">
+          <div style="font-size:15px; font-weight:700; margin-bottom:2px;">Choose an account</div>
+          <div style="font-size:12px; color:#5f6368; margin-bottom:12px;">to continue to CafeGO</div>
+
+          <div class="acct-row" onclick="loginAs('customer@cafego.ph', 'Customer User', 'menu.html')">
+            <div class="acct-avatar">C</div>
+            <div><div style="font-weight:700;">Customer User</div><div style="font-size:11px; color:#5f6368;">customer@cafego.ph</div></div>
+          </div>
+          <div class="acct-row" onclick="loginAs('staff@cafego.ph', 'Staff User', 'staff-kds.html')">
+            <div class="acct-avatar" style="background:#8B5A3E;">S</div>
+            <div><div style="font-weight:700;">Staff User</div><div style="font-size:11px; color:#5f6368;">staff@cafego.ph</div></div>
+          </div>
+          <div class="acct-row" onclick="loginAs('driver@cafego.ph', 'Driver User', 'driver-workspace.html')">
+            <div class="acct-avatar" style="background:#2E7D32;">D</div>
+            <div><div style="font-weight:700;">Driver User</div><div style="font-size:11px; color:#5f6368;">driver@cafego.ph</div></div>
+          </div>
+          <div class="acct-row" onclick="loginAs('admin@cafego.ph', 'Admin User', 'admin-orders.html')">
+            <div class="acct-avatar" style="background:#1B1516;">A</div>
+            <div><div style="font-weight:700;">Admin User</div><div style="font-size:11px; color:#5f6368;">admin@cafego.ph</div></div>
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; margin-top:8px;">
+            <button type="button" onclick="document.getElementById('googleModal').classList.remove('open')" style="border:none; background:none; color:#5f6368; font-weight:600; cursor:pointer; padding:6px 12px;">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-backdrop" id="resetModal">
+        <div class="reset-dialog">
+          <div style="font-family:var(--font-serif); font-size:18px; font-weight:700; margin-bottom:6px;">Reset Password</div>
+          <div style="font-size:12.5px; color:#A69A93; margin-bottom:14px;">Enter your registered email to receive a password reset link.</div>
+          <div class="pill-input-wrap" style="margin-bottom:16px;">
+            <input type="email" value="customer@cafego.ph" placeholder="Email" />
+          </div>
+          <div style="display:flex; justify-content:flex-end; gap:10px;">
+            <button type="button" onclick="document.getElementById('resetModal').classList.remove('open')" style="border:none; background:none; color:#A69A93; font-weight:600; cursor:pointer;">Cancel</button>
+            <button type="button" onclick="document.getElementById('resetModal').classList.remove('open')" style="background:#D4A373; color:#231F20; border:none; border-radius:10px; padding:8px 14px; font-weight:700; cursor:pointer;">Send Reset Link</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="home-bar-wrap" style="background:#342B2B;">
+        <div class="home-bar"></div>
+      </div>
+    </div>
+  </div>
+  <script src="demo-store.js"></script>
+  <script src="shared.js"></script>
+  <script>
+    function togglePass() {
+      const p = document.getElementById('passInput');
+      p.type = p.type === 'password' ? 'text' : 'password';
+    }
+    function loginAs(email, name, target) {
+      CafeDemo.setState(s => { s.user.email = email; s.user.name = name; return s; });
+      window.location.href = target;
+    }
+    function submitLogin() {
+      const email = (document.getElementById('emailInput').value || '').trim().toLowerCase();
+      if (email.includes('staff')) return loginAs(email, 'Staff User', 'staff-kds.html');
+      if (email.includes('driver')) return loginAs(email, 'Driver User', 'driver-workspace.html');
+      if (email.includes('admin')) return loginAs(email, 'Admin User', 'admin-orders.html');
+      return loginAs(email || 'customer@cafego.ph', 'Customer User', 'menu.html');
+    }
+  </script>
+</body>
+</html>

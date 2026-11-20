@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CafeGO — Sign Up</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .auth-canvas { background: #342B2B !important; color: #FFFFFF; }
+    .auth-hero-sm { position: relative; height: 190px; flex-shrink: 0; overflow: hidden; }
+    .auth-hero-sm img { width: 100%; height: 100%; object-fit: cover; object-position: center 42%; }
+    .auth-hero-scrim { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(26,21,19,0.34) 0%, rgba(26,21,19,0.58) 100%); }
+    .auth-hero-brand { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding-top: 14px; }
+    .auth-hero-title { font-family: var(--font-serif); font-size: 34px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.5px; line-height: 1.05; }
+    .auth-hero-sub { font-family: var(--font-serif); font-style: italic; font-size: 15px; color: #F7F1EB; margin-top: 3px; }
+    .auth-wave { position: absolute; bottom: -1px; left: 0; width: 100%; height: 32px; display: block; }
+    .auth-body { padding: 4px 24px 20px; display: flex; flex-direction: column; align-items: center; }
+    .auth-tabs { display: flex; gap: 44px; margin-bottom: 14px; align-items: center; }
+    .auth-tab { font-family: var(--font-serif); font-size: 16px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; padding-bottom: 5px; border-bottom: 2px solid transparent; }
+    .auth-tab.active { color: #FFFFFF; border-bottom-color: #FFFFFF; }
+    .create-heading { font-family: var(--font-serif); font-size: 21px; font-weight: 700; color: #FFFFFF; margin-bottom: 14px; align-self: flex-start; }
+    .pill-input-wrap { width: 100%; height: 44px; border-radius: 99px; background: #E5DDD8; display: flex; align-items: center; padding: 0 14px; margin-bottom: 10px; gap: 8px; }
+    .pill-input-wrap input { flex: 1; border: none; background: transparent; font-family: var(--font-sans); font-size: 13.5px; font-weight: 500; color: #231714; outline: none; min-width: 0; }
+    .pill-input-wrap input::placeholder { color: #6B5C54; }
+    .ph-prefix-badge { display: inline-flex; align-items: center; gap: 5px; padding-right: 8px; border-right: 1px solid #C5B9B0; color: #231714; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+    .auth-cta-btn { width: 148px; height: 44px; border-radius: 99px; background: #1B1516; color: #FFFFFF; border: none; font-family: var(--font-serif); font-size: 15px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; margin-top: 6px; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.35); }
+    .or-row { width: 100%; display: flex; align-items: center; gap: 12px; margin: 12px 0; color: rgba(255,255,255,0.52); font-size: 12px; }
+    .or-row::before, .or-row::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.14); }
+    .google-pill-btn { width: 100%; height: 44px; border-radius: 99px; background: #E5DDD8; color: #231714; border: none; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 13.5px; font-weight: 600; text-decoration: none; }
+    .bottom-prompt { margin-top: 14px; font-family: var(--font-serif); font-style: italic; font-size: 12px; color: rgba(255,255,255,0.65); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <div class="phone-screen auth-canvas auth-theme" id="phoneScreen" data-force-theme="auth">
+      <div class="status-bar light-text" style="position:absolute; top:0; left:0; right:0;">
+        <span>9:41</span>
+        <div class="dynamic-island"></div>
+        <div class="status-icons"><span>5G</span><span>■■</span></div>
+      </div>
+
+      <div class="screen-scroll">
+        <div class="auth-hero-sm">
+          <img src="../assets/images/coffee_splash.jpg" alt="CafeGO Splash" />
+          <div class="auth-hero-scrim"></div>
+          <div class="auth-hero-brand">
+            <div class="auth-hero-title">CafeGO</div>
+            <div class="auth-hero-sub">Your daily comfort brew</div>
+          </div>
+          <svg class="auth-wave" viewBox="0 0 390 32" preserveAspectRatio="none">
+            <path d="M0,16 Q98,0 195,16 T390,12 L390,32 L0,32 Z" fill="#342B2B" />
+          </svg>
+        </div>
+
+        <div class="auth-body">
+          <div class="auth-tabs">
+            <a href="login.html" class="auth-tab">Sign In</a>
+            <a href="signup.html" class="auth-tab active">Sign Up</a>
+          </div>
+
+          <div class="create-heading">Create Account</div>
+
+          <div class="pill-input-wrap"><input id="suName" type="text" value="Maria Clara Santos" placeholder="Full Name" /></div>
+          <div class="pill-input-wrap"><input id="suEmail" type="email" value="maria.santos@cafego.ph" placeholder="Email" /></div>
+          <div class="pill-input-wrap">
+            <div class="ph-prefix-badge">📞 <span>+63</span></div>
+            <input id="suPhone" type="tel" value="917 555 0192" placeholder="9XX XXX XXXX" />
+          </div>
+          <div class="pill-input-wrap"><input type="password" value="Coffee@2026" placeholder="Password" /></div>
+          <div class="pill-input-wrap"><input type="password" value="Coffee@2026" placeholder="Confirm Password" /></div>
+
+          <button type="button" class="auth-cta-btn" onclick="submitSignup()">Sign up</button>
+
+          <div class="or-row">or</div>
+
+          <a href="menu.html" class="google-pill-btn">
+            <svg width="17" height="17" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.14C3.26 21.3 7.31 24 12 24z"/>
+              <path fill="#FBBC05" d="M5.28 14.24c-.24-.72-.38-1.49-.38-2.24s.14-1.52.38-2.24V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.99-3.14z"/>
+              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.99 3.14c.95-2.85 3.6-4.96 6.72-4.96z"/>
+            </svg>
+            <span>Sign in with Google</span>
+          </a>
+
+          <a href="login.html" class="bottom-prompt">Already have an account? Sign In</a>
+        </div>
+      </div>
+
+      <div class="home-bar-wrap" style="background:#342B2B;">
+        <div class="home-bar"></div>
+      </div>
+    </div>
+  </div>
+  <script src="demo-store.js"></script>
+  <script src="shared.js"></script>
+  <script>
+    function submitSignup() {
+      const name = (document.getElementById('suName').value || '').trim() || 'Maria Clara Santos';
+      const email = (document.getElementById('suEmail').value || '').trim() || 'maria.santos@cafego.ph';
+      const phone = '+63 ' + (document.getElementById('suPhone').value || '917 555 0192').trim();
+      CafeDemo.setState(s => { s.user.name = name; s.user.email = email; s.user.phone = phone; return s; });
+      window.location.href = 'verify-email.html';
+    }
+  </script>
+</body>
+</html>

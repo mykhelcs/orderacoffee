@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CafeGO — Your Orders</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .active-banner { background: linear-gradient(135deg, #5A3825 0%, #3B2314 100%); color: #FFFFFF; border-radius: 18px; padding: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-decoration: none; margin-bottom: 16px; box-shadow: 0 6px 16px rgba(90,56,37,0.25); cursor: pointer; }
+    .order-card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <div class="phone-screen" id="phoneScreen">
+      <div class="status-bar">
+        <span>9:41</span><div class="dynamic-island"></div><div class="status-icons"><span>5G</span><span>■■</span></div>
+      </div>
+
+      <header class="main-top-bar">
+        <a href="menu.html" class="app-logo">
+          <div class="app-logo-emblem sm"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h1a4 4 0 0 1 0 8h-1v1a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V8h16zm0 6h1a2 2 0 0 0 0-4h-1v4z"/></svg></div>
+          <div class="app-logo-wordmark" style="font-size:18px;">Cafe<span class="go">GO</span></div>
+        </a>
+        <button type="button" class="theme-pill-btn" onclick="toggleAppTheme()"><span id="themeToggleIcon">🌙</span><span id="themeToggleLabel">Espresso</span></button>
+      </header>
+
+      <main class="screen-scroll page-pad">
+        <h1 class="page-title" style="margin-bottom:14px;">Your orders</h1>
+        <div id="activeHighlightWrap"></div>
+        <div id="ordersList"></div>
+      </main>
+
+      <nav class="main-bottom-nav">
+        <a href="menu.html" class="nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/></svg><span>Menu</span></a>
+        <a href="cart.html" class="nav-item"><div class="nav-icon-wrap"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span class="nav-badge" data-cart-badge>0</span></div><span>Cart</span></a>
+        <a href="orders.html" class="nav-item active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h5"/></svg><span>Orders</span></a>
+        <a href="profile.html" class="nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/></svg><span>Profile</span></a>
+      </nav>
+
+      <div class="home-bar-wrap" style="background:var(--card);"><div class="home-bar"></div></div>
+    </div>
+  </div>
+
+  <script src="demo-store.js"></script>
+  <script src="shared.js"></script>
+  <script>
+    function openOrder(id, target) {
+      CafeDemo.setState(s => { s.activeOrderId = id; return s; });
+      window.location.href = target;
+    }
+    function reorder(id) {
+      CafeDemo.setState(s => {
+        const ord = s.orders.find(o => o.id === id);
+        if (!ord) return s;
+        s.cart = ord.items.map((it, idx) => ({
+          id: 're_' + Date.now() + '_' + idx,
+          itemId: it.itemId,
+          name: it.name,
+          qty: it.qty,
+          unitPrice: Math.round(it.total / it.qty),
+          summary: it.summary || '',
+          note: it.note || '',
+          imageUrl: it.imageUrl
+        }));
+        return s;
+      });
+      window.location.href = 'cart.html';
+    }
+
+    CafeDemo.onUpdate(state => {
+      CafeDemo.updateNavBadges(state);
+      const orders = state.orders || [];
+      const active = orders.find(o => o.status !== 'completed' && o.status !== 'cancelled');
+      const hiWrap = document.getElementById('activeHighlightWrap');
+      if (active) {
+        hiWrap.innerHTML = `
+          <div class="active-banner" onclick="openOrder('${active.id}', 'order-tracking.html')">
+            <div>
+              <div style="font-size:11.5px; color:#E5A862; font-weight:700;">Estimated Delivery: 15–20 mins</div>
+              <div style="font-family:var(--font-serif); font-size:16.5px; font-weight:700; margin-top:3px;">Your order #${active.id} is ${CafeDemo.statusLabel(active.status).toLowerCase()}!</div>
+              <div style="font-size:12px; color:rgba(255,255,255,0.82); margin-top:2px;">Tap to track live delivery</div>
+            </div>
+            <span style="font-size:24px;">🛵</span>
+          </div>
+        `;
+      } else {
+        hiWrap.innerHTML = '';
+      }
+
+      document.getElementById('ordersList').innerHTML = orders.map(o => `
+        <div class="order-card">
+          <div class="row-between">
+            <strong style="font-family:var(--font-serif); font-size:17px;">#${o.id}</strong>
+            <span class="status-badge ${o.status === 'cancelled' ? 'cancelled' : ''}">${CafeDemo.statusLabel(o.status)}</span>
+          </div>
+          <div class="muted-text" style="margin:8px 0 10px; line-height:1.4;">
+            ${o.items.map(i => `${i.qty}x ${i.name}`).join(', ')} • ${CafeDemo.peso(o.total)}
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="ghost-btn" onclick="openOrder('${o.id}', '${o.status === 'completed' ? 'order-receipt.html' : 'order-tracking.html'}')">Track</button>
+            <button type="button" class="ghost-btn" onclick="reorder('${o.id}')">Reorder</button>
+          </div>
+        </div>
+      `).join('');
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CafeGO — Checkout</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .seg-bar { display: flex; background: var(--surface-pill); border-radius: 14px; padding: 4px; gap: 4px; margin: 12px 0; }
+    .seg-btn { flex: 1; padding: 9px 6px; border-radius: 10px; border: none; background: transparent; color: var(--mute); font-family: var(--font-sans); font-size: 13px; font-weight: 600; cursor: pointer; }
+    .seg-btn.active { background: var(--card); color: var(--ink); font-weight: 700; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+    .pay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    .pay-opt { border: 1px solid var(--line); background: var(--card); border-radius: 12px; padding: 10px 8px; font-size: 12.5px; font-weight: 600; text-align: center; color: var(--ink); cursor: pointer; }
+    .pay-opt.active { border: 2px solid var(--brand); background: rgba(90,56,37,0.08); font-weight: 700; }
+    .addr-input { width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font-family: var(--font-sans); font-size: 13px; margin: 8px 0 10px; outline: none; }
+    .sum-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--mute); margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <div class="phone-screen" id="phoneScreen">
+      <div class="status-bar">
+        <span>9:41</span>
+        <div class="dynamic-island"></div>
+        <div class="status-icons"><span>5G</span><span>■■</span></div>
+      </div>
+
+      <main class="screen-scroll page-pad" style="padding-top:10px;">
+        <div style="margin-bottom:12px;">
+          <a href="cart.html" class="ghost-btn" style="padding:7px 12px; font-size:12.5px;">← Back to cart</a>
+        </div>
+
+        <h1 class="page-title">Checkout</h1>
+
+        <div class="seg-bar">
+          <button type="button" class="seg-btn" onclick="setOrderType('pickup', this)">Pickup</button>
+          <button type="button" class="seg-btn" onclick="setOrderType('dineIn', this)">Dine-in</button>
+          <button type="button" class="seg-btn active" onclick="setOrderType('delivery', this)">Delivery</button>
+        </div>
+
+        <div style="font-size:12px; font-weight:700; color:var(--mute); margin-top:4px;">Select Branch</div>
+        <div class="chips-row" id="branchChips" style="padding-top:6px;"></div>
+
+        <div id="deliveryBox" class="card-box" style="margin-top:12px;">
+          <div style="font-size:13.5px; font-weight:700;">Delivery Address</div>
+          <div style="display:flex; gap:6px; margin-top:8px;" id="savedAddrChips"></div>
+          <input id="addressInput" type="text" class="addr-input" value="Unit 1204, High Street South, BGC, Taguig" />
+
+          <div class="live-map-box" style="height:142px;">
+            <svg width="100%" height="100%" viewBox="0 0 330 142" style="position:absolute; inset:0;">
+              <path d="M 65 92 Q 160 32 252 72" fill="none" stroke="#5A3825" stroke-width="4" stroke-linecap="round"/>
+            </svg>
+            <div class="map-pill" id="mapKmPill" style="left:8px;">📍 1.4 km • ~12 mins</div>
+            <div class="map-pill" style="right:8px; cursor:pointer;" onclick="document.getElementById('addressInput').value='Unit 1204, High Street South, BGC, Taguig'">⌖ Use my location</div>
+            <div class="map-marker" style="left:48px; top:74px; background:#3B2314; color:#F7F1EB;">☕</div>
+            <div class="map-marker" style="right:54px; top:54px; background:#D6336C; color:#FFFFFF;">📍</div>
+          </div>
+        </div>
+
+        <div id="dineInBox" class="card-box" style="margin-top:12px; display:none;">
+          <div style="font-size:13.5px; font-weight:700;">🪑 Open Seating</div>
+          <div class="muted-text" style="margin-top:4px;">We'll call your name at the counter when freshly brewed. Grab any available table!</div>
+        </div>
+
+        <div class="card-box" style="margin-top:12px;">
+          <div style="font-size:14px; font-weight:700;">Payment</div>
+          <div class="pay-grid">
+            <button type="button" class="pay-opt" id="cashLabel" onclick="pickPay('cash', this)">Cash on delivery</button>
+            <button type="button" class="pay-opt active" onclick="pickPay('GCash', this)">GCash</button>
+            <button type="button" class="pay-opt" onclick="pickPay('Maya', this)">Maya</button>
+            <button type="button" class="pay-opt" onclick="pickPay('Card', this)">Card</button>
+          </div>
+        </div>
+
+        <div class="card-box row-between" style="margin-top:12px;">
+          <div>
+            <div id="stampsTitle" style="font-size:13px; font-weight:700;">CafeGO Comfort Club (6/8 Stamps)</div>
+            <div id="stampsSub" class="muted-text" style="font-size:11.5px;">Earn 1 stamp with this order!</div>
+          </div>
+          <span id="stampsBadge" class="status-badge" style="background:var(--surface-tint); color:var(--ink);">2 more</span>
+        </div>
+
+        <input id="orderNoteInput" type="text" placeholder="Add order note (optional)..." style="width:100%; margin-top:10px; padding:10px 12px; border-radius:12px; border:1px solid var(--line); background:var(--card); color:var(--ink); font-size:13px;" />
+
+        <div class="card-box" style="margin-top:12px; margin-bottom:16px;">
+          <div style="font-size:15px; font-weight:700; margin-bottom:10px;">Order Summary</div>
+          <div id="summaryItems"></div>
+          <div class="divider"></div>
+          <div class="sum-row"><span>Subtotal</span><span id="sumSubtotal">₱ 0.00</span></div>
+          <div class="sum-row" id="delFeeRow"><span>Delivery</span><span id="delFeeVal">₱ 45.00</span></div>
+          <div class="row-between" style="margin-top:8px;">
+            <strong style="font-size:16px;">Total</strong>
+            <strong id="grandTotalText" style="font-family:var(--font-serif); font-size:19px; color:var(--brand);">₱ 0.00</strong>
+          </div>
+        </div>
+
+        <button type="button" id="placeOrderBtn" class="brand-btn has-trailing" style="margin-bottom:10px;" onclick="placeOrder()">
+          <span id="placeOrderLabel">Place order</span>
+          <span id="btnTotalText">₱ 0.00</span>
+        </button>
+      </main>
+
+      <div class="home-bar-wrap"><div class="home-bar"></div></div>
+    </div>
+  </div>
+
+  <script src="demo-store.js"></script>
+  <script src="shared.js"></script>
+  <script>
+    let orderType = 'delivery';
+    let selectedBranch = CafeDemo.BRANCHES[0];
+    let selectedPayment = 'GCash';
+    let storeOpen = true;
+    let currentState = null;
+
+    function pickBranch(id) {
+      selectedBranch = CafeDemo.BRANCHES.find(b => b.id === id) || CafeDemo.BRANCHES[0];
+      renderBranches();
+      renderSummary();
+    }
+
+    function renderBranches() {
+      document.getElementById('branchChips').innerHTML = CafeDemo.BRANCHES.map(b => `
+        <button type="button" class="cat-chip ${b.id === selectedBranch.id ? 'active' : ''}" onclick="pickBranch('${b.id}')">${b.name}</button>
+      `).join('');
+      document.getElementById('mapKmPill').textContent = `📍 ${selectedBranch.km} km • ~${selectedBranch.eta} mins`;
+    }
+
+    function setOrderType(type, btn) {
+      orderType = type;
+      btn.parentElement.querySelectorAll('.seg-btn').forEach(s => s.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('deliveryBox').style.display = type === 'delivery' ? 'block' : 'none';
+      document.getElementById('dineInBox').style.display = type === 'dineIn' ? 'block' : 'none';
+      document.getElementById('cashLabel').textContent = type === 'delivery' ? 'Cash on delivery' : 'Pay at counter';
+      if (selectedPayment === 'cash') {
+        document.getElementById('cashLabel').classList.add('active');
+      }
+      renderSummary();
+    }
+
+    function pickPay(method, btn) {
+      selectedPayment = method;
+      btn.parentElement.querySelectorAll('.pay-opt').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    function computeTotals() {
+      const cart = (currentState && currentState.cart) || [];
+      const subtotal = cart.reduce((s, c) => s + c.unitPrice * c.qty, 0);
+      const deliveryFee = orderType === 'delivery' ? 45 : 0;
+      return { subtotal, deliveryFee, total: subtotal + deliveryFee };
+    }
+
+    function renderSummary() {
+      if (!currentState) return;
+      const cart = currentState.cart || [];
+      document.getElementById('summaryItems').innerHTML = cart.map(c => `
+        <div class="sum-row"><span>${c.qty}x ${c.name}</span><span>${CafeDemo.peso(c.unitPrice * c.qty)}</span></div>
+      `).join('');
+      const { subtotal, deliveryFee, total } = computeTotals();
+      document.getElementById('sumSubtotal').textContent = CafeDemo.peso(subtotal);
+      document.getElementById('delFeeRow').style.display = orderType === 'delivery' ? 'flex' : 'none';
+      document.getElementById('delFeeVal').textContent = CafeDemo.peso(deliveryFee);
+      document.getElementById('grandTotalText').textContent = CafeDemo.peso(total);
+      document.getElementById('btnTotalText').textContent = CafeDemo.peso(total);
+    }
+
+    function placeOrder() {
+      if (!storeOpen) return;
+      const cart = (currentState && currentState.cart) || [];
+      if (!cart.length) { window.location.href = 'menu.html'; return; }
+
+      const { subtotal, deliveryFee, total } = computeTotals();
+      const orderId = 'BB' + Math.floor(1000 + Math.random() * 8999).toString().slice(0, 3) + String.fromCharCode(65 + Math.floor(Math.random() * 26));
+      const isOnline = selectedPayment !== 'cash';
+      const payLabel = selectedPayment === 'cash' ? (orderType === 'delivery' ? 'Cash on delivery' : 'Pay at counter') : selectedPayment;
+
+      const newOrder = {
+        id: orderId,
+        userName: currentState.user.name || 'Customer User',
+        status: 'received',
+        type: orderType,
+        branchId: selectedBranch.id,
+        branchName: selectedBranch.name,
+        address: orderType === 'delivery' ? (document.getElementById('addressInput').value || 'BGC, Taguig') : null,
+        payment: payLabel,
+        paymentStatus: 'pending',
+        subtotal,
+        deliveryFee,
+        discount: 0,
+        total,
+        note: (document.getElementById('orderNoteInput').value || '').trim(),
+        createdAt: Date.now(),
+        driverId: null,
+        driverName: null,
+        driverStatus: null,
+        riderProgress: 0.12,
+        rating: null,
+        items: cart.map(c => ({
+          itemId: c.itemId,
+          name: c.name,
+          qty: c.qty,
+          total: c.unitPrice * c.qty,
+          summary: c.summary || '',
+          note: c.note || '',
+          imageUrl: c.imageUrl
+        }))
+      };
+
+      CafeDemo.setState(s => {
+        s.orders.unshift(newOrder);
+        s.cart = [];
+        s.activeOrderId = orderId;
+        s.pendingPayOrderId = orderId;
+        return s;
+      });
+
+      window.location.href = isOnline ? 'payment-authorize.html' : 'order-tracking.html';
+    }
+
+    CafeDemo.onUpdate(state => {
+      currentState = state;
+      storeOpen = state.storeOpen;
+      const stamps = state.user.loyaltyStamps || 0;
+      document.getElementById('stampsTitle').textContent = `CafeGO Comfort Club (${stamps}/8 Stamps)`;
+      const rem = Math.max(0, 8 - stamps);
+      document.getElementById('stampsBadge').textContent = rem === 0 ? 'Free!' : `${rem} more`;
+
+      document.getElementById('savedAddrChips').innerHTML = (state.user.addresses || []).map((a, idx) => `
+        <button type="button" class="cat-chip ${idx === 0 ? 'active' : ''}" style="padding:4px 10px; font-size:11px;" onclick="document.getElementById('addressInput').value='${a.line.replace(/'/g, "\\'")}'">${a.label}</button>
+      `).join('');
+
+      const btn = document.getElementById('placeOrderBtn');
+      const lbl = document.getElementById('placeOrderLabel');
+      if (!storeOpen) {
+        btn.classList.add('disabled');
+        lbl.textContent = 'Store Paused';
+      } else {
+        btn.classList.remove('disabled');
+        lbl.textContent = 'Place order';
+      }
+
+      renderBranches();
+      renderSummary();
+    });
+  </script>
+</body>
+</html>

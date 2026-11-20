@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CafeGO — Admin Orders</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .store-pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 12px; background: rgba(46,125,50,0.12); border: 0.8px solid #2E7D32; color: #2E7D32; font-size: 11px; font-weight: 600; cursor: pointer; }
+    .store-pill.paused { background: rgba(214,51,108,0.12); border-color: #D6336C; color: #D6336C; }
+    .store-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .admin-search { width: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; }
+    .admin-search input { flex: 1; border: none; background: transparent; outline: none; color: var(--ink); font-family: var(--font-sans); font-size: 13px; }
+    .admin-order-card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <div class="phone-screen" id="phoneScreen">
+      <div class="status-bar">
+        <span>9:41</span><div class="dynamic-island"></div><div class="status-icons"><span>5G</span><span>■■</span></div>
+      </div>
+
+      <header class="admin-top-bar">
+        <div class="app-logo">
+          <div class="app-logo-emblem sm"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h1a4 4 0 0 1 0 8h-1v1a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V8h16zm0 6h1a2 2 0 0 0 0-4h-1v4z"/></svg></div>
+          <div class="app-logo-wordmark" style="font-size:15.5px;">Cafe<span class="go">GO</span></div>
+        </div>
+        <span class="admin-badge">🛡️ ADMIN</span>
+        <button type="button" class="store-pill" id="storeStatusBtn" onclick="toggleStoreOpen()">
+          <span class="store-dot"></span>
+          <span id="storeStatusText">Open</span>
+        </button>
+        <div style="flex:1;"></div>
+        <button type="button" class="icon-btn-sm" onclick="toggleAppTheme()">◐</button>
+        <a href="menu.html" class="icon-btn-sm" title="View Customer Menu">🏪</a>
+        <a href="login.html" class="icon-btn-sm" title="Sign Out">⎋</a>
+      </header>
+
+      <main class="screen-scroll page-pad" style="padding-top:12px;">
+        <div class="admin-search">
+          <span style="color:var(--mute);">🔍</span>
+          <input type="text" id="orderQuery" placeholder="Search orders by ID or customer name..." oninput="renderOrders(CafeDemo.getState())" />
+        </div>
+
+        <div class="chips-row" style="margin-bottom:10px;">
+          <button type="button" class="cat-chip active" onclick="pickStatus('All', this)">All</button>
+          <button type="button" class="cat-chip" onclick="pickStatus('received', this)">Received</button>
+          <button type="button" class="cat-chip" onclick="pickStatus('preparing', this)">Preparing</button>
+          <button type="button" class="cat-chip" onclick="pickStatus('ready', this)">Ready</button>
+          <button type="button" class="cat-chip" onclick="pickStatus('completed', this)">Completed</button>
+          <button type="button" class="cat-chip" onclick="pickStatus('cancelled', this)">Cancelled</button>
+        </div>
+
+        <div id="adminOrdersList"></div>
+      </main>
+
+      <nav class="admin-bottom-bar">
+        <a href="admin-orders.html" class="admin-tab-pill active"><span>🧾</span><span id="ordersTabLbl">Orders</span></a>
+        <a href="admin-catalog.html" class="admin-tab-pill"><span>☕</span><span>Catalog</span></a>
+        <a href="admin-analytics.html" class="admin-tab-pill"><span>📊</span><span>Analytics</span></a>
+        <a href="admin-users.html" class="admin-tab-pill"><span>👥</span><span>Staff/Users</span></a>
+      </nav>
+
+      <div class="home-bar-wrap" style="background:var(--card);"><div class="home-bar"></div></div>
+    </div>
+  </div>
+
+  <script src="demo-store.js"></script>
+  <script src="shared.js"></script>
+  <script>
+    let activeSt = 'All';
+
+    function toggleStoreOpen() {
+      CafeDemo.setState(s => { s.storeOpen = !s.storeOpen; return s; });
+    }
+    function pickStatus(st, btn) {
+      activeSt = st;
+      btn.parentElement.querySelectorAll('.cat-chip').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderOrders(CafeDemo.getState());
+    }
+    function openDetails(id) {
+      CafeDemo.setState(s => { s.selectedAdminOrderId = id; return s; });
+      window.location.href = 'admin-order-details.html';
+    }
+    function advanceOrder(id, next) {
+      CafeDemo.setState(s => {
+        const o = s.orders.find(x => x.id === id);
+        if (o) {
+          o.status = next;
+          if (next === 'completed') {
+            o.paymentStatus = 'paid';
+            o.riderProgress = 1.0;
+            s.user.loyaltyStamps = Math.min(8, (s.user.loyaltyStamps || 0) + 1);
+          }
+        }
+        return s;
+      });
+    }
+    function cancelOrd(id) {
+      CafeDemo.setState(s => {
+        const o = s.orders.find(x => x.id === id);
+        if (o) o.status = 'cancelled';
+        return s;
+      });
+    }
+    function bumpGps(id) {
+      CafeDemo.setState(s => {
+        const o = s.orders.find(x => x.id === id);
+        if (o) o.riderProgress = Math.min(0.95, Number(((o.riderProgress || 0.2) + 0.25).toFixed(2)));
+        return s;
+      });
+    }
+
+    function renderOrders(state) {
+      const btn = document.getElementById('storeStatusBtn');
+      const txt = document.getElementById('storeStatusText');
+      btn.classList.toggle('paused', !state.storeOpen);
+      txt.textContent = state.storeOpen ? 'Open' : 'Paused';
+
+      const orders = state.orders || [];
+      const activeCount = orders.filter(o => o.status !== 'completed' && o.status !== 'cancelled').length;
+      document.getElementById('ordersTabLbl').textContent = activeCount ? `Orders (${activeCount})` : 'Orders';
+
+      const q = (document.getElementById('orderQuery').value || '').trim().toLowerCase();
+      const filtered = orders.filter(o => {
+        const stOk = activeSt === 'All' || o.status === activeSt;
+        const qOk = !q || o.id.toLowerCase().includes(q) || o.userName.toLowerCase().includes(q);
+        return stOk && qOk;
+      });
+
+      const list = document.getElementById('adminOrdersList');
+      if (!filtered.length) {
+        list.innerHTML = `<div style="text-align:center; padding:42px 16px;" class="muted-text">No matching orders</div>`;
+        return;
+      }
+
+      list.innerHTML = filtered.map(o => {
+        const nextSt = o.status === 'received' ? 'preparing' : o.status === 'preparing' ? 'ready' : o.status === 'ready' ? 'completed' : null;
+        const typeLbl = o.type === 'delivery' ? `Delivery • ${o.address || ''}` : o.type === 'dineIn' ? 'Dine-in' : 'Pickup';
+        return `
+          <div class="admin-order-card">
+            <div style="cursor:pointer;" onclick="openDetails('${o.id}')">
+              <div class="row-between">
+                <strong style="font-family:var(--font-serif); font-size:17px;">${o.userName}</strong>
+                <span class="status-badge ${o.status === 'cancelled' ? 'cancelled' : ''}">${CafeDemo.statusLabel(o.status)}</span>
+              </div>
+              <div class="muted-text" style="margin-top:6px; line-height:1.45;">
+                ${o.items.map(i => `${i.qty}x ${i.name}${i.summary ? ' (' + i.summary + ')' : ''}`).join('<br/>')}<br/>
+                #${o.id} • ${typeLbl} • ${o.payment} (${o.paymentStatus.toUpperCase()}) • ${CafeDemo.peso(o.total)}
+              </div>
+            </div>
+            <div style="margin-top:12px; display:flex; flex-direction:column; gap:8px;">
+              ${nextSt ? `<button type="button" class="brand-btn" style="height:42px; font-size:13.5px;" onclick="advanceOrder('${o.id}', '${nextSt}')">Mark as ${CafeDemo.statusLabel(nextSt).toLowerCase()}</button>` : ''}
+              <div style="display:flex; gap:8px;">
+                ${(o.type === 'delivery' && o.status === 'ready') ? `<button type="button" class="ghost-btn" style="flex:1;" onclick="bumpGps('${o.id}')">🛵 Advance Rider GPS</button>` : ''}
+                ${(o.status === 'received' || o.status === 'preparing') ? `<button type="button" class="ghost-btn" style="flex:1;" onclick="cancelOrd('${o.id}')">Cancel order</button>` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    CafeDemo.onUpdate(renderOrders);
+  </script>
+</body>
+</html>

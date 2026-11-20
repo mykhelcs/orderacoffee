@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CafeGO — Profile</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .avatar-circle { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #5A3825, #D4A373); color: #FFFFFF; font-family: var(--font-serif); font-size: 24px; font-weight: 800; display: flex; align-items: center; justify-content: center; position: relative; flex-shrink: 0; }
+    .gold-pill { display: inline-block; background: rgba(212,163,115,0.18); color: #D4A373; border: 1px solid rgba(212,163,115,0.4); font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 99px; margin-left: 6px; }
+    .loyalty-card { background: linear-gradient(135deg, #2E2728 0%, #1B1516 100%); color: #F7F2EE; border-radius: 20px; padding: 18px; margin: 16px 0 20px; border: 1px solid #3F3536; }
+    .progress-track { height: 9px; border-radius: 99px; background: rgba(255,255,255,0.14); overflow: hidden; margin: 12px 0 8px; }
+    .progress-fill { height: 100%; background: #D4A373; border-radius: 99px; transition: width 0.3s ease; }
+    .group-card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; overflow: hidden; margin-bottom: 18px; }
+    .profile-tile { display: flex; align-items: center; gap: 12px; padding: 13px 16px; text-decoration: none; color: var(--ink); cursor: pointer; }
+    .tile-icon { width: 36px; height: 36px; border-radius: 11px; background: rgba(90,56,37,0.12); color: var(--brand); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .dark-mode .tile-icon { background: rgba(212,163,115,0.15); }
+    .tile-div { height: 1px; background: var(--line); margin: 0 18px 0 64px; }
+    .switch-pill { width: 42px; height: 24px; border-radius: 99px; background: var(--line); position: relative; flex-shrink: 0; }
+    .dark-mode .switch-pill { background: var(--brand); }
+    .switch-knob { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #FFFFFF; transition: transform 0.2s; }
+    .dark-mode .switch-knob { transform: translateX(18px); }
+    .signout-btn { width: 100%; padding: 13px; border-radius: 16px; border: 1px solid rgba(214,51,108,0.4); background: transparent; color: #D6336C; font-family: var(--font-serif); font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: center; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <div class="phone-screen" id="phoneScreen">
+      <div class="status-bar">
+        <span>9:41</span><div class="dynamic-island"></div><div class="status-icons"><span>5G</span><span>■■</span></div>
+      </div>
+
+      <header class="main-top-bar">
+        <a href="menu.html" class="app-logo">
+          <div class="app-logo-emblem sm"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h1a4 4 0 0 1 0 8h-1v1a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V8h16zm0 6h1a2 2 0 0 0 0-4h-1v4z"/></svg></div>
+          <div class="app-logo-wordmark" style="font-size:18px;">Cafe<span class="go">GO</span></div>
+        </a>
+        <button type="button" class="theme-pill-btn" onclick="toggleAppTheme()"><span id="themeToggleIcon">🌙</span><span id="themeToggleLabel">Espresso</span></button>
+      </header>
+
+      <main class="screen-scroll page-pad">
+        <div class="card-box" style="display:flex; align-items:center; gap:14px;">
+          <div class="avatar-circle" id="profAvatar">C</div>
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; align-items:center; flex-wrap:wrap;">
+              <strong id="profName" style="font-size:16px;">Customer User</strong>
+              <span class="gold-pill">Gold Member</span>
+            </div>
+            <div id="profEmail" class="muted-text" style="font-size:12px; margin-top:2px;">customer@cafego.ph</div>
+            <div id="profPhone" class="muted-text" style="font-size:11.5px;">+63912345604</div>
+          </div>
+        </div>
+
+        <div class="loyalty-card">
+          <div class="row-between">
+            <span style="font-family:var(--font-serif); font-size:17px; font-weight:700;">CafeGO Comfort Club</span>
+            <span id="stampsPill" style="background:rgba(212,163,115,0.2); color:#D4A373; font-size:11.5px; font-weight:800; padding:3px 10px; border-radius:99px;">6 / 8 Stamps</span>
+          </div>
+          <div class="progress-track"><div class="progress-fill" id="stampsFill" style="width:75%;"></div></div>
+          <div class="row-between" style="font-size:12px; color:#A69A93;">
+            <span id="stampsMsg">2 more stamps to free beverage</span>
+            <span style="color:#E5A862; font-weight:700;">★ Halfway Milestone</span>
+          </div>
+        </div>
+
+        <div style="font-family:var(--font-serif); font-size:16px; font-weight:700; margin-bottom:10px;">Account &amp; Preferences</div>
+        <div class="group-card">
+          <a href="orders.html" class="profile-tile">
+            <div class="tile-icon">☕</div>
+            <div style="flex:1;"><div style="font-size:14.5px; font-weight:600;">Order History</div><div class="muted-text" style="font-size:11.5px;">View recent brews &amp; reorder</div></div>
+            <span class="muted-text">›</span>
+          </a>
+          <div class="tile-div"></div>
+          <a href="menu.html" class="profile-tile">
+            <div class="tile-icon">♡</div>
+            <div style="flex:1;"><div style="font-size:14.5px; font-weight:600;">My Favorites</div><div id="favCountLbl" class="muted-text" style="font-size:11.5px;">Custom drinks &amp; pastries (3)</div></div>
+            <span class="muted-text">›</span>
+          </a>
+          <div class="tile-div"></div>
+          <div class="profile-tile">
+            <div class="tile-icon">📍</div>
+            <div style="flex:1;"><div style="font-size:14.5px; font-weight:600;">Delivery Addresses</div><div id="addrCountLbl" class="muted-text" style="font-size:11.5px;">Saved home &amp; office spots</div></div>
+            <span class="muted-text">›</span>
+          </div>
+          <div class="tile-div"></div>
+          <div class="profile-tile" onclick="toggleAppTheme()">
+            <div class="tile-icon">◐</div>
+            <div style="flex:1;"><div style="font-size:14.5px; font-weight:600;">Appearance</div><div class="muted-text" style="font-size:11.5px;">Creamy Light / Espresso Dark</div></div>
+            <div class="switch-pill"><div class="switch-knob"></div></div>
+          </div>
+        </div>
+
+        <div style="font-family:var(--font-serif); font-size:16px; font-weight:700; margin-bottom:10px;">More</div>
+        <div class="group-card">
+          <div class="profile-tile"><div class="tile-icon">?</div><div style="flex:1;"><div style="font-size:14.5px; font-weight:600;">Help &amp; FAQ</div><div class="muted-text" style="font-size:11.5px;">Questions about ordering and rewards</div></div><span class="muted-text">›</span></div>
+          <div class="tile-div"></div>
+          <div class="profile-tile"><div class="tile-icon">🏪</div><div style="flex:1;"><div style="font-size:14.5px; font-weight:600;">CafeGO Store Locator</div><div class="muted-text" style="font-size:11.5px;">4 Metro Manila flagship branches</div></div><span class="muted-text">›</span></div>
+        </div>
+
+        <a href="login.html" class="signout-btn">Sign Out</a>
+        <div style="text-align:center; margin:10px 0 18px;"><span class="muted-text" style="font-size:12px;">Delete Account</span></div>
+      </main>
+
+      <nav class="main-bottom-nav">
+        <a href="menu.html" class="nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/></svg><span>Menu</span></a>
+        <a href="cart.html" class="nav-item"><div class="nav-icon-wrap"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span class="nav-badge" data-cart-badge>0</span></div><span>Cart</span></a>
+        <a href="orders.html" class="nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h5"/></svg><span>Orders</span></a>
+        <a href="profile.html" class="nav-item active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/></svg><span>Profile</span></a>
+      </nav>
+
+      <div class="home-bar-wrap" style="background:var(--card);"><div class="home-bar"></div></div>
+    </div>
+  </div>
+
+  <script src="demo-store.js"></script>
+  <script src="shared.js"></script>
+  <script>
+    CafeDemo.onUpdate(state => {
+      CafeDemo.updateNavBadges(state);
+      const u = state.user || {};
+      document.getElementById('profName').textContent = u.name || 'Customer User';
+      document.getElementById('profAvatar').textContent = (u.name || 'C')[0].toUpperCase();
+      document.getElementById('profEmail').textContent = u.email || 'customer@cafego.ph';
+      document.getElementById('profPhone').textContent = u.phone || '+63912345604';
+
+      const stamps = Math.min(8, u.loyaltyStamps || 0);
+      document.getElementById('stampsPill').textContent = `${stamps} / 8 Stamps`;
+      document.getElementById('stampsFill').style.width = `${(stamps / 8) * 100}%`;
+      const rem = Math.max(0, 8 - stamps);
+      document.getElementById('stampsMsg').textContent = rem === 0 ? 'Free beverage reward unlocked!' : `${rem} more stamps to free beverage`;
+      document.getElementById('favCountLbl').textContent = `Custom drinks & pastries (${(u.favorites || []).length})`;
+    });
+  </script>
+</body>
+</html>

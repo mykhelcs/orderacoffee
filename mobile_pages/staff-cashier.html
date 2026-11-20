@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CafeGO — Cashier Drawer</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .cashier-backdrop { flex: 1; background: rgba(27,18,12,0.52); display: flex; flex-direction: column; justify-content: flex-end; }
+    .cashier-sheet { background: var(--card); border-radius: 26px 26px 0 0; padding: 16px 20px 24px; border-top: 1px solid var(--line); }
+    .due-box { background: var(--bg); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin: 12px 0; display: flex; justify-content: space-between; align-items: center; }
+    .quick-cash-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+    .cash-input { width: 100%; padding: 12px 14px; border-radius: 14px; border: 1.5px solid var(--brand); background: var(--bg); color: var(--ink); font-family: var(--font-sans); font-size: 16px; font-weight: 700; outline: none; }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <div class="phone-screen" id="phoneScreen">
+      <div class="status-bar light-text" style="background:rgba(27,18,12,0.52);">
+        <span>9:41</span><div class="dynamic-island"></div><div class="status-icons"><span>5G</span><span>■■</span></div>
+      </div>
+
+      <div class="cashier-backdrop">
+        <div class="cashier-sheet">
+          <div style="width:42px; height:4px; border-radius:99px; background:var(--line); margin:0 auto 14px;"></div>
+          <div class="row-between">
+            <h1 style="font-family:var(--font-serif); font-size:20px; font-weight:700;">Cash Register / Payment</h1>
+            <a href="staff-kds.html" class="icon-btn-sm">✕</a>
+          </div>
+          <div id="cashCust" class="muted-text" style="margin-top:2px;">Customer: Juan Dela Cruz</div>
+
+          <div class="due-box">
+            <span style="font-size:13.5px; color:var(--mute); font-weight:600;">Total Amount Due</span>
+            <strong id="cashDue" style="font-family:var(--font-serif); font-size:22px; color:var(--brand);">₱ 140.00</strong>
+          </div>
+
+          <div style="font-size:12px; font-weight:700; color:var(--mute); margin-bottom:6px;">Quick Tendered</div>
+          <div class="quick-cash-row">
+            <button type="button" class="cat-chip" onclick="setExact(this)">Exact</button>
+            <button type="button" class="cat-chip active" onclick="setCash(500, this)">₱500</button>
+            <button type="button" class="cat-chip" onclick="setCash(1000, this)">₱1,000</button>
+          </div>
+
+          <div style="font-size:12px; font-weight:700; color:var(--mute); margin-bottom:6px;">Cash Tendered / Amount Received (₱)</div>
+          <input id="tenderedInput" type="number" class="cash-input" value="500" oninput="recalcChange()" />
+
+          <div class="row-between" style="margin:14px 0 18px; padding:12px 14px; background:rgba(46,125,50,0.1); border-radius:12px;">
+            <span style="font-size:13.5px; font-weight:700; color:var(--ok);">Change to Return</span>
+            <strong id="changeDueText" style="font-size:18px; font-weight:800; color:var(--ok);">₱ 360.00</strong>
+          </div>
+
+          <button type="button" class="brand-btn" onclick="confirmReceipt()">Confirm Cash Receipt</button>
+        </div>
+      </div>
+
+      <div class="home-bar-wrap" style="background:var(--card);"><div class="home-bar"></div></div>
+    </div>
+  </div>
+
+  <script src="demo-store.js"></script>
+  <script src="shared.js"></script>
+  <script>
+    let targetOrderId = null;
+    let totalDue = 140;
+
+    function setExact(btn) { setCash(totalDue, btn); }
+    function setCash(val, btn) {
+      document.querySelectorAll('.quick-cash-row .cat-chip').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      document.getElementById('tenderedInput').value = val;
+      recalcChange();
+    }
+    function recalcChange() {
+      const tendered = parseFloat(document.getElementById('tenderedInput').value) || 0;
+      document.getElementById('changeDueText').textContent = CafeDemo.peso(Math.max(0, tendered - totalDue));
+    }
+    function confirmReceipt() {
+      CafeDemo.setState(s => {
+        const o = s.orders.find(x => x.id === targetOrderId);
+        if (o) o.paymentStatus = 'paid';
+        return s;
+      });
+      window.location.href = 'staff-kds.html';
+    }
+
+    CafeDemo.onUpdate(state => {
+      const o = state.orders.find(x => x.id === state.cashierOrderId) || state.orders.find(x => x.paymentStatus === 'pending') || state.orders[0];
+      if (!o) return;
+      targetOrderId = o.id;
+      totalDue = o.total;
+      document.getElementById('cashCust').textContent = 'Customer: ' + o.userName + ' (#' + o.id + ')';
+      document.getElementById('cashDue').textContent = CafeDemo.peso(totalDue);
+      recalcChange();
+    });
+  </script>
+</body>
+</html>
